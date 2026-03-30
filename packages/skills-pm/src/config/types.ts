@@ -33,4 +33,5 @@ export type SkillsLock = {
 export type AddCommandOptions = {
   cwd: string
   specifier: string
+  skill?: string
 }

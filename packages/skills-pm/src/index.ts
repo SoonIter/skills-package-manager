@@ -1,3 +1,5 @@
 export { addCommand } from './commands/add'
 export { installCommand } from './commands/install'
 export { runCli } from './cli/runCli'
+export { listRepoSkills, cloneAndDiscover, discoverSkillsInDir, parseOwnerRepo, parseGitHubUrl } from './github/listSkills'
+export type { SkillInfo } from './github/types'
