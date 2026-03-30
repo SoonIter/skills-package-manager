@@ -7,6 +7,7 @@ import { linkSkill } from './links'
 import { readInstallState, writeInstallState } from './installState'
 import { materializeGitSkill } from './materializeGitSkill'
 import { materializeLocalSkill } from './materializeLocalSkill'
+import { pruneManagedSkills } from './pruneManagedSkills'
 
 function extractSkillPath(specifier: string, skillName: string): string {
   const marker = '#path:'
@@ -35,6 +36,8 @@ export async function installSkills(rootDir: string) {
 
   const installDir = manifest.installDir ?? '.agents/skills'
   const linkTargets = manifest.linkTargets ?? []
+
+  await pruneManagedSkills(rootDir, installDir, linkTargets, Object.keys(lockfile.skills))
 
   for (const [skillName, entry] of Object.entries(lockfile.skills)) {
     if (entry.resolution.type === 'file') {

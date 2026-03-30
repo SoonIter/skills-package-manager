@@ -146,22 +146,19 @@ describe('installSkills', () => {
       linkTargets: ['.cursor/skills'],
       skills: {
         'hello-skill': `file:${path.resolve('/Users/bytedance/Documents/codes/skills-pm/packages/skills-pm/test/fixtures/local-source')}#path:/skills/hello-skill`,
+        'obsolete-skill': `file:${path.resolve('/Users/bytedance/Documents/codes/skills-pm/packages/skills-pm/test/fixtures/local-source')}#path:/skills/hello-skill`,
       },
     })
 
     await installSkills(root)
 
-    require('node:fs').mkdirSync(path.join(root, '.agents/skills/obsolete-skill'), { recursive: true })
-    require('node:fs').writeFileSync(
-      path.join(root, '.agents/skills/obsolete-skill/.skills-pm.json'),
-      JSON.stringify({ installedBy: 'skills-pm', name: 'obsolete-skill' }),
-    )
-    require('node:fs').writeFileSync(path.join(root, '.agents/skills/obsolete-skill/SKILL.md'), '# Obsolete\n')
-    require('node:fs').mkdirSync(path.join(root, '.cursor/skills'), { recursive: true })
-    require('node:fs').symlinkSync(
-      path.join(root, '.agents/skills/obsolete-skill'),
-      path.join(root, '.cursor/skills/obsolete-skill'),
-    )
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: ['.cursor/skills'],
+      skills: {
+        'hello-skill': `file:${path.resolve('/Users/bytedance/Documents/codes/skills-pm/packages/skills-pm/test/fixtures/local-source')}#path:/skills/hello-skill`,
+      },
+    })
 
     await installSkills(root)
 
