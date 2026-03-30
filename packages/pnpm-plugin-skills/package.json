@@ -2,17 +2,21 @@
   "name": "pnpm-plugin-skills",
   "version": "0.1.0",
   "type": "commonjs",
-  "main": "dist/runtime.cjs",
+  "main": "dist/index.js",
   "files": [
     "dist",
     "pnpmfile.cjs"
   ],
   "scripts": {
-    "build": "node ./scripts/build-plugin.mjs",
-    "test": "vitest run"
+    "build": "rslib build"
+  },
+  "dependencies": {
+    "skills-pm": "workspace:*"
   },
   "devDependencies": {
-    "vitest": "^3.1.0"
+    "@rslib/core": "^0.20.0",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.0"
   },
   "publishConfig": {
     "access": "public",

@@ -10,8 +10,7 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "rslib build",
-    "test": "vitest run"
+    "build": "rslib build"
   },
   "dependencies": {
     "yaml": "^2.8.1"
@@ -19,7 +18,6 @@
   "devDependencies": {
     "@rslib/core": "^0.20.0",
     "@types/node": "^24.0.0",
-    "typescript": "^5.8.0",
-    "vitest": "^3.1.0"
+    "typescript": "^5.8.0"
   }
 }

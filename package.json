@@ -6,6 +6,10 @@
   "scripts": {
     "prepare": "pnpm run build",
     "build": "pnpm -r build",
-    "test": "pnpm -r test"
+    "test": "rstest run"
+  },
+  "devDependencies": {
+    "@rstest/core": "^0.9.4",
+    "path-serializer": "^0.6.0"
   }
 }

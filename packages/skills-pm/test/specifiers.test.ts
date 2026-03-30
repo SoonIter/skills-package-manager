@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from '@rstest/core'
 import { normalizeSpecifier } from '../src/specifiers/normalizeSpecifier'
 
 describe('normalizeSpecifier', () => {

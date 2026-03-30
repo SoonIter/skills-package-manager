@@ -1,4 +1,4 @@
-const { preResolution } = require('./dist/runtime.cjs')
+const { preResolution } = require('./dist/index.js')
 
 module.exports = {
   hooks: {

@@ -1,10 +1,9 @@
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { describe, it, expect } from 'vitest'
-import runtimeModule from '../src/runtime'
+import { describe, it, expect } from '@rstest/core'
+import { preResolution } from '../src/index'
 
-const { preResolution } = runtimeModule
 const repoRoot = path.resolve(__dirname, '../../..')
 describe('preResolution', () => {
   it('installs skills from workspace root when manifest and lock exist', async () => {

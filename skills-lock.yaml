@@ -1,10 +1,19 @@
 lockfileVersion: "0.1"
 installDir: .agents/skills
-linkTargets: []
+linkTargets:
+  - .cursor/skills
 skills:
   hello-skill:
     specifier: file:./packages/skills-pm/test/fixtures/local-source#path:/skills/hello-skill
     resolution:
       type: file
-      path: /Users/bytedance/Documents/codes/skills-pm/packages/skills-pm/test/fixtures/local-source
-    digest: sha256-271f91bb7782cd8f973051ba0db6e16310437799542c39536db4cc0044bc94e0
+      path: /Users/appe/Documents/codes/skills-pm/packages/skills-pm/test/fixtures/local-source
+    digest: sha256-de75f558130a7675b1294b184ba5d1a311de554cf2ffdfc90c6dfdf3f0092a5f
+  rspress-custom-theme:
+    specifier: https://github.com/rstackjs/agent-skills.git#path:/skills/rspress-custom-theme
+    resolution:
+      type: git
+      url: https://github.com/rstackjs/agent-skills.git
+      commit: 6cb0992a176f2ca142e19f64dca8ac12025b035e
+      path: /skills/rspress-custom-theme
+    digest: sha256-480d684299c0c44c5d6614d241ebd335756408f0db2445370d5768770b445498

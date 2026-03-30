@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from '@rstest/core'
 import { mkdtempSync, existsSync, lstatSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -14,7 +14,7 @@ describe('installSkills', () => {
       installDir: '.agents/skills',
       linkTargets: ['.cursor/skills'],
       skills: {
-        'hello-skill': `file:${path.resolve('/Users/bytedance/Documents/codes/skills-pm/packages/skills-pm/test/fixtures/local-source')}#path:/skills/hello-skill`,
+        'hello-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
       },
     })
     await writeSkillsLock(root, {
@@ -23,10 +23,10 @@ describe('installSkills', () => {
       linkTargets: ['.cursor/skills'],
       skills: {
         'hello-skill': {
-          specifier: 'file:./packages/skills-pm/test/fixtures/local-source#path:/skills/hello-skill',
+          specifier: `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
           resolution: {
             type: 'file',
-            path: path.resolve('/Users/bytedance/Documents/codes/skills-pm/packages/skills-pm/test/fixtures/local-source'),
+            path: path.resolve(__dirname, 'fixtures/local-source'),
           },
           digest: 'test-digest',
         },
@@ -145,8 +145,8 @@ describe('installSkills', () => {
       installDir: '.agents/skills',
       linkTargets: ['.cursor/skills'],
       skills: {
-        'hello-skill': `file:${path.resolve('/Users/bytedance/Documents/codes/skills-pm/packages/skills-pm/test/fixtures/local-source')}#path:/skills/hello-skill`,
-        'obsolete-skill': `file:${path.resolve('/Users/bytedance/Documents/codes/skills-pm/packages/skills-pm/test/fixtures/local-source')}#path:/skills/hello-skill`,
+        'hello-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+        'obsolete-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
       },
     })
 
@@ -156,7 +156,7 @@ describe('installSkills', () => {
       installDir: '.agents/skills',
       linkTargets: ['.cursor/skills'],
       skills: {
-        'hello-skill': `file:${path.resolve('/Users/bytedance/Documents/codes/skills-pm/packages/skills-pm/test/fixtures/local-source')}#path:/skills/hello-skill`,
+        'hello-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
       },
     })
 
