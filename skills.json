@@ -1,0 +1,7 @@
+{
+  "installDir": ".agents/skills",
+  "linkTargets": [],
+  "skills": {
+    "hello-skill": "file:./packages/skills-pm/test/fixtures/local-source#path:/skills/hello-skill"
+  }
+}

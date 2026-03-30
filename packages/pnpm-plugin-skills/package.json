@@ -1,0 +1,22 @@
+{
+  "name": "pnpm-plugin-skills",
+  "version": "0.1.0",
+  "type": "commonjs",
+  "main": "dist/runtime.cjs",
+  "files": [
+    "dist",
+    "pnpmfile.cjs"
+  ],
+  "scripts": {
+    "build": "node ./scripts/build-plugin.mjs",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^3.1.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "license": "ISC"
+}

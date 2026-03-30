@@ -1,0 +1,10 @@
+lockfileVersion: "0.1"
+installDir: .agents/skills
+linkTargets: []
+skills:
+  hello-skill:
+    specifier: file:./packages/skills-pm/test/fixtures/local-source#path:/skills/hello-skill
+    resolution:
+      type: file
+      path: /Users/bytedance/Documents/codes/skills-pm/packages/skills-pm/test/fixtures/local-source
+    digest: sha256-271f91bb7782cd8f973051ba0db6e16310437799542c39536db4cc0044bc94e0

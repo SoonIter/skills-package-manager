@@ -1,0 +1,11 @@
+{
+  "name": "skills-pm-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "prepare": "pnpm run build",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test"
+  }
+}
