@@ -35,6 +35,13 @@ npx skills-package-manager add file:./my-skills#path:/skills/my-skill
 npx skills-package-manager install
 ```
 
+### Update declared skills
+
+```bash
+npx skills-package-manager update
+npx skills-package-manager update find-skills rspress-custom-theme
+```
+
 ## How It Works
 
 skills-package-manager uses two files to manage skills:

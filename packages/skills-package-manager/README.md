@@ -41,6 +41,23 @@ spm install
 
 This resolves each skill from its specifier, materializes it into `installDir` (default `.agents/skills/`), and creates symlinks for each `linkTarget`.
 
+### `spm update`
+
+Refresh git-based skills declared in `skills.json` without changing the manifest:
+
+```bash
+spm update
+spm update find-skills rspress-custom-theme
+```
+
+Behavior:
+
+- Uses `skills.json` as the source of truth
+- Re-resolves git refs to the latest commit
+- Skips `file:` skills
+- Fails immediately for unknown skill names
+- Writes `skills-lock.yaml` only after fetch and link succeed
+
 ## Programmatic API
 
 ```typescript
