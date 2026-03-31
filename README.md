@@ -1,12 +1,12 @@
-# skills-pm
+# spm
 
 A package manager for [agent skills](https://skills.sh) — manage, install, and link SKILL.md-based skills into your AI coding agents.
 
 ## Overview
 
-skills-pm is a monorepo that provides:
+spm is a monorepo that provides:
 
-- **[skills-pm](./packages/skills-pm/)** — Core library and CLI for managing agent skills
+- **[skills-package-manager](./packages/skills-package-manager/)** — Core library and `spm` CLI for managing agent skills
 - **[pnpm-plugin-skills](./packages/pnpm-plugin-skills/)** — pnpm plugin that auto-installs skills during `pnpm install`
 
 ## Quick Start
@@ -15,30 +15,30 @@ skills-pm is a monorepo that provides:
 
 ```bash
 # Interactive — browse and select skills
-npx skills-pm add vercel-labs/skills
+npx spm add vercel-labs/skills
 
 # By name
-npx skills-pm add vercel-labs/skills --skill find-skills
+npx spm add vercel-labs/skills --skill find-skills
 
 # Full GitHub URL
-npx skills-pm add https://github.com/rstackjs/agent-skills --skill rspress-custom-theme
+npx spm add https://github.com/rstackjs/agent-skills --skill rspress-custom-theme
 ```
 
 ### Add a local skill
 
 ```bash
-npx skills-pm add file:./my-skills#path:/skills/my-skill
+npx spm add file:./my-skills#path:/skills/my-skill
 ```
 
 ### Install all skills
 
 ```bash
-npx skills-pm install
+npx spm install
 ```
 
 ## How It Works
 
-skills-pm uses two files to manage skills:
+spm uses two files to manage skills:
 
 ### `skills.json` — Manifest
 
@@ -113,8 +113,8 @@ pnpm test
 ```
 skills-pm/
 ├── packages/
-│   ├── skills-pm/          # Core library and CLI
-│   └── pnpm-plugin-skills/ # pnpm plugin (auto-install on pnpm install)
+│   ├── skills-package-manager/ # Core library and spm CLI
+│   └── pnpm-plugin-skills/     # pnpm plugin (auto-install on pnpm install)
 ├── skills.json             # Manifest (which skills to install)
 ├── skills-lock.yaml        # Lockfile (resolved versions)
 └── pnpm-workspace.yaml

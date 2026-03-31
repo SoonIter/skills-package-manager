@@ -1,4 +1,4 @@
-import { installCommand } from 'skills-pm'
+import { installCommand } from 'skills-package-manager'
 
 export async function preResolution(
   options: { lockfileDir?: string; workspaceRoot?: string } = {},

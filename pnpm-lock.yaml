@@ -19,9 +19,9 @@ importers:
 
   packages/pnpm-plugin-skills:
     dependencies:
-      skills-pm:
+      skills-package-manager:
         specifier: workspace:*
-        version: link:../skills-pm
+        version: link:../skills-package-manager
     devDependencies:
       '@rslib/core':
         specifier: ^0.20.0
@@ -33,7 +33,7 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
-  packages/skills-pm:
+  packages/skills-package-manager:
     dependencies:
       '@clack/prompts':
         specifier: ^1.1.0

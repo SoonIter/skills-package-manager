@@ -1,24 +1,24 @@
-# skills-pm
+# spm
 
 Core library and CLI for managing agent skills.
 
 ## CLI Usage
 
-### `skills add`
+### `spm add`
 
 Add skills to your project.
 
 ```bash
 # Interactive — clone repo, discover skills, select via multiselect prompt
-skills add owner/repo
-skills add https://github.com/owner/repo
+spm add owner/repo
+spm add https://github.com/owner/repo
 
 # Non-interactive — add a specific skill by name
-skills add owner/repo --skill find-skills
+spm add owner/repo --skill find-skills
 
 # Direct specifier — skip discovery
-skills add https://github.com/owner/repo.git#path:/skills/my-skill
-skills add file:./local-source#path:/skills/my-skill
+spm add https://github.com/owner/repo.git#path:/skills/my-skill
+spm add file:./local-source#path:/skills/my-skill
 ```
 
 #### How it works
@@ -31,12 +31,12 @@ When given `owner/repo` or a GitHub URL:
 4. Writes selected skills to `skills.json` and resolves `skills-lock.yaml`
 5. Cleans up the temp directory
 
-### `skills install`
+### `spm install`
 
 Install all skills declared in `skills.json`:
 
 ```bash
-skills install
+spm install
 ```
 
 This resolves each skill from its specifier, materializes it into `installDir` (default `.agents/skills/`), and creates symlinks for each `linkTarget`.
@@ -44,7 +44,7 @@ This resolves each skill from its specifier, materializes it into `installDir` (
 ## Programmatic API
 
 ```typescript
-import { addCommand, installCommand, listRepoSkills } from 'skills-pm'
+import { addCommand, installCommand, listRepoSkills } from 'skills-package-manager'
 
 // Add a skill
 await addCommand({
@@ -82,7 +82,7 @@ const skills = await listRepoSkills('vercel-labs', 'skills')
 
 ```
 src/
-├── bin/           # CLI entry points (skills-pm, skills)
+├── bin/           # CLI entry points (spm, skills)
 ├── cli/           # CLI runner and interactive prompts
 ├── commands/      # add, install command implementations
 ├── config/        # skills.json / skills-lock.yaml read/write
@@ -103,3 +103,4 @@ pnpm build    # Builds with Rslib (ESM output + DTS)
 ```bash
 pnpm test     # Runs tests with Rstest
 ```
+``

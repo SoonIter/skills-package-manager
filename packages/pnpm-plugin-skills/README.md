@@ -36,7 +36,7 @@ Now `pnpm install` will automatically install your skills.
 
 ## Architecture
 
-The plugin is built as a single CJS bundle (via Rslib with `autoExternal: false`) that inlines all dependencies including `skills-pm`. This ensures it works as a standalone `pnpmfile.cjs` plugin without any external runtime dependencies.
+The plugin is built as a single CJS bundle (via Rslib with `autoExternal: false`) that inlines all dependencies including `skills-package-manager`. This ensures it works as a standalone `pnpmfile.cjs` plugin without any external runtime dependencies.
 
 ```
 pnpm-plugin-skills/

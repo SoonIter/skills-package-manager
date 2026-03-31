@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the core `skills-pm` CLI in TypeScript with `@rslib/core`, covering `skills-pm add` and `skills-pm install` for pnpm-style specifiers plus manifest/lock management and local installation.
+**Goal:** Build the core `spm` CLI in TypeScript with `@rslib/core`, covering `spm add` and `spm install` for pnpm-style specifiers plus manifest/lock management and local installation.
 
-**Architecture:** The repo will become a small monorepo with `packages/skills-pm` for the CLI and `packages/pnpm-plugin-skills` reserved for later pnpm integration. The core implementation will live in focused TypeScript modules for manifest I/O, specifier parsing, lock generation, install state, local filesystem materialization, and command entrypoints. `0.1.0` implementation should prioritize deterministic local/file-based flow first while keeping git-oriented specifier parsing and lock shapes aligned with the agreed design.
+**Architecture:** The repo will become a small monorepo with `packages/skills-package-manager` for the CLI and `packages/pnpm-plugin-skills` reserved for later pnpm integration. The core implementation will live in focused TypeScript modules for manifest I/O, specifier parsing, lock generation, install state, local filesystem materialization, and command entrypoints. `0.1.0` implementation should prioritize deterministic local/file-based flow first while keeping git-oriented specifier parsing and lock shapes aligned with the agreed design.
 
 **Tech Stack:** TypeScript, Node.js, `@rslib/core`, Vitest, YAML parser/stringifier, fs/path APIs
 
@@ -15,34 +15,34 @@
 - Create: `pnpm-workspace.yaml`
 - Modify: `package.json`
 - Create: `tsconfig.json`
-- Create: `packages/skills-pm/package.json`
-- Create: `packages/skills-pm/rslib.config.ts`
-- Create: `packages/skills-pm/tsconfig.json`
-- Create: `packages/skills-pm/src/bin/skills-pm.ts`
-- Create: `packages/skills-pm/src/bin/skills.ts`
-- Create: `packages/skills-pm/src/cli/runCli.ts`
-- Create: `packages/skills-pm/src/commands/add.ts`
-- Create: `packages/skills-pm/src/commands/install.ts`
-- Create: `packages/skills-pm/src/config/readSkillsManifest.ts`
-- Create: `packages/skills-pm/src/config/writeSkillsManifest.ts`
-- Create: `packages/skills-pm/src/config/readSkillsLock.ts`
-- Create: `packages/skills-pm/src/config/writeSkillsLock.ts`
-- Create: `packages/skills-pm/src/config/types.ts`
-- Create: `packages/skills-pm/src/specifiers/parseSpecifier.ts`
-- Create: `packages/skills-pm/src/specifiers/normalizeSpecifier.ts`
-- Create: `packages/skills-pm/src/install/installSkills.ts`
-- Create: `packages/skills-pm/src/install/materializeLocalSkill.ts`
-- Create: `packages/skills-pm/src/install/installState.ts`
-- Create: `packages/skills-pm/src/install/links.ts`
-- Create: `packages/skills-pm/src/utils/hash.ts`
-- Create: `packages/skills-pm/src/utils/fs.ts`
-- Create: `packages/skills-pm/src/index.ts`
-- Create: `packages/skills-pm/test/fixtures/local-source/skills/hello-skill/SKILL.md`
-- Create: `packages/skills-pm/test/fixtures/local-source/skills/hello-skill/references/example.md`
-- Create: `packages/skills-pm/test/manifest.test.ts`
-- Create: `packages/skills-pm/test/specifiers.test.ts`
-- Create: `packages/skills-pm/test/add.test.ts`
-- Create: `packages/skills-pm/test/install.test.ts`
+- Create: `packages/skills-package-manager/package.json`
+- Create: `packages/skills-package-manager/rslib.config.ts`
+- Create: `packages/skills-package-manager/tsconfig.json`
+- Create: `packages/skills-package-manager/src/bin/spm.ts`
+- Create: `packages/skills-package-manager/src/bin/spm.ts`
+- Create: `packages/skills-package-manager/src/cli/runCli.ts`
+- Create: `packages/skills-package-manager/src/commands/add.ts`
+- Create: `packages/skills-package-manager/src/commands/install.ts`
+- Create: `packages/skills-package-manager/src/config/readSkillsManifest.ts`
+- Create: `packages/skills-package-manager/src/config/writeSkillsManifest.ts`
+- Create: `packages/skills-package-manager/src/config/readSkillsLock.ts`
+- Create: `packages/skills-package-manager/src/config/writeSkillsLock.ts`
+- Create: `packages/skills-package-manager/src/config/types.ts`
+- Create: `packages/skills-package-manager/src/specifiers/parseSpecifier.ts`
+- Create: `packages/skills-package-manager/src/specifiers/normalizeSpecifier.ts`
+- Create: `packages/skills-package-manager/src/install/installSkills.ts`
+- Create: `packages/skills-package-manager/src/install/materializeLocalSkill.ts`
+- Create: `packages/skills-package-manager/src/install/installState.ts`
+- Create: `packages/skills-package-manager/src/install/links.ts`
+- Create: `packages/skills-package-manager/src/utils/hash.ts`
+- Create: `packages/skills-package-manager/src/utils/fs.ts`
+- Create: `packages/skills-package-manager/src/index.ts`
+- Create: `packages/skills-package-manager/test/fixtures/local-source/skills/hello-skill/SKILL.md`
+- Create: `packages/skills-package-manager/test/fixtures/local-source/skills/hello-skill/references/example.md`
+- Create: `packages/skills-package-manager/test/manifest.test.ts`
+- Create: `packages/skills-package-manager/test/specifiers.test.ts`
+- Create: `packages/skills-package-manager/test/add.test.ts`
+- Create: `packages/skills-package-manager/test/install.test.ts`
 
 ### Task 1: Scaffold workspace and package layout
 
@@ -50,16 +50,16 @@
 - Create: `pnpm-workspace.yaml`
 - Modify: `package.json`
 - Create: `tsconfig.json`
-- Create: `packages/skills-pm/package.json`
-- Create: `packages/skills-pm/rslib.config.ts`
-- Create: `packages/skills-pm/tsconfig.json`
+- Create: `packages/skills-package-manager/package.json`
+- Create: `packages/skills-package-manager/rslib.config.ts`
+- Create: `packages/skills-package-manager/tsconfig.json`
 
 - [ ] **Step 1: Write the failing workspace/package test expectation as a checklist comment in plan execution notes**
 
 ```txt
 Expected repository layout after scaffolding:
 - pnpm-workspace.yaml exists
-- packages/skills-pm/package.json exists
+- packages/skills-package-manager/package.json exists
 - package.json is private workspace root
 - root packageManager is pnpm
 ```
@@ -77,7 +77,7 @@ Write to `pnpm-workspace.yaml`.
 
 ```json
 {
-  "name": "skills-pm-workspace",
+  "name": "skills-package-manager-workspace",
   "private": true,
   "version": "0.1.0",
   "packageManager": "pnpm@10",
@@ -108,16 +108,15 @@ Write to `pnpm-workspace.yaml`.
 
 Write to `tsconfig.json`.
 
-- [ ] **Step 5: Create `packages/skills-pm/package.json`**
+- [ ] **Step 5: Create `packages/skills-package-manager/package.json`**
 
 ```json
 {
-  "name": "skills-pm",
+  "name": "skills-package-manager",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "skills-pm": "dist/bin/skills-pm.js",
-    "skills": "dist/bin/skills.js"
+    "spm": "dist/bin/spm.js"
   },
   "exports": {
     ".": "./dist/index.js"
@@ -138,7 +137,7 @@ Write to `tsconfig.json`.
 }
 ```
 
-- [ ] **Step 6: Create `packages/skills-pm/tsconfig.json`**
+- [ ] **Step 6: Create `packages/skills-package-manager/tsconfig.json`**
 
 ```json
 {
@@ -151,7 +150,7 @@ Write to `tsconfig.json`.
 }
 ```
 
-- [ ] **Step 7: Create `packages/skills-pm/rslib.config.ts`**
+- [ ] **Step 7: Create `packages/skills-package-manager/rslib.config.ts`**
 
 ```ts
 import { defineConfig } from '@rslib/core'
@@ -160,8 +159,8 @@ export default defineConfig({
   source: {
     entry: {
       index: './src/index.ts',
-      'bin/skills-pm': './src/bin/skills-pm.ts',
-      'bin/skills': './src/bin/skills.ts',
+      'bin/spm': './src/bin/spm.ts',
+      'bin/spm': './src/bin/spm.ts',
     },
   },
   output: {
@@ -175,27 +174,27 @@ export default defineConfig({
 - [ ] **Step 8: Run workspace install**
 
 Run: `pnpm install`
-Expected: workspace dependencies install successfully and `packages/skills-pm/node_modules` is created
+Expected: workspace dependencies install successfully and `packages/skills-package-manager/node_modules` is created
 
 - [ ] **Step 9: Run build to verify scaffold works**
 
 Run: `pnpm build`
-Expected: build succeeds and writes `packages/skills-pm/dist`
+Expected: build succeeds and writes `packages/skills-package-manager/dist`
 
 - [ ] **Step 10: Commit**
 
 ```bash
-git add package.json pnpm-workspace.yaml tsconfig.json packages/skills-pm/package.json packages/skills-pm/tsconfig.json packages/skills-pm/rslib.config.ts pnpm-lock.yaml
-git commit -m "chore: scaffold skills-pm workspace"
+git add package.json pnpm-workspace.yaml tsconfig.json packages/skills-package-manager/package.json packages/skills-package-manager/tsconfig.json packages/skills-package-manager/rslib.config.ts pnpm-lock.yaml
+git commit -m "chore: scaffold spm workspace"
 ```
 
 ### Task 2: Define manifest, lock, and specifier types with tests
 
 **Files:**
-- Create: `packages/skills-pm/src/config/types.ts`
-- Create: `packages/skills-pm/src/specifiers/parseSpecifier.ts`
-- Create: `packages/skills-pm/src/specifiers/normalizeSpecifier.ts`
-- Create: `packages/skills-pm/test/specifiers.test.ts`
+- Create: `packages/skills-package-manager/src/config/types.ts`
+- Create: `packages/skills-package-manager/src/specifiers/parseSpecifier.ts`
+- Create: `packages/skills-package-manager/src/specifiers/normalizeSpecifier.ts`
+- Create: `packages/skills-package-manager/test/specifiers.test.ts`
 
 - [ ] **Step 1: Write the failing specifier tests**
 
@@ -264,7 +263,7 @@ export type SkillsLockEntry = {
 }
 ```
 
-Write to `packages/skills-pm/src/config/types.ts`.
+Write to `packages/skills-package-manager/src/config/types.ts`.
 
 - [ ] **Step 3: Implement `parseSpecifier`**
 
@@ -337,24 +336,24 @@ export function normalizeSpecifier(specifier: string): NormalizedSpecifier {
 
 - [ ] **Step 5: Run tests to verify type/specifier behavior**
 
-Run: `pnpm --filter skills-pm test -- specifiers.test.ts`
+Run: `pnpm --filter spm test -- specifiers.test.ts`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add packages/skills-pm/src/config/types.ts packages/skills-pm/src/specifiers/parseSpecifier.ts packages/skills-pm/src/specifiers/normalizeSpecifier.ts packages/skills-pm/test/specifiers.test.ts
+git add packages/skills-package-manager/src/config/types.ts packages/skills-package-manager/src/specifiers/parseSpecifier.ts packages/skills-package-manager/src/specifiers/normalizeSpecifier.ts packages/skills-package-manager/test/specifiers.test.ts
 git commit -m "feat: add skills specifier parsing"
 ```
 
 ### Task 3: Implement manifest and lock read/write helpers
 
 **Files:**
-- Create: `packages/skills-pm/src/config/readSkillsManifest.ts`
-- Create: `packages/skills-pm/src/config/writeSkillsManifest.ts`
-- Create: `packages/skills-pm/src/config/readSkillsLock.ts`
-- Create: `packages/skills-pm/src/config/writeSkillsLock.ts`
-- Create: `packages/skills-pm/test/manifest.test.ts`
+- Create: `packages/skills-package-manager/src/config/readSkillsManifest.ts`
+- Create: `packages/skills-package-manager/src/config/writeSkillsManifest.ts`
+- Create: `packages/skills-package-manager/src/config/readSkillsLock.ts`
+- Create: `packages/skills-package-manager/src/config/writeSkillsLock.ts`
+- Create: `packages/skills-package-manager/test/manifest.test.ts`
 
 - [ ] **Step 1: Write the failing manifest/lock tests**
 
@@ -368,7 +367,7 @@ import { readSkillsManifest } from '../src/config/readSkillsManifest'
 
 describe('manifest io', () => {
   it('writes default manifest shape', async () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-'))
+    const root = mkdtempSync(path.join(tmpdir(), 'spm-'))
     await writeSkillsManifest(root, { skills: { hello: 'file:./skills/hello' } })
     const manifest = await readSkillsManifest(root)
     expect(manifest).toEqual({
@@ -449,27 +448,27 @@ export async function writeSkillsLock(rootDir: string, lockfile: SkillsLock): Pr
 
 - [ ] **Step 5: Run tests**
 
-Run: `pnpm --filter skills-pm test -- manifest.test.ts`
+Run: `pnpm --filter spm test -- manifest.test.ts`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add packages/skills-pm/src/config/readSkillsManifest.ts packages/skills-pm/src/config/writeSkillsManifest.ts packages/skills-pm/src/config/readSkillsLock.ts packages/skills-pm/src/config/writeSkillsLock.ts packages/skills-pm/test/manifest.test.ts
+git add packages/skills-package-manager/src/config/readSkillsManifest.ts packages/skills-package-manager/src/config/writeSkillsManifest.ts packages/skills-package-manager/src/config/readSkillsLock.ts packages/skills-package-manager/src/config/writeSkillsLock.ts packages/skills-package-manager/test/manifest.test.ts
 git commit -m "feat: add manifest and lock io"
 ```
 
 ### Task 4: Implement local install primitives and tests
 
 **Files:**
-- Create: `packages/skills-pm/src/utils/hash.ts`
-- Create: `packages/skills-pm/src/utils/fs.ts`
-- Create: `packages/skills-pm/src/install/materializeLocalSkill.ts`
-- Create: `packages/skills-pm/src/install/links.ts`
-- Create: `packages/skills-pm/src/install/installState.ts`
-- Create: `packages/skills-pm/test/fixtures/local-source/skills/hello-skill/SKILL.md`
-- Create: `packages/skills-pm/test/fixtures/local-source/skills/hello-skill/references/example.md`
-- Create: `packages/skills-pm/test/install.test.ts`
+- Create: `packages/skills-package-manager/src/utils/hash.ts`
+- Create: `packages/skills-package-manager/src/utils/fs.ts`
+- Create: `packages/skills-package-manager/src/install/materializeLocalSkill.ts`
+- Create: `packages/skills-package-manager/src/install/links.ts`
+- Create: `packages/skills-package-manager/src/install/installState.ts`
+- Create: `packages/skills-package-manager/test/fixtures/local-source/skills/hello-skill/SKILL.md`
+- Create: `packages/skills-package-manager/test/fixtures/local-source/skills/hello-skill/references/example.md`
+- Create: `packages/skills-package-manager/test/install.test.ts`
 
 - [ ] **Step 1: Write the failing install test for a local skill**
 
@@ -484,7 +483,7 @@ import { writeSkillsLock } from '../src/config/writeSkillsLock'
 
 describe('installSkills', () => {
   it('installs a local skill and creates symlinks', async () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-'))
+    const root = mkdtempSync(path.join(tmpdir(), 'spm-install-'))
     await writeSkillsManifest(root, {
       installDir: '.agents/skills',
       linkTargets: ['.cursor/skills'],
@@ -501,7 +500,7 @@ describe('installSkills', () => {
           specifier: 'file:./test/fixtures/local-source#path:/skills/hello-skill',
           resolution: {
             type: 'file',
-            path: path.resolve('packages/skills-pm/test/fixtures/local-source'),
+            path: path.resolve('packages/skills-package-manager/test/fixtures/local-source'),
           },
           digest: 'test-digest',
         },
@@ -527,13 +526,13 @@ describe('installSkills', () => {
 This is a local fixture skill.
 ```
 
-Write the content above to `packages/skills-pm/test/fixtures/local-source/skills/hello-skill/SKILL.md`.
+Write the content above to `packages/skills-package-manager/test/fixtures/local-source/skills/hello-skill/SKILL.md`.
 
 ```md
 Example reference document.
 ```
 
-Write the content above to `packages/skills-pm/test/fixtures/local-source/skills/hello-skill/references/example.md`.
+Write the content above to `packages/skills-package-manager/test/fixtures/local-source/skills/hello-skill/references/example.md`.
 
 - [ ] **Step 3: Implement filesystem helpers**
 
@@ -576,7 +575,7 @@ import path from 'node:path'
 import { writeJson } from '../utils/fs'
 
 export async function readInstallState(rootDir: string) {
-  const filePath = path.join(rootDir, '.agents/skills/.skills-pm-install-state.json')
+  const filePath = path.join(rootDir, '.agents/skills/.spm-install-state.json')
   try {
     return JSON.parse(await readFile(filePath, 'utf8'))
   } catch {
@@ -585,7 +584,7 @@ export async function readInstallState(rootDir: string) {
 }
 
 export async function writeInstallState(rootDir: string, value: unknown) {
-  const filePath = path.join(rootDir, '.agents/skills/.skills-pm-install-state.json')
+  const filePath = path.join(rootDir, '.agents/skills/.spm-install-state.json')
   await writeJson(filePath, value)
 }
 ```
@@ -606,9 +605,9 @@ export async function materializeLocalSkill(rootDir: string, skillName: string, 
   const targetDir = path.join(rootDir, installDir, skillName)
   await ensureDir(path.dirname(targetDir))
   await cp(absoluteSkillPath, targetDir, { recursive: true, force: true })
-  await writeJson(path.join(targetDir, '.skills-pm.json'), {
+  await writeJson(path.join(targetDir, '.spm.json'), {
     name: skillName,
-    installedBy: 'skills-pm',
+    installedBy: 'skills-package-manager',
     version: '0.1.0',
   })
 }
@@ -623,21 +622,21 @@ export async function linkSkill(rootDir: string, installDir: string, linkTarget:
 
 - [ ] **Step 6: Run the failing test and verify it now passes once `installSkills` exists as a stub**
 
-Run: `pnpm --filter skills-pm test -- install.test.ts`
+Run: `pnpm --filter spm test -- install.test.ts`
 Expected: FAIL first because `installSkills` is not implemented
 
 - [ ] **Step 7: Commit fixture and helper work**
 
 ```bash
-git add packages/skills-pm/src/utils/hash.ts packages/skills-pm/src/utils/fs.ts packages/skills-pm/src/install/materializeLocalSkill.ts packages/skills-pm/src/install/links.ts packages/skills-pm/src/install/installState.ts packages/skills-pm/test/install.test.ts packages/skills-pm/test/fixtures/local-source/skills/hello-skill/SKILL.md packages/skills-pm/test/fixtures/local-source/skills/hello-skill/references/example.md
+git add packages/skills-package-manager/src/utils/hash.ts packages/skills-package-manager/src/utils/fs.ts packages/skills-package-manager/src/install/materializeLocalSkill.ts packages/skills-package-manager/src/install/links.ts packages/skills-package-manager/src/install/installState.ts packages/skills-package-manager/test/install.test.ts packages/skills-package-manager/test/fixtures/local-source/skills/hello-skill/SKILL.md packages/skills-package-manager/test/fixtures/local-source/skills/hello-skill/references/example.md
 git commit -m "feat: add local skill install primitives"
 ```
 
-### Task 5: Implement `skills-pm install`
+### Task 5: Implement `spm install`
 
 **Files:**
-- Create: `packages/skills-pm/src/install/installSkills.ts`
-- Modify: `packages/skills-pm/test/install.test.ts`
+- Create: `packages/skills-package-manager/src/install/installSkills.ts`
+- Modify: `packages/skills-package-manager/test/install.test.ts`
 
 - [ ] **Step 1: Add a failing install-state test**
 
@@ -720,22 +719,22 @@ Then refactor this extraction into a tiny helper in the same file if needed.
 
 - [ ] **Step 4: Run install tests**
 
-Run: `pnpm --filter skills-pm test -- install.test.ts`
+Run: `pnpm --filter spm test -- install.test.ts`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/skills-pm/src/install/installSkills.ts packages/skills-pm/test/install.test.ts
-git commit -m "feat: implement skills install"
+git add packages/skills-package-manager/src/install/installSkills.ts packages/skills-package-manager/test/install.test.ts
+git commit -m "feat: implement spm install"
 ```
 
-### Task 6: Implement `skills-pm add`
+### Task 6: Implement `spm add`
 
 **Files:**
-- Create: `packages/skills-pm/src/commands/add.ts`
-- Create: `packages/skills-pm/test/add.test.ts`
-- Modify: `packages/skills-pm/src/config/types.ts`
+- Create: `packages/skills-package-manager/src/commands/add.ts`
+- Create: `packages/skills-package-manager/test/add.test.ts`
+- Modify: `packages/skills-package-manager/src/config/types.ts`
 
 - [ ] **Step 1: Write the failing `add` test for file specifiers**
 
@@ -749,16 +748,16 @@ import { addCommand } from '../src/commands/add'
 
 describe('addCommand', () => {
   it('writes manifest and lock for a file skill specifier', async () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-'))
+    const root = mkdtempSync(path.join(tmpdir(), 'spm-add-'))
     await addCommand({
       cwd: root,
-      specifier: 'file:./packages/skills-pm/test/fixtures/local-source#path:/skills/hello-skill',
+      specifier: 'file:./packages/skills-package-manager/test/fixtures/local-source#path:/skills/hello-skill',
     })
 
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
     const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
 
-    expect(manifest.skills['hello-skill']).toBe('file:./packages/skills-pm/test/fixtures/local-source#path:/skills/hello-skill')
+    expect(manifest.skills['hello-skill']).toBe('file:./packages/skills-package-manager/test/fixtures/local-source#path:/skills/hello-skill')
     expect(lockfile.skills['hello-skill'].resolution.type).toBe('file')
   })
 })
@@ -773,7 +772,7 @@ export type AddCommandOptions = {
 }
 ```
 
-Add this to `packages/skills-pm/src/config/types.ts` if you need a shared type.
+Add this to `packages/skills-package-manager/src/config/types.ts` if you need a shared type.
 
 - [ ] **Step 3: Implement `addCommand`**
 
@@ -836,31 +835,31 @@ Replace the single-entry `skills` object with a merge against the current lockfi
 
 - [ ] **Step 5: Run add tests**
 
-Run: `pnpm --filter skills-pm test -- add.test.ts`
+Run: `pnpm --filter spm test -- add.test.ts`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add packages/skills-pm/src/commands/add.ts packages/skills-pm/src/config/types.ts packages/skills-pm/test/add.test.ts
-git commit -m "feat: implement skills add"
+git add packages/skills-package-manager/src/commands/add.ts packages/skills-package-manager/src/config/types.ts packages/skills-package-manager/test/add.test.ts
+git commit -m "feat: implement spm add"
 ```
 
-### Task 7: Implement CLI entrypoints for `skills-pm` and `skills`
+### Task 7: Implement CLI entrypoints for `spm` and `skills`
 
 **Files:**
-- Create: `packages/skills-pm/src/cli/runCli.ts`
-- Create: `packages/skills-pm/src/bin/skills-pm.ts`
-- Create: `packages/skills-pm/src/bin/skills.ts`
-- Create: `packages/skills-pm/src/commands/install.ts`
-- Create: `packages/skills-pm/src/index.ts`
+- Create: `packages/skills-package-manager/src/cli/runCli.ts`
+- Create: `packages/skills-package-manager/src/bin/spm.ts`
+- Create: `packages/skills-package-manager/src/bin/spm.ts`
+- Create: `packages/skills-package-manager/src/commands/install.ts`
+- Create: `packages/skills-package-manager/src/index.ts`
 
 - [ ] **Step 1: Write the failing CLI smoke test as manual commands to run after implementation**
 
 ```txt
-pnpm --filter skills-pm exec skills-pm add file:./packages/skills-pm/test/fixtures/local-source#path:/skills/hello-skill
-pnpm --filter skills-pm exec skills-pm install
-pnpm --filter skills-pm exec skills install
+pnpm --filter spm exec spm add file:./packages/skills-package-manager/test/fixtures/local-source#path:/skills/hello-skill
+pnpm --filter spm exec spm install
+pnpm --filter spm exec spm install
 ```
 
 Expected:
@@ -915,8 +914,8 @@ runCli(process.argv).catch((error) => {
 ```
 
 Write the same content to both:
-- `packages/skills-pm/src/bin/skills-pm.ts`
-- `packages/skills-pm/src/bin/skills.ts`
+- `packages/skills-package-manager/src/bin/spm.ts`
+- `packages/skills-package-manager/src/bin/spm.ts`
 
 - [ ] **Step 5: Export public API**
 
@@ -926,18 +925,18 @@ export { installCommand } from './commands/install'
 export { runCli } from './cli/runCli'
 ```
 
-Write to `packages/skills-pm/src/index.ts`.
+Write to `packages/skills-package-manager/src/index.ts`.
 
 - [ ] **Step 6: Build and run CLI smoke commands**
 
-Run: `pnpm build && pnpm --filter skills-pm exec skills-pm add file:./packages/skills-pm/test/fixtures/local-source#path:/skills/hello-skill`
+Run: `pnpm build && pnpm --filter spm exec spm add file:./packages/skills-package-manager/test/fixtures/local-source#path:/skills/hello-skill`
 Expected: command succeeds and writes manifest/lock in repo root
 
-Run: `pnpm --filter skills-pm exec skills-pm install`
+Run: `pnpm --filter spm exec spm install`
 Expected: `.agents/skills/hello-skill/SKILL.md` exists in repo root
 
-Run: `pnpm --filter skills-pm exec skills install`
-Expected: command succeeds and is functionally identical to `skills-pm install`
+Run: `pnpm --filter spm exec spm install`
+Expected: command succeeds and is functionally identical to `spm install`
 
 - [ ] **Step 7: Run full test suite**
 
@@ -947,22 +946,22 @@ Expected: PASS
 - [ ] **Step 8: Commit**
 
 ```bash
-git add packages/skills-pm/src/cli/runCli.ts packages/skills-pm/src/bin/skills-pm.ts packages/skills-pm/src/bin/skills.ts packages/skills-pm/src/commands/install.ts packages/skills-pm/src/index.ts
+git add packages/skills-package-manager/src/cli/runCli.ts packages/skills-package-manager/src/bin/spm.ts packages/skills-package-manager/src/bin/spm.ts packages/skills-package-manager/src/commands/install.ts packages/skills-package-manager/src/index.ts
 git commit -m "feat: add cli entrypoints"
 ```
 
 ### Task 8: Self-review and tighten plan-to-code alignment
 
 **Files:**
-- Modify: `docs/superpowers/plans/2026-03-30-skills-pm-core.md`
+- Modify: `docs/superpowers/plans/2026-03-30-spm-core.md`
 
 - [ ] **Step 1: Check spec coverage against the saved design notes**
 
 Review `plans/20260330-init.md` and ensure this implementation plan covers:
 - workspace setup
 - TypeScript + `@rslib/core`
-- `skills-pm add`
-- `skills-pm install`
+- `spm add`
+- `spm install`
 - manifest/lock handling
 - local install flow
 - dual bin entrypoints
@@ -992,6 +991,6 @@ Check that all names used in the plan match exactly:
 - [ ] **Step 4: Commit plan adjustments if any**
 
 ```bash
-git add docs/superpowers/plans/2026-03-30-skills-pm-core.md
-git commit -m "docs: refine skills-pm implementation plan"
+git add docs/superpowers/plans/2026-03-30-spm-core.md
+git commit -m "docs: refine spm implementation plan"
 ```

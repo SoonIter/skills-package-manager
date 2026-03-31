@@ -4,7 +4,7 @@ import path from 'node:path'
 async function isManagedSkillDir(dirPath: string): Promise<boolean> {
   try {
     const marker = JSON.parse(await readFile(path.join(dirPath, '.skills-pm.json'), 'utf8'))
-    return marker?.installedBy === 'skills-pm'
+    return marker?.installedBy === 'skills-package-manager'
   } catch {
     return false
   }

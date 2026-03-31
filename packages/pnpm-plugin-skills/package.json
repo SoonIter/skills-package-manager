@@ -11,7 +11,7 @@
     "build": "rslib build"
   },
   "dependencies": {
-    "skills-pm": "workspace:*"
+    "skills-package-manager": "workspace:*"
   },
   "devDependencies": {
     "@rslib/core": "^0.20.0",

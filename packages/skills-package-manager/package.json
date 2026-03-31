@@ -1,10 +1,9 @@
 {
-  "name": "skills-pm",
+  "name": "skills-package-manager",
   "version": "0.1.1",
   "type": "module",
   "bin": {
-    "skills-pm": "dist/bin/skills-pm.js",
-    "skills": "dist/bin/skills.js"
+    "spm": "dist/bin/spm.js"
   },
   "exports": {
     ".": "./dist/index.js"

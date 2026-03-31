@@ -8,8 +8,7 @@ export default defineConfig({
       source: {
         entry: {
           index: './src/index.ts',
-          'bin/skills-pm': './src/bin/skills-pm.ts',
-          'bin/skills': './src/bin/skills.ts',
+          'bin/spm': './src/bin/spm.ts',
         },
       },
       output: {

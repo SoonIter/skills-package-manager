@@ -29,7 +29,7 @@ export async function materializeLocalSkill(
   await cp(absoluteSkillPath, targetDir, { recursive: true, force: true })
   await writeJson(path.join(targetDir, '.skills-pm.json'), {
     name: skillName,
-    installedBy: 'skills-pm',
+    installedBy: 'skills-package-manager',
     version: '0.1.0',
   })
 }

@@ -11,13 +11,13 @@ describe('addCommand', () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-'))
     await addCommand({
       cwd: root,
-      specifier: 'file:./packages/skills-pm/test/fixtures/local-source#path:/skills/hello-skill',
+      specifier: 'file:./packages/skills-package-manager/test/fixtures/local-source#path:/skills/hello-skill',
     })
 
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
     const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
 
-    expect(manifest.skills['hello-skill']).toBe('file:./packages/skills-pm/test/fixtures/local-source#path:/skills/hello-skill')
+    expect(manifest.skills['hello-skill']).toBe('file:./packages/skills-package-manager/test/fixtures/local-source#path:/skills/hello-skill')
     expect(lockfile.skills['hello-skill'].resolution.type).toBe('file')
   })
 

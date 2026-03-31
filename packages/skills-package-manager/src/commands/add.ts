@@ -60,7 +60,7 @@ export async function addCommand(options: AddCommandOptions) {
     const { owner, repo } = parsed
     const source = `${owner}/${repo}`
 
-    p.intro(pc.bgCyan(pc.black(' skills-pm ')))
+    p.intro(pc.bgCyan(pc.black(' spm ')))
 
     const spinner = p.spinner()
 

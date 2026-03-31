@@ -2,7 +2,7 @@
   "installDir": ".agents/skills",
   "linkTargets": [".cursor/skills"],
   "skills": {
-    "hello-skill": "file:./packages/skills-pm/test/fixtures/local-source#path:/skills/hello-skill",
+    "hello-skill": "file:./packages/skills-package-manager/test/fixtures/local-source#path:/skills/hello-skill",
     "rspress-custom-theme": "https://github.com/rstackjs/agent-skills.git#path:/skills/rspress-custom-theme"
   }
 }
