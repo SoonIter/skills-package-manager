@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@rstest/core'
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { execSync } from 'node:child_process'
@@ -9,16 +9,47 @@ import { addCommand } from '../src/commands/add'
 describe('addCommand', () => {
   it('writes manifest and lock for a file skill specifier', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-'))
+    mkdirSync(path.join(root, 'local-source/skills/hello-skill'), { recursive: true })
+    writeFileSync(path.join(root, 'local-source/skills/hello-skill/SKILL.md'), '# Hello skill\n')
+
     await addCommand({
       cwd: root,
-      specifier: 'file:./packages/skills-package-manager/test/fixtures/local-source#path:/skills/hello-skill',
+      specifier: 'file:./local-source#path:/skills/hello-skill',
     })
 
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
     const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
 
-    expect(manifest.skills['hello-skill']).toBe('file:./packages/skills-package-manager/test/fixtures/local-source#path:/skills/hello-skill')
+    expect(manifest.skills['hello-skill']).toBe('file:./local-source#path:/skills/hello-skill')
     expect(lockfile.skills['hello-skill'].resolution.type).toBe('file')
+  })
+
+  it('installs and links a file skill immediately after add', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-install-'))
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: ['.cursor/skills'],
+          skills: {},
+        },
+        null,
+        2,
+      ),
+    )
+
+    await addCommand({
+      cwd: root,
+      specifier: `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+    })
+
+    const installedSkill = path.join(root, '.agents/skills/hello-skill/SKILL.md')
+    const linkedSkill = path.join(root, '.cursor/skills/hello-skill')
+
+    expect(existsSync(installedSkill)).toBe(true)
+    expect(lstatSync(linkedSkill).isSymbolicLink()).toBe(true)
+    expect(readFileSync(installedSkill, 'utf8')).toContain('Hello skill')
   })
 
   it('writes manifest and lock for a git skill specifier', async () => {

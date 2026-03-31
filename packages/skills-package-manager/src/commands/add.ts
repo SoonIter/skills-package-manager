@@ -9,6 +9,7 @@ import type { AddCommandOptions } from '../config/types'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { listRepoSkills, parseOwnerRepo, parseGitHubUrl } from '../github/listSkills'
 import { promptSkillSelection } from '../cli/prompt'
+import { installSkills } from '../install/installSkills'
 
 function isProtocolSpecifier(specifier: string): boolean {
   return /^[a-z]+:/.test(specifier)
@@ -74,6 +75,7 @@ export async function addCommand(options: AddCommandOptions) {
       const skillPath = found?.path ?? `/${skill}`
       const gitSpecifier = buildGitHubSpecifier(owner, repo, skillPath)
       const result = await addSingleSkill(cwd, gitSpecifier)
+      await installSkills(cwd)
       p.outro(`Added ${pc.cyan(result.skillName)}`)
       return result
     }
@@ -100,11 +102,14 @@ export async function addCommand(options: AddCommandOptions) {
       p.log.success(`Added ${pc.cyan(result.skillName)}`)
     }
 
+    await installSkills(cwd)
     p.outro('Done')
     return results.length === 1 ? results[0] : results
   }
 
   // Protocol specifier (file:, npm:, git URL with fragment, etc.) — direct add
-  return addSingleSkill(cwd, specifier)
+  const result = await addSingleSkill(cwd, specifier)
+  await installSkills(cwd)
+  return result
 }
 

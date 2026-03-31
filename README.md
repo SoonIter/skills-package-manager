@@ -29,6 +29,8 @@ npx skills-package-manager add https://github.com/rstackjs/agent-skills --skill 
 npx skills-package-manager add file:./my-skills#path:/skills/my-skill
 ```
 
+`spm add` will install and link the newly added skills immediately.
+
 ### Install all skills
 
 ```bash

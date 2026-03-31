@@ -21,6 +21,8 @@ spm add https://github.com/owner/repo.git#path:/skills/my-skill
 spm add file:./local-source#path:/skills/my-skill
 ```
 
+After `spm add`, the newly added skills are resolved, materialized into `installDir`, and linked to each configured `linkTarget` immediately.
+
 #### How it works
 
 When given `owner/repo` or a GitHub URL:
