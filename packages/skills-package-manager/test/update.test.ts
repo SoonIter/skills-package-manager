@@ -27,6 +27,9 @@ describe('resolveLockEntry', () => {
 
     expect(skillName).toBe('hello-skill')
     expect(entry.resolution.type).toBe('git')
+    if (entry.resolution.type !== 'git') {
+      throw new Error('Expected git resolution')
+    }
     expect(entry.resolution.commit).toBe(commit)
     expect(entry.resolution.path).toBe('/skills/hello-skill')
   })
