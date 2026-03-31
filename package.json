@@ -6,10 +6,12 @@
   "scripts": {
     "prepare": "pnpm run build",
     "build": "pnpm -r build",
+    "bump": "bumpp -r --no-commit --no-tag --no-push",
     "test": "rstest run"
   },
   "devDependencies": {
     "@rstest/core": "^0.9.4",
+    "bumpp": "^11.0.1",
     "path-serializer": "^0.6.0"
   }
 }
