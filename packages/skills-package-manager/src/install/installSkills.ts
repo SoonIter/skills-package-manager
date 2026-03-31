@@ -10,6 +10,10 @@ import { materializeGitSkill } from './materializeGitSkill'
 import { materializeLocalSkill } from './materializeLocalSkill'
 import { pruneManagedSkills } from './pruneManagedSkills'
 
+export const installStageHooks = {
+  beforeFetch: async (_rootDir: string, _manifest: SkillsManifest, _lockfile: SkillsLock) => {},
+}
+
 function extractSkillPath(specifier: string, skillName: string): string {
   const marker = '#path:'
   const index = specifier.indexOf(marker)
@@ -20,6 +24,8 @@ function extractSkillPath(specifier: string, skillName: string): string {
 }
 
 export async function fetchSkillsFromLock(rootDir: string, manifest: SkillsManifest, lockfile: SkillsLock) {
+  await installStageHooks.beforeFetch(rootDir, manifest, lockfile)
+
   const lockDigest = sha256(JSON.stringify(lockfile))
   const state = await readInstallState(rootDir)
   if (state?.lockDigest === lockDigest) {

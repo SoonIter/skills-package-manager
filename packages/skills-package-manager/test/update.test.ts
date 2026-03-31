@@ -5,7 +5,7 @@ import path from 'node:path'
 import { execSync } from 'node:child_process'
 import YAML from 'yaml'
 import { resolveLockEntry } from '../src/config/syncSkillsLock'
-import { fetchSkillsFromLock, linkSkillsFromLock } from '../src/install/installSkills'
+import { fetchSkillsFromLock, installStageHooks, linkSkillsFromLock } from '../src/install/installSkills'
 import { updateCommand } from '../src/commands/update'
 import type { SkillsLock, SkillsManifest } from '../src/config/types'
 
@@ -149,5 +149,65 @@ describe('updateCommand resolve', () => {
     expect(result.unchanged).toEqual([])
     const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
     expect(lockfile.skills['hello-skill'].resolution.commit).toBe(newCommit)
+  })
+
+  it('does not write the new lockfile when fetch fails', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-atomic-'))
+    const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-atomic-source-'))
+
+    mkdirSync(path.join(gitRepo, 'skills/hello-skill'), { recursive: true })
+    writeFileSync(path.join(gitRepo, 'skills/hello-skill/SKILL.md'), '# Atomic v1\n')
+    execSync('git init', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git config user.email test@example.com', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git config user.name test', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
+    const oldCommit = execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
+
+    writeFileSync(path.join(gitRepo, 'skills/hello-skill/SKILL.md'), '# Atomic v2\n')
+    execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git commit -m update', { cwd: gitRepo, stdio: 'ignore' })
+
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': `${gitRepo}#HEAD&path:/skills/hello-skill`,
+          },
+        },
+        null,
+        2,
+      ),
+    )
+
+    writeFileSync(
+      path.join(root, 'skills-lock.yaml'),
+      YAML.stringify({
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `${gitRepo}#HEAD&path:/skills/hello-skill`,
+            resolution: { type: 'git', url: gitRepo, commit: oldCommit, path: '/skills/hello-skill' },
+            digest: `sha256-${oldCommit}`,
+          },
+        },
+      }),
+    )
+
+    installStageHooks.beforeFetch = async () => {
+      throw new Error('Simulated fetch failure')
+    }
+
+    await expect(updateCommand({ cwd: root })).rejects.toThrow('Simulated fetch failure')
+
+    const persisted = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+    expect(persisted.skills['hello-skill'].resolution.commit).toBe(oldCommit)
+
+    installStageHooks.beforeFetch = async () => {}
   })
 })
