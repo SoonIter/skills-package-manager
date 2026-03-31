@@ -1,5 +1,6 @@
 import { addCommand } from '../commands/add'
 import { installCommand } from '../commands/install'
+import { updateCommand } from '../commands/update'
 
 function parseArgs(args: string[]): { positionals: string[]; flags: Record<string, string> } {
   const positionals: string[] = []
@@ -39,6 +40,11 @@ export async function runCli(argv: string[]) {
 
   if (command === 'install') {
     return installCommand({ cwd })
+  }
+
+  if (command === 'update') {
+    const { positionals } = parseArgs(rest)
+    return updateCommand({ cwd, skills: positionals.length > 0 ? positionals : undefined })
   }
 
   throw new Error(`Unknown command: ${command}`)

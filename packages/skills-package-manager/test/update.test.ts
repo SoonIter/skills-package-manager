@@ -6,6 +6,7 @@ import { execSync } from 'node:child_process'
 import YAML from 'yaml'
 import { resolveLockEntry } from '../src/config/syncSkillsLock'
 import { fetchSkillsFromLock, linkSkillsFromLock } from '../src/install/installSkills'
+import { updateCommand } from '../src/commands/update'
 import type { SkillsLock, SkillsManifest } from '../src/config/types'
 
 describe('resolveLockEntry', () => {
@@ -65,5 +66,17 @@ describe('install stages', () => {
     const installed = readFileSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'), 'utf8')
     expect(installed).toContain('Hello stage')
     expect(existsSync(path.join(root, '.cursor/skills/hello-skill'))).toBe(true)
+  })
+})
+
+describe('updateCommand validation', () => {
+  it('fails when a named skill is not present in skills.json', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-missing-'))
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify({ skills: { alpha: 'file:./alpha#path:/alpha' } }, null, 2),
+    )
+
+    await expect(updateCommand({ cwd: root, skills: ['missing'] })).rejects.toThrow('Unknown skill: missing')
   })
 })

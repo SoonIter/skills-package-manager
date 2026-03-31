@@ -1,5 +1,6 @@
 export { addCommand } from './commands/add'
 export { installCommand } from './commands/install'
+export { updateCommand } from './commands/update'
 export { runCli } from './cli/runCli'
 export { resolveLockEntry } from './config/syncSkillsLock'
 export { fetchSkillsFromLock, installSkills, linkSkillsFromLock } from './install/installSkills'
