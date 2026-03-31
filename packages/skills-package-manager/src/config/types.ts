@@ -35,3 +35,16 @@ export type AddCommandOptions = {
   specifier: string
   skill?: string
 }
+
+export type UpdateCommandOptions = {
+  cwd: string
+  skills?: string[]
+}
+
+export type UpdateCommandResult = {
+  status: 'updated' | 'skipped' | 'failed'
+  updated: string[]
+  unchanged: string[]
+  skipped: Array<{ name: string; reason: 'file-specifier' }>
+  failed: Array<{ name: string; reason: string }>
+}

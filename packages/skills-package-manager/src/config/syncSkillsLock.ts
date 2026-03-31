@@ -20,7 +20,7 @@ async function resolveGitCommit(url: string, ref: string | null): Promise<string
   return commit
 }
 
-async function createLockEntry(cwd: string, specifier: string): Promise<{ skillName: string; entry: SkillsLockEntry }> {
+export async function resolveLockEntry(cwd: string, specifier: string): Promise<{ skillName: string; entry: SkillsLockEntry }> {
   const normalized = normalizeSpecifier(specifier)
 
   if (normalized.type === 'file') {
@@ -62,7 +62,7 @@ export async function syncSkillsLock(cwd: string, manifest: SkillsManifest, exis
   const nextSkills: Record<string, SkillsLockEntry> = {}
 
   for (const specifier of Object.values(manifest.skills)) {
-    const { skillName, entry } = await createLockEntry(cwd, specifier)
+    const { skillName, entry } = await resolveLockEntry(cwd, specifier)
     nextSkills[skillName] = entry
   }
 
