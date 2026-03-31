@@ -80,3 +80,74 @@ describe('updateCommand validation', () => {
     await expect(updateCommand({ cwd: root, skills: ['missing'] })).rejects.toThrow('Unknown skill: missing')
   })
 })
+
+describe('updateCommand resolve', () => {
+  it('updates git targets and skips file targets', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-targets-'))
+    const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-git-'))
+    const fileRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-file-'))
+
+    mkdirSync(path.join(gitRepo, 'skills/hello-skill'), { recursive: true })
+    writeFileSync(path.join(gitRepo, 'skills/hello-skill/SKILL.md'), '# Version 1\n')
+    execSync('git init', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git config user.email test@example.com', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git config user.name test', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
+    const oldCommit = execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
+
+    writeFileSync(path.join(gitRepo, 'skills/hello-skill/SKILL.md'), '# Version 2\n')
+    execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git commit -m update', { cwd: gitRepo, stdio: 'ignore' })
+    const newCommit = execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
+
+    mkdirSync(path.join(fileRepo, 'local-skill'), { recursive: true })
+    writeFileSync(path.join(fileRepo, 'local-skill/SKILL.md'), '# Local\n')
+
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': `${gitRepo}#HEAD&path:/skills/hello-skill`,
+            'local-skill': `file:${fileRepo}#path:/local-skill`,
+          },
+        },
+        null,
+        2,
+      ),
+    )
+
+    writeFileSync(
+      path.join(root, 'skills-lock.yaml'),
+      YAML.stringify({
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `${gitRepo}#HEAD&path:/skills/hello-skill`,
+            resolution: { type: 'git', url: gitRepo, commit: oldCommit, path: '/skills/hello-skill' },
+            digest: `sha256-${oldCommit}`,
+          },
+          'local-skill': {
+            specifier: `file:${fileRepo}#path:/local-skill`,
+            resolution: { type: 'file', path: fileRepo },
+            digest: 'sha256-local',
+          },
+        },
+      }),
+    )
+
+    const result = await updateCommand({ cwd: root })
+
+    expect(result.updated).toEqual(['hello-skill'])
+    expect(result.skipped).toEqual([{ name: 'local-skill', reason: 'file-specifier' }])
+    expect(result.failed).toEqual([])
+    expect(result.unchanged).toEqual([])
+    const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+    expect(lockfile.skills['hello-skill'].resolution.commit).toBe(newCommit)
+  })
+})
