@@ -68,10 +68,36 @@ export type UpdateCommandOptions = {
 
 ## 架构与职责边界
 
-### 现有职责保留
+### 阶段模型
 
-- `installCommand` 继续承担“从 manifest 收敛到 lock，并执行安装”的职责。
-- `updateCommand` 负责“在不修改 manifest 的前提下，推进 lock 到新的 resolution 状态”。
+本次设计将 package manager 内核明确分成三个阶段：
+
+1. **resolve**
+   - 输入：`skills.json`、命令选择的目标 skill、当前 `skills-lock.yaml`
+   - 输出：标准 lock 或 candidate lock
+   - 职责：按 specifier 解析 resolution，不触碰安装目录
+
+2. **fetch**
+   - 输入：lock 中的 resolution
+   - 输出：将 skill 内容 materialize 到受管安装目录
+   - 职责：获取或复制 skill 内容，执行 prune，维护 install state 所需的物理文件状态
+
+3. **link**
+   - 输入：安装目录中的 skill 与 `linkTargets`
+   - 输出：各 link target 下的最终可用链接
+   - 职责：建立或更新 symlink，使 agent 能消费安装结果
+
+命令本身不直接拥有底层实现，而是编排这三个阶段。
+
+### 三类行为
+
+在这个阶段模型下，命令语义变成三种 orchestration：
+
+- **install**：全量 `resolve -> fetch -> link`
+- **update**：部分 `resolve` 生成 candidate lock，再执行受该 candidate lock 约束的 `fetch -> link`；仅在完整成功后提交 lock
+- **增量 install（未来能力）**：复用同一阶段模型，但仅对变化项执行必要的 `fetch` 与 `link`
+
+本次设计只实现 `update`，并为未来的增量 install 预留阶段边界，不在这次实现中新增该用户可见能力。
 
 ### 新职责划分
 
@@ -87,7 +113,7 @@ export type UpdateCommandOptions = {
 
 - manifest 校验
 - lock 构造
-- 安装控制
+- fetch / link 控制
 
 #### `updateCommand`
 
@@ -96,27 +122,55 @@ export type UpdateCommandOptions = {
 1. 读取 `skills.json` 与现有 `skills-lock.yaml`
 2. 校验指定 skill 是否存在
 3. 计算本次目标 skill 集合
-4. 对目标项重新解析 resolution
-5. 构造 candidate lock
-6. 调用安装层验证 candidate lock 能否成功落地
-7. 仅在安装成功后写入新的 lock
-8. 返回结构化结果摘要
+4. 驱动 resolve 阶段，为目标项生成 candidate lock
+5. 调用 fetch 与 link 阶段验证 candidate lock 能否成功落地
+6. 仅在全部阶段成功后写入新的 lock
+7. 返回结构化结果摘要
 
-#### 安装层
+#### resolve 层
 
 负责：
 
-- 按给定 lock 执行 materialize、link、prune 与 install-state 更新
+- 解析单个 specifier
+- 生成标准 lock entry
+- 从 manifest 全量生成 lock
+- 从 manifest + current lock + 目标 skill 生成 candidate lock
 
 不负责：
 
-- 决定是否更新 lock
-- 选择要刷新哪些 skill
-- 解析更新策略
+- 文件 materialization
+- symlink 管理
+- 命令级错误策略之外的展示逻辑
+
+#### fetch 层
+
+负责：
+
+- 按 lock 将 skill 内容 materialize 到 installDir
+- 执行 prune
+- 维护 install state
+
+不负责：
+
+- 解析 specifier
+- 决定 linkTargets
+- 提交 lock
+
+#### link 层
+
+负责：
+
+- 将 installDir 中的已安装 skill 链接到各个 `linkTargets`
+
+不负责：
+
+- resolution 解析
+- materialization
+- lock 提交
 
 ## 内部结构设计
 
-### 1. 抽出单个 specifier 的 lock 解析能力
+### 1. resolve：抽出单个 specifier 的 lock 解析能力
 
 当前 `packages/skills-package-manager/src/config/syncSkillsLock.ts` 内部已有 `createLockEntry` 逻辑。应将其提升为可复用能力，例如：
 
@@ -133,20 +187,20 @@ resolveLockEntry(cwd: string, specifier: string): Promise<{ skillName: string; e
 
 此能力将被：
 
-- `syncSkillsLock` 复用，用于全量 lock 生成
-- `updateCommand` 复用，用于目标 skill 的增量刷新
+- 全量 resolve 复用，用于从 manifest 生成标准 lock
+- `updateCommand` 复用，用于目标 skill 的部分 resolve
 
-### 2. 保留全量 lock 同步能力
+### 2. resolve：保留全量 lock 同步能力
 
-`syncSkillsLock(cwd, manifest, existingLock)` 继续保留，用于 `install` 的全量流程。
+`syncSkillsLock(cwd, manifest, existingLock)` 继续保留，作为全量 resolve 入口，主要服务于 `install`。
 
 它仍然从 manifest 出发构造标准 lock，不承担部分更新的语义。`existingLock` 参数当前未被使用，可以在本次实现中顺手移除，或明确保留但不参与逻辑。
 
-### 3. 为安装流程增加“按给定 lock 安装”的入口
+### 3. fetch + link：为安装流程拆出阶段化入口
 
-建议将当前 `installSkills` 拆分为两层：
+建议将当前 `installSkills` 拆成三层：
 
-#### 上层：全量安装入口
+#### 上层：命令级编排入口
 
 ```ts
 installSkills(rootDir: string)
@@ -155,14 +209,15 @@ installSkills(rootDir: string)
 职责：
 
 - 读取 manifest
-- 调用 `syncSkillsLock`
-- 将得到的 lock 交给底层安装函数
+- 触发全量 resolve
+- 调用 fetch 阶段
+- 调用 link 阶段
 - 在成功后写入 lock
 
-#### 底层：按 lock 执行安装
+#### 中层：fetch 入口
 
 ```ts
-installSkillsFromLock(rootDir: string, manifest: SkillsManifest, lockfile: SkillsLock)
+fetchSkillsFromLock(rootDir: string, manifest: SkillsManifest, lockfile: SkillsLock)
 ```
 
 职责：
@@ -170,15 +225,25 @@ installSkillsFromLock(rootDir: string, manifest: SkillsManifest, lockfile: Skill
 - 计算 lock digest
 - 检查 install state
 - 执行 prune
-- materialize 每个 skill
-- 建立 linkTargets 链接
-- 写入 install state
+- materialize 每个 skill 到 installDir
+- 更新 install state
 
-该函数不应负责写 `skills-lock.yaml`，以便 `updateCommand` 在安装成功之前保持 lock 不落盘。
+#### 中层：link 入口
+
+```ts
+linkSkillsFromLock(rootDir: string, manifest: SkillsManifest, lockfile: SkillsLock)
+```
+
+职责：
+
+- 遍历 lockfile.skills
+- 为每个 `linkTarget` 建立或更新 symlink
+
+`fetch` 与 `link` 均不应负责写 `skills-lock.yaml`，以便 `updateCommand` 在成功前保持 lock 不落盘。
 
 ### 4. `updateCommand` 的 candidate lock 构造流程
 
-`updateCommand` 生成 candidate lock 的建议流程：
+`updateCommand` 的建议流程：
 
 1. 读取 manifest；若不存在则直接返回或报错，与现有 CLI 风格保持一致。
 2. 读取 current lock，作为当前已解析状态的基准。
@@ -187,7 +252,7 @@ installSkillsFromLock(rootDir: string, manifest: SkillsManifest, lockfile: Skill
    - 传参：使用指定 skill 名称数组
 4. 校验所有指定 skill 都在 `manifest.skills` 中；否则立即报错。
 5. 基于 manifest 与 current lock 构造 candidate lock 骨架，保留非目标项当前状态。
-6. 遍历目标 skill：
+6. 遍历目标 skill 执行部分 resolve：
    - `file:`：标记为 `skipped`，不改动 lock entry
    - `git`：调用 `resolveLockEntry` 解析新 entry
    - 若 commit 与当前 lock 相同，标记为 `unchanged`
@@ -196,12 +261,12 @@ installSkillsFromLock(rootDir: string, manifest: SkillsManifest, lockfile: Skill
 7. 若存在任意失败项：
    - 汇总结果
    - 返回非 0
-   - 不执行安装
+   - 不执行 fetch / link
    - 不写 lock
 8. 若无失败项：
-   - 调用 `installSkillsFromLock(rootDir, manifest, candidateLock)`
-   - 若安装成功，则写入新的 `skills-lock.yaml`
-   - 若安装失败，则保持旧 lock 不变并返回非 0
+   - 依次调用 `fetchSkillsFromLock(rootDir, manifest, candidateLock)` 与 `linkSkillsFromLock(rootDir, manifest, candidateLock)`
+   - 若全部成功，则写入新的 `skills-lock.yaml`
+   - 若任一阶段失败，则保持旧 lock 不变并返回非 0
 
 ## 数据流说明
 
@@ -209,9 +274,10 @@ installSkillsFromLock(rootDir: string, manifest: SkillsManifest, lockfile: Skill
 
 ```text
 skills.json
-  -> syncSkillsLock
+  -> resolve
   -> lockfile
-  -> installSkillsFromLock
+  -> fetch
+  -> link
   -> write skills-lock.yaml
 ```
 
@@ -220,9 +286,10 @@ skills.json
 ```text
 skills.json + current skills-lock.yaml
   -> select target skills
-  -> resolve target lock entries
+  -> partial resolve target lock entries
   -> candidate lock
-  -> installSkillsFromLock(candidate lock)
+  -> fetch(candidate lock)
+  -> link(candidate lock)
   -> write skills-lock.yaml on success only
 ```
 
