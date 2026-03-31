@@ -1,5 +1,7 @@
 export { addCommand } from './commands/add'
 export { installCommand } from './commands/install'
 export { runCli } from './cli/runCli'
+export { resolveLockEntry } from './config/syncSkillsLock'
+export { fetchSkillsFromLock, installSkills, linkSkillsFromLock } from './install/installSkills'
 export { listRepoSkills, cloneAndDiscover, discoverSkillsInDir, parseOwnerRepo, parseGitHubUrl } from './github/listSkills'
 export type { SkillInfo } from './github/types'

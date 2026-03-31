@@ -2,6 +2,7 @@ import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
 import { syncSkillsLock } from '../config/syncSkillsLock'
 import { writeSkillsLock } from '../config/writeSkillsLock'
+import type { SkillsLock, SkillsManifest } from '../config/types'
 import { sha256 } from '../utils/hash'
 import { linkSkill } from './links'
 import { readInstallState, writeInstallState } from './installState'
@@ -18,16 +19,7 @@ function extractSkillPath(specifier: string, skillName: string): string {
   return `/${skillName}`
 }
 
-export async function installSkills(rootDir: string) {
-  const manifest = await readSkillsManifest(rootDir)
-  if (!manifest) {
-    return { status: 'skipped', reason: 'manifest-missing' } as const
-  }
-
-  const currentLock = await readSkillsLock(rootDir)
-  const lockfile = await syncSkillsLock(rootDir, manifest, currentLock)
-  await writeSkillsLock(rootDir, lockfile)
-
+export async function fetchSkillsFromLock(rootDir: string, manifest: SkillsManifest, lockfile: SkillsLock) {
   const lockDigest = sha256(JSON.stringify(lockfile))
   const state = await readInstallState(rootDir)
   if (state?.lockDigest === lockDigest) {
@@ -48,7 +40,10 @@ export async function installSkills(rootDir: string) {
         extractSkillPath(entry.specifier, skillName),
         installDir,
       )
-    } else if (entry.resolution.type === 'git') {
+      continue
+    }
+
+    if (entry.resolution.type === 'git') {
       await materializeGitSkill(
         rootDir,
         skillName,
@@ -57,13 +52,10 @@ export async function installSkills(rootDir: string) {
         entry.resolution.path,
         installDir,
       )
-    } else {
-      throw new Error(`Unsupported resolution type in 0.1.0 core flow: ${entry.resolution.type}`)
+      continue
     }
 
-    for (const linkTarget of linkTargets) {
-      await linkSkill(rootDir, installDir, linkTarget, skillName)
-    }
+    throw new Error(`Unsupported resolution type in 0.1.0 core flow: ${entry.resolution.type}`)
   }
 
   await writeInstallState(rootDir, {
@@ -73,6 +65,34 @@ export async function installSkills(rootDir: string) {
     installerVersion: '0.1.0',
     installedAt: new Date().toISOString(),
   })
+
+  return { status: 'fetched', fetched: Object.keys(lockfile.skills) } as const
+}
+
+export async function linkSkillsFromLock(rootDir: string, manifest: SkillsManifest, lockfile: SkillsLock) {
+  const installDir = manifest.installDir ?? '.agents/skills'
+  const linkTargets = manifest.linkTargets ?? []
+
+  for (const skillName of Object.keys(lockfile.skills)) {
+    for (const linkTarget of linkTargets) {
+      await linkSkill(rootDir, installDir, linkTarget, skillName)
+    }
+  }
+
+  return { status: 'linked', linked: Object.keys(lockfile.skills) } as const
+}
+
+export async function installSkills(rootDir: string) {
+  const manifest = await readSkillsManifest(rootDir)
+  if (!manifest) {
+    return { status: 'skipped', reason: 'manifest-missing' } as const
+  }
+
+  const currentLock = await readSkillsLock(rootDir)
+  const lockfile = await syncSkillsLock(rootDir, manifest, currentLock)
+  await fetchSkillsFromLock(rootDir, manifest, lockfile)
+  await linkSkillsFromLock(rootDir, manifest, lockfile)
+  await writeSkillsLock(rootDir, lockfile)
 
   return { status: 'installed', installed: Object.keys(lockfile.skills) } as const
 }
