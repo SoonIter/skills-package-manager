@@ -203,11 +203,98 @@ describe('updateCommand resolve', () => {
       throw new Error('Simulated fetch failure')
     }
 
-    await expect(updateCommand({ cwd: root })).rejects.toThrow('Simulated fetch failure')
+    try {
+      await expect(updateCommand({ cwd: root })).rejects.toThrow('Simulated fetch failure')
 
+      const persisted = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+      expect(persisted.skills['hello-skill'].resolution.commit).toBe(oldCommit)
+    } finally {
+      installStageHooks.beforeFetch = async () => {}
+    }
+  })
+
+  it('marks a target as unchanged when the resolved commit matches the current lock', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-unchanged-'))
+    const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-unchanged-source-'))
+
+    mkdirSync(path.join(gitRepo, 'skills/hello-skill'), { recursive: true })
+    writeFileSync(path.join(gitRepo, 'skills/hello-skill/SKILL.md'), '# Stable\n')
+    execSync('git init', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git config user.email test@example.com', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git config user.name test', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
+    const commit = execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
+
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': `${gitRepo}#HEAD&path:/skills/hello-skill`,
+          },
+        },
+        null,
+        2,
+      ),
+    )
+
+    writeFileSync(
+      path.join(root, 'skills-lock.yaml'),
+      YAML.stringify({
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `${gitRepo}#HEAD&path:/skills/hello-skill`,
+            resolution: { type: 'git', url: gitRepo, commit, path: '/skills/hello-skill' },
+            digest: `sha256-${commit}`,
+          },
+        },
+      }),
+    )
+
+    const result = await updateCommand({ cwd: root })
+    expect(result.unchanged).toEqual(['hello-skill'])
+    expect(result.updated).toEqual([])
+    expect(result.status).toBe('skipped')
+  })
+
+  it('returns failed when any target cannot resolve and keeps the old lockfile', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-resolve-fail-'))
+
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            broken: '/definitely/missing/repo.git#main&path:/skills/broken',
+          },
+        },
+        null,
+        2,
+      ),
+    )
+
+    writeFileSync(
+      path.join(root, 'skills-lock.yaml'),
+      YAML.stringify({
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {},
+      }),
+    )
+
+    const result = await updateCommand({ cwd: root })
+    expect(result.status).toBe('failed')
+    expect(result.failed).toHaveLength(1)
     const persisted = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
-    expect(persisted.skills['hello-skill'].resolution.commit).toBe(oldCommit)
-
-    installStageHooks.beforeFetch = async () => {}
+    expect(persisted.skills).toEqual({})
   })
 })
