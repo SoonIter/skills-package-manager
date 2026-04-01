@@ -4,3 +4,4 @@ dist
 .agents/skills
 .cursor/skills
 doc_build
+.worktrees
