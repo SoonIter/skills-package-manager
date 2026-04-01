@@ -1,13 +1,13 @@
 {
   "name": "skills-package-manager-workspace",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "prepare": "pnpm run build",
     "build": "pnpm -r --filter=!website build",
     "build:website": "pnpm --filter website build",
-    "bump": "bumpp -r --no-commit --no-tag --no-push",
+    "bump": "bumpp -r --no-tag --no-push",
     "test": "rstest run"
   },
   "devDependencies": {
