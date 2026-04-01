@@ -6,7 +6,19 @@
   "index",
   "getting-started",
   {
+    "type": "divider"
+  },
+  {
     "type": "dir-section-header",
-    "name": "api"
+    "name": "api",
+    "label": "API"
+  },
+  {
+    "type": "divider"
+  },
+  {
+    "type": "dir-section-header",
+    "name": "architecture",
+    "label": "Architecture"
   }
 ]
