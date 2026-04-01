@@ -8,6 +8,7 @@ export default defineConfig({
       source: {
         entry: {
           index: './src/index.ts',
+          'bin/skills-package-manager': './src/bin/skills-package-manager.ts',
           'bin/spm': './src/bin/spm.ts',
         },
       },

@@ -12,6 +12,7 @@ export default defineConfig({
     light: '/logo-light.svg',
     dark: '/logo-dark.svg',
   },
+  llms: true,
   icon: '/favicon.svg',
   themeConfig: {
     socialLinks: [

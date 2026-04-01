@@ -19,6 +19,7 @@
     "@types/react": "^19.0.0",
     "typescript": "~5.8.2",
     "rspress-plugin-mermaid": "^1.0.1",
-    "rspress-plugin-font-open-sans": "^1.0.3"
+    "rspress-plugin-font-open-sans": "^1.0.3",
+    "rspress-plugin-file-tree": "^1.0.4"
   }
 }

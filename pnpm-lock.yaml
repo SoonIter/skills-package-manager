@@ -76,6 +76,9 @@ importers:
       '@types/react':
         specifier: ^19.0.0
         version: 19.2.14
+      rspress-plugin-file-tree:
+        specifier: ^1.0.4
+        version: 1.0.4(@rspress/core@2.0.8(@types/mdast@4.0.4)(@types/react@19.2.14)(core-js@3.42.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
       rspress-plugin-font-open-sans:
         specifier: ^1.0.3
         version: 1.0.3(@rspress/core@2.0.8(@types/mdast@4.0.4)(@types/react@19.2.14)(core-js@3.42.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
@@ -1509,6 +1512,11 @@ packages:
 
   rspress-plugin-devkit@1.0.0:
     resolution: {integrity: sha512-Xe+yxu9X9a+SBH8CSPZJSiqm0OtaIvx9FCXI1MQMpfmaK75/F+3Rvbz/zJw7nFxxpo5HsePb86ScGOYNIKNLFg==}
+    peerDependencies:
+      '@rspress/core': ^2.0.0-rc.4 || ^2.0.0
+
+  rspress-plugin-file-tree@1.0.4:
+    resolution: {integrity: sha512-VItnE51w/EDOdvliEnLKBNz2VVmOFx1zdZr8HfjII7Tu8/GQg+BtShjZR0Z8oYtP6zyxheY2H81pe2J4Wdwh0g==}
     peerDependencies:
       '@rspress/core': ^2.0.0-rc.4 || ^2.0.0
 
@@ -3729,6 +3737,13 @@ snapshots:
       util-ts-types: 1.0.0
       vfile: 6.0.3
       vfile-reporter: 8.1.1
+    transitivePeerDependencies:
+      - supports-color
+
+  rspress-plugin-file-tree@1.0.4(@rspress/core@2.0.8(@types/mdast@4.0.4)(@types/react@19.2.14)(core-js@3.42.0)(micromark-util-types@2.0.2)(micromark@4.0.2)):
+    dependencies:
+      '@rspress/core': 2.0.8(@types/mdast@4.0.4)(@types/react@19.2.14)(core-js@3.42.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
+      rspress-plugin-devkit: 1.0.0(@rspress/core@2.0.8(@types/mdast@4.0.4)(@types/react@19.2.14)(core-js@3.42.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
     transitivePeerDependencies:
       - supports-color
 

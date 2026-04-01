@@ -1,0 +1,93 @@
+import { Steps } from '@rspress/core/theme';
+
+## 1. Started with `pnpm-plugin-skills`
+
+If your project already uses pnpm, the easiest way to adopt skills-package-manager is to start from `pnpm install` and let skill installation happen automatically inside the existing dependency workflow.
+
+<Steps>
+
+### Install the pnpm plugin
+
+Add the plugin to your workspace configuration:
+
+```bash
+pnpm add pnpm-plugin-skills --config
+```
+
+This tells pnpm to load `pnpm-plugin-skills` during installation.
+
+### Declare the skills your project needs
+
+Create a `skills.json` file at the workspace root:
+
+```json
+{
+  "installDir": ".agents/skills",
+  "linkTargets": [".cursor/skills"],
+  "skills": {
+    "find-skills": "https://github.com/vercel-labs/skills.git#path:/skills/find-skills"
+  }
+}
+```
+
+This manifest defines:
+
+- `installDir`: where managed skills are materialized
+- `linkTargets`: which agent-specific directories receive links
+- `skills`: which skills should be installed
+
+### Run pnpm as usual
+
+Now run the normal install command:
+
+```bash
+pnpm install
+```
+
+During this process, the plugin will:
+
+1. Read `skills.json`
+2. Resolve each skill source
+3. Generate or update `skills-lock.yaml`
+4. Materialize skills into `installDir`
+5. Link them into every directory listed in `linkTargets`
+
+That means your regular pnpm bootstrap flow now also restores agent skill context.
+
+### Add `.agents/skills` etc to `.gitignore`
+
+Since the skill directories are generated artifacts, you should add them to `.gitignore`:
+
+```txt title=".gitignore"
+.agents/skills
+.cursor/skills
+```
+
+</Steps>
+
+
+## 2. Add more skills when needed
+
+When you want to introduce another skill, you can either edit `skills.json` directly or use the CLI to update the manifest:
+
+```bash
+npx skills-package-manager add vercel-labs/skills --skill find-skills
+npx skills-package-manager add https://github.com/rstackjs/agent-skills --skill rspress-custom-theme
+```
+
+
+## 3. Refresh remote skill versions
+
+When remote git-based skills should move forward to newer commits, run:
+
+```bash
+npx skills-package-manager update
+```
+
+Then run:
+
+```bash
+pnpm install
+```
+
+This keeps the resolved lockfile state and linked directories aligned with the latest declared versions.

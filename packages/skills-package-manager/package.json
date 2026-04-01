@@ -3,6 +3,7 @@
   "version": "0.1.1",
   "type": "module",
   "bin": {
+    "skills-package-manager": "dist/bin/skills-package-manager.js",
     "spm": "dist/bin/spm.js"
   },
   "exports": {

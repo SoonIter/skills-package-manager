@@ -16,5 +16,19 @@ export default defineConfig({
         cleanDistPath: true,
       },
     },
+      {
+      bundle: true,
+      format: 'esm',
+      autoExternal: false,
+      source: {
+        entry: {
+          index: './src/index.ts',
+        },
+      },
+      output: {
+        target: 'node',
+        cleanDistPath: true,
+      },
+    },
   ],
 })
