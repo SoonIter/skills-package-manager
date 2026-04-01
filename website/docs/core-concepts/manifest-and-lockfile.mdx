@@ -1,0 +1,63 @@
+# Manifest and lockfile
+
+skills-package-manager uses two files to describe and lock the installed state of skills.
+
+## `skills.json`
+
+`skills.json` is a declarative manifest that describes which skills a project needs and where they should be installed.
+
+```json
+{
+  "installDir": ".agents/skills",
+  "linkTargets": [".cursor/skills"],
+  "skills": {
+    "find-skills": "https://github.com/vercel-labs/skills.git#path:/skills/find-skills",
+    "my-local-skill": "file:./local-source#path:/skills/my-local-skill"
+  }
+}
+```
+
+Field descriptions:
+
+- `installDir`: The directory where materialized skills are written.
+- `linkTargets`: A list of target directories where symbolic links should be created.
+- `skills`: A mapping from skill name to specifier.
+
+## `skills-lock.yaml`
+
+`skills-lock.yaml` locks resolved results so installations produce consistent content across different machines and points in time.
+
+```yaml
+lockfileVersion: "0.1"
+installDir: .agents/skills
+skills:
+  find-skills:
+    specifier: https://github.com/vercel-labs/skills.git#path:/skills/find-skills
+    resolution:
+      type: git
+      url: https://github.com/vercel-labs/skills.git
+      commit: abc1234...
+      path: /skills/find-skills
+    digest: sha256-...
+```
+
+It typically contains:
+
+- The resolved source type: `git` or `file`
+- A specific commit or local content digest
+- The skill path
+- The final content digest
+
+## Why both exist
+
+- `skills.json` captures the team-maintained **intent**.
+- `skills-lock.yaml` captures the installer-resolved **result**.
+
+The former is suitable for review; the latter is suitable for reproducibility.
+
+## Recommended practices
+
+1. Always commit both `skills.json` and `skills-lock.yaml`
+2. Standardize `installDir` and `linkTargets` across the team
+3. Prefer explicit GitHub specifiers with `path:` for external skills
+4. When using local skills for internal development, keep the lockfile as well to track digest changes

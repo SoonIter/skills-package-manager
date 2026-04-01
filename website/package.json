@@ -1,5 +1,5 @@
 {
-  "name": "rspress-theme-clarity",
+  "name": "website",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -16,7 +16,9 @@
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@types/react": "^19.0.0",
     "typescript": "~5.8.2",
-    "rspress-plugin-mermaid": "^1.0.1"
+    "rspress-plugin-mermaid": "^1.0.1",
+    "rspress-plugin-font-open-sans": "^1.0.3"
   }
 }

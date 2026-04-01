@@ -1,0 +1,45 @@
+# pnpm plugin
+
+`pnpm-plugin-skills` automatically installs agent skills during `pnpm install`.
+
+## How it works
+
+The plugin hooks into pnpm's `preResolution` lifecycle and performs skill synchronization before dependency resolution. A typical run will:
+
+1. Read `skills.json` from the workspace root
+2. Resolve and synchronize `skills-lock.yaml`
+3. Materialize skills into `installDir`
+4. Create symbolic links for all `linkTargets`
+5. Take the fast path when the lockfile has not changed
+
+## Enable it
+
+```bash
+pnpm add pnpm-plugin-skills --config
+```
+
+Then add the following to the workspace root:
+
+```json
+{
+  "installDir": ".agents/skills",
+  "linkTargets": [".cursor/skills"],
+  "skills": {
+    "my-skill": "https://github.com/owner/repo.git#path:/skills/my-skill"
+  }
+}
+```
+
+## Suitable team scenarios
+
+- You want developers to run only `pnpm install` without remembering extra skill installation commands
+- You want skill dependencies to be initialized together with Node dependencies in a monorepo
+- You want CI to restore skill context in a unified way
+
+## Relationship with the CLI
+
+The pnpm plugin does not replace `spm`. A typical recommendation is:
+
+- Use `spm add` to manage manifest changes
+- Use `pnpm install` for automatic day-to-day synchronization
+- Use `spm update` to proactively refresh remote skill versions

@@ -73,6 +73,12 @@ importers:
       '@types/node':
         specifier: ^22.14.0
         version: 22.19.15
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
+      rspress-plugin-font-open-sans:
+        specifier: ^1.0.3
+        version: 1.0.3(@rspress/core@2.0.8(@types/mdast@4.0.4)(@types/react@19.2.14)(core-js@3.42.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
       rspress-plugin-mermaid:
         specifier: ^1.0.1
         version: 1.0.1(@rspress/core@2.0.8(@types/mdast@4.0.4)(@types/react@19.2.14)(core-js@3.42.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
@@ -1505,6 +1511,11 @@ packages:
     resolution: {integrity: sha512-Xe+yxu9X9a+SBH8CSPZJSiqm0OtaIvx9FCXI1MQMpfmaK75/F+3Rvbz/zJw7nFxxpo5HsePb86ScGOYNIKNLFg==}
     peerDependencies:
       '@rspress/core': ^2.0.0-rc.4 || ^2.0.0
+
+  rspress-plugin-font-open-sans@1.0.3:
+    resolution: {integrity: sha512-17i7uUqvyy5k51ggZJ5xoP9duqC2W76GcBviIu400VXXAQEZx3JzZWPcGz9gGmVaFHAkH19NtZK0EYKfneX4rw==}
+    peerDependencies:
+      '@rspress/core': ^2.0.0-beta.24 || ^2.0.0
 
   rspress-plugin-mermaid@1.0.1:
     resolution: {integrity: sha512-FAL9Q5+DZJqCnuYPCYaOr+FY6WS56jFBJy5YyXKQWwzIYqWmS/tBgaNSdCBctLAG8AKeyUlFODg/7s6WqTY2/Q==}
@@ -3720,6 +3731,10 @@ snapshots:
       vfile-reporter: 8.1.1
     transitivePeerDependencies:
       - supports-color
+
+  rspress-plugin-font-open-sans@1.0.3(@rspress/core@2.0.8(@types/mdast@4.0.4)(@types/react@19.2.14)(core-js@3.42.0)(micromark-util-types@2.0.2)(micromark@4.0.2)):
+    dependencies:
+      '@rspress/core': 2.0.8(@types/mdast@4.0.4)(@types/react@19.2.14)(core-js@3.42.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
   rspress-plugin-mermaid@1.0.1(@rspress/core@2.0.8(@types/mdast@4.0.4)(@types/react@19.2.14)(core-js@3.42.0)(micromark-util-types@2.0.2)(micromark@4.0.2)):
     dependencies:

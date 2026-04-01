@@ -1,1 +1,6 @@
-["index", "commands"]
+[
+  { "type": "section-header", "label": "API" },
+  "index",
+  "commands",
+  "specifiers"
+]

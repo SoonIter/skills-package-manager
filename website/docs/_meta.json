@@ -1,0 +1,12 @@
+[
+  {
+    "type": "section-header",
+    "label": "Guide"
+  },
+  "index",
+  "getting-started",
+  {
+    "type": "dir-section-header",
+    "name": "api"
+  }
+]

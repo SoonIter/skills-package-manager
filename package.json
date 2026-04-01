@@ -5,7 +5,8 @@
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "prepare": "pnpm run build",
-    "build": "pnpm -r build",
+    "build": "pnpm -r --filter=!website build",
+    "build:website": "pnpm --filter website build",
     "bump": "bumpp -r --no-commit --no-tag --no-push",
     "test": "rstest run"
   },

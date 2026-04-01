@@ -1,8 +1,8 @@
 [
   {
     "text": "Guide",
-    "link": "/guide/start/introduction",
-    "activeMatch": "/guide/"
+    "link": "/",
+    "activeMatch": "(/getting-started|/$|^/index)"
   },
   {
     "text": "API",
@@ -10,7 +10,7 @@
     "activeMatch": "/api/"
   },
   {
-    "text": "Document",
-    "link": "https://rspress.rs/"
+    "text": "GitHub",
+    "link": "https://github.com/SoonIter/skills-pm"
   }
 ]
