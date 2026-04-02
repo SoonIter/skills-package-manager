@@ -1,4 +1,5 @@
 export { addCommand } from './commands/add'
+export { initCommand } from './commands/init'
 export { installCommand } from './commands/install'
 export { updateCommand } from './commands/update'
 export { runCli } from './cli/runCli'

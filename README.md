@@ -11,6 +11,13 @@ skills-package-manager is a monorepo that provides:
 
 ## Quick Start
 
+### Initialize a manifest
+
+```bash
+npx skills-package-manager init
+npx skills-package-manager init --yes
+```
+
 ### Add a skill from GitHub
 
 ```bash

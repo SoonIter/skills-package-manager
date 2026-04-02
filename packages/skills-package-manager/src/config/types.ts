@@ -30,6 +30,11 @@ export type SkillsLock = {
   skills: Record<string, SkillsLockEntry>
 }
 
+export type InitCommandOptions = {
+  cwd: string
+  yes?: boolean
+}
+
 export type AddCommandOptions = {
   cwd: string
   specifier: string

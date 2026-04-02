@@ -33,6 +33,34 @@ When given `owner/repo` or a GitHub URL:
 4. Writes selected skills to `skills.json` and resolves `skills-lock.yaml`
 5. Cleans up the temp directory
 
+### `spm init`
+
+Create a new `skills.json` manifest in the current directory.
+
+```bash
+# Interactive — prompt for installDir and linkTargets
+spm init
+
+# Non-interactive — write the default manifest immediately
+spm init --yes
+```
+
+Behavior:
+
+- `spm init` prompts for `installDir` and `linkTargets`, then writes `skills.json`
+- `spm init --yes` skips prompts and writes the default manifest
+- If `skills.json` already exists, the command fails and does not overwrite it
+
+Default `skills.json` written by `spm init --yes`:
+
+```json
+{
+  "installDir": ".agents/skills",
+  "linkTargets": [],
+  "skills": {}
+}
+```
+
 ### `spm install`
 
 Install all skills declared in `skills.json`:
