@@ -4,6 +4,14 @@
 
 Add one or more skills, then install and link them immediately after writing the manifest.
 
+## `spm init`
+
+Initialize a new `skills.json` manifest.
+
+- `spm init`: interactive initialization for `installDir` and additional `linkTargets`
+- `spm init --yes`: non-interactive initialization with defaults
+- Fails if `skills.json` already exists
+
 ## `spm install`
 
 Install all skills defined in `skills.json`, and synchronize `skills-lock.yaml`, `installDir`, and `linkTargets`.

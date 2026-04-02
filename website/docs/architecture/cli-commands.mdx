@@ -1,6 +1,6 @@
 # CLI commands
 
-The `spm` CLI covers the three main actions of skill management: add, install, and update.
+The `spm` CLI covers the four main actions of skill management: add, init, install, and update.
 
 ## `spm add`
 
@@ -26,6 +26,25 @@ Behavior overview:
 3. Select interactively or target a specific skill with `--skill`
 4. Write to `skills.json`
 5. Immediately install and link the new skill
+
+## `spm init`
+
+Initialize `skills.json` in the current project.
+
+```bash
+# Interactive
+spm init
+
+# Non-interactive defaults
+spm init --yes
+```
+
+Init behavior:
+
+- `spm init` prompts for `installDir` and additional `linkTargets`
+- `spm init --yes` writes default values directly
+- Fails if `skills.json` already exists
+- Does not create `skills-lock.yaml`
 
 ## `spm install`
 
@@ -63,5 +82,6 @@ Update behavior:
 | Command | Typical scenario |
 | --- | --- |
 | `spm add` | Introduce a new skill for the first time |
+| `spm init` | Create the initial `skills.json` manifest |
 | `spm install` | Restore all skills from the manifest |
 | `spm update` | Refresh versions of remote git-based skills |
