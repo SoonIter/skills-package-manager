@@ -3,7 +3,8 @@ import { mkdtempSync, existsSync, lstatSync, readFileSync, writeFileSync } from 
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import YAML from 'yaml'
-import { installSkills } from '../src/install/installSkills'
+import { fetchSkillsFromLock, installSkills } from '../src/install/installSkills'
+import type { SkillsLock, SkillsManifest } from '../src/config/types'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
 import { writeSkillsLock } from '../src/config/writeSkillsLock'
 
@@ -84,6 +85,61 @@ describe('installSkills', () => {
     const installedSkill = path.join(root, '.agents/skills/hello-git-skill/SKILL.md')
     expect(existsSync(installedSkill)).toBe(true)
     expect(readFileSync(installedSkill, 'utf8')).toContain('Hello from git')
+  })
+
+  it('installs a git skill pinned to a non-head commit', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-git-pinned-'))
+    const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-git-pinned-source-'))
+    const remoteRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-git-pinned-remote-'))
+
+    require('node:fs').mkdirSync(path.join(gitRepo, 'skills/hello-git-skill'), { recursive: true })
+    require('node:fs').writeFileSync(path.join(gitRepo, 'skills/hello-git-skill/SKILL.md'), '# First version\n')
+    require('node:child_process').execSync('git init', { cwd: gitRepo, stdio: 'ignore' })
+    require('node:child_process').execSync('git config user.email test@example.com', { cwd: gitRepo, stdio: 'ignore' })
+    require('node:child_process').execSync('git config user.name test', { cwd: gitRepo, stdio: 'ignore' })
+    require('node:child_process').execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
+    require('node:child_process').execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
+    const pinnedCommit = require('node:child_process').execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
+
+    require('node:fs').writeFileSync(path.join(gitRepo, 'skills/hello-git-skill/SKILL.md'), '# Second version\n')
+    require('node:child_process').execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
+    require('node:child_process').execSync('git commit -m update', { cwd: gitRepo, stdio: 'ignore' })
+    require('node:child_process').execSync(`git clone --bare ${JSON.stringify(gitRepo)} ${JSON.stringify(remoteRepo)}`, {
+      stdio: 'ignore',
+    })
+    const remoteUrl = `file://${remoteRepo}`
+
+    const manifest: SkillsManifest = {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'hello-git-skill': `${remoteUrl}#${pinnedCommit}&path:/skills/hello-git-skill`,
+      },
+    }
+
+    const lockfile: SkillsLock = {
+      lockfileVersion: '0.1',
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'hello-git-skill': {
+          specifier: `${remoteUrl}#${pinnedCommit}&path:/skills/hello-git-skill`,
+          resolution: {
+            type: 'git',
+            url: remoteUrl,
+            commit: pinnedCommit,
+            path: '/skills/hello-git-skill',
+          },
+          digest: 'test-git-pinned-digest',
+        },
+      },
+    }
+
+    await fetchSkillsFromLock(root, manifest, lockfile)
+
+    const installedSkill = path.join(root, '.agents/skills/hello-git-skill/SKILL.md')
+    expect(existsSync(installedSkill)).toBe(true)
+    expect(readFileSync(installedSkill, 'utf8')).toContain('First version')
   })
 
   it('updates stale lock entries from manifest before installing', async () => {

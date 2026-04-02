@@ -16,12 +16,13 @@ skills-package-manager uses specifiers to describe where skills come from.
 | GitHub URL | `https://github.com/owner/repo` |
 | Git + path | `https://github.com/owner/repo.git#path:/skills/my-skill` |
 | Git + ref + path | `https://github.com/owner/repo.git#main&path:/skills/my-skill` |
+| Git + commit SHA + path | `https://github.com/owner/repo.git#6cb0992a176f2ca142e19f64dca8ac12025b035e&path:/skills/my-skill` |
 | Local file | `file:./local-dir#path:/skills/my-skill` |
 
 ## Notes
 
 - `source`: A Git repository URL or a local `file:` path
-- `ref`: An optional git ref, such as `main`, a tag, or a commit-ish
+- `ref`: An optional git ref, such as `main`, a tag, a full commit SHA, or a short commit SHA
 - `path`: The directory of the skill inside the source repository
 
 ## Resolution types
