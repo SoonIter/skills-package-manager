@@ -25,7 +25,7 @@ Then create a `skills.json` in your project root:
 ```jsonc
 {
   "installDir": ".agents/skills",
-  "linkTargets": [".cursor/skills"],
+  "linkTargets": [".claude/skills"],
   "skills": {
     "my-skill": "https://github.com/owner/repo.git#path:/skills/my-skill"
   }

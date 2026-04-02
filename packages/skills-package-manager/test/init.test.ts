@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { runCli } from '../src/cli/runCli'
+import { promptInitManifestOptions } from '../src/cli/prompt'
 import { initCommand } from '../src/commands/init'
 
 describe('initCommand', () => {
@@ -60,6 +61,36 @@ describe('initCommand', () => {
     ).rejects.toThrow('prompt cancelled')
 
     expect(existsSync(path.join(root, 'skills.json'))).toBe(false)
+  })
+})
+
+describe('promptInitManifestOptions', () => {
+  it('prompts additional link targets directly without confirm step', async () => {
+    const calls: string[] = []
+
+    const result = await promptInitManifestOptions(
+      {
+        text: async () => '.agents/skills',
+        groupMultiselect: async () => {
+          calls.push('groupMultiselect')
+          return ['.claude/skills']
+        },
+        note: () => {
+          calls.push('note')
+        },
+        cancel: () => {},
+        isCancel: () => false,
+      },
+      () => {
+        throw new Error('should not exit')
+      },
+    )
+
+    expect(result).toEqual({
+      installDir: '.agents/skills',
+      linkTargets: ['.claude/skills'],
+    })
+    expect(calls).toEqual(['note', 'groupMultiselect'])
   })
 })
 

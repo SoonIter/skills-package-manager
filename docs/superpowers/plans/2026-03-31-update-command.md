@@ -173,7 +173,7 @@ describe('install stages', () => {
 
     const manifest: SkillsManifest = {
       installDir: '.agents/skills',
-      linkTargets: ['.cursor/skills'],
+      linkTargets: ['.claude/skills'],
       skills: {
         'hello-skill': `file:${sourceRoot}#path:/skills/hello-skill`,
       },
@@ -182,7 +182,7 @@ describe('install stages', () => {
     const lockfile: SkillsLock = {
       lockfileVersion: '0.1',
       installDir: '.agents/skills',
-      linkTargets: ['.cursor/skills'],
+      linkTargets: ['.claude/skills'],
       skills: {
         'hello-skill': {
           specifier: `file:${sourceRoot}#path:/skills/hello-skill`,

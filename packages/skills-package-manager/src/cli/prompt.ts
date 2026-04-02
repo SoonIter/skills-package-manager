@@ -67,50 +67,40 @@ export async function promptSkillSelection(skills: SkillInfo[]): Promise<SkillIn
   return selected as SkillInfo[]
 }
 
-export async function promptInitManifestOptions(): Promise<InitPromptResult> {
-  const installDirInput = await p.text({
+type InitPromptApi = Pick<typeof p, 'text' | 'groupMultiselect' | 'note' | 'cancel' | 'isCancel'>
+
+export async function promptInitManifestOptions(
+  promptApi: InitPromptApi = p,
+  exit: (code?: number) => never = process.exit,
+): Promise<InitPromptResult> {
+  const installDirInput = await promptApi.text({
     message: 'Where should skills be installed?',
     initialValue: '.agents/skills',
   })
 
-  if (p.isCancel(installDirInput)) {
-    p.cancel('Initialization cancelled')
-    process.exit(0)
+  if (promptApi.isCancel(installDirInput)) {
+    promptApi.cancel('Initialization cancelled')
+    exit(0)
   }
 
-  const configureAdditional = await p.confirm({
-    message: 'Do you want to configure additional agent link targets?',
-    initialValue: false,
+  promptApi.note(UNIVERSAL_AGENT_NAMES.join('\n'), 'Universal (.agents/skills) — always included')
+
+  const selected = await promptApi.groupMultiselect({
+    message: 'Which agents do you want to install to?',
+    options: {
+      'Additional agents': ADDITIONAL_AGENT_TARGETS.map((agent) => ({
+        value: agent.path,
+        label: `${agent.label} (${agent.path})`,
+      })),
+    },
+    required: false,
   })
 
-  if (p.isCancel(configureAdditional)) {
-    p.cancel('Initialization cancelled')
-    process.exit(0)
-  }
-
-  let linkTargets: string[] = []
-  if (configureAdditional) {
-    p.note(UNIVERSAL_AGENT_NAMES.join('\n'), 'Universal (.agents/skills) — always included')
-
-    const selected = await p.groupMultiselect({
-      message: 'Which agents do you want to install to?',
-      options: {
-        'Additional agents': ADDITIONAL_AGENT_TARGETS.map((agent) => ({
-          value: agent.path,
-          label: `${agent.label} (${agent.path})`,
-        })),
-      },
-      required: false,
-    })
-
-    if (p.isCancel(selected)) {
-      p.cancel('Initialization cancelled')
-      process.exit(0)
-    }
-
-    linkTargets = selected as string[]
+  if (promptApi.isCancel(selected)) {
+    promptApi.cancel('Initialization cancelled')
+    exit(0)
   }
 
   const installDir = String(installDirInput).trim() || '.agents/skills'
-  return { installDir, linkTargets }
+  return { installDir, linkTargets: selected as string[] }
 }

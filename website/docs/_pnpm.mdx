@@ -23,7 +23,7 @@ Create a `skills.json` file at the workspace root:
 ```json
 {
   "installDir": ".agents/skills",
-  "linkTargets": [".cursor/skills"],
+  "linkTargets": [".claude/skills"],
   "skills": {
     "find-skills": "https://github.com/vercel-labs/skills.git#path:/skills/find-skills"
   }
@@ -60,7 +60,7 @@ Since the skill directories are generated artifacts, you should add them to `.gi
 
 ```txt title=".gitignore"
 .agents/skills
-.cursor/skills
+.claude/skills
 ```
 
 </Steps>

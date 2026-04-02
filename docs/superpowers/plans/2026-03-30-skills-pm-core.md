@@ -486,7 +486,7 @@ describe('installSkills', () => {
     const root = mkdtempSync(path.join(tmpdir(), 'spm-install-'))
     await writeSkillsManifest(root, {
       installDir: '.agents/skills',
-      linkTargets: ['.cursor/skills'],
+      linkTargets: ['.claude/skills'],
       skills: {
         'hello-skill': 'file:./test/fixtures/local-source#path:/skills/hello-skill',
       },
@@ -494,7 +494,7 @@ describe('installSkills', () => {
     await writeSkillsLock(root, {
       lockfileVersion: '0.1',
       installDir: '.agents/skills',
-      linkTargets: ['.cursor/skills'],
+      linkTargets: ['.claude/skills'],
       skills: {
         'hello-skill': {
           specifier: 'file:./test/fixtures/local-source#path:/skills/hello-skill',
@@ -510,7 +510,7 @@ describe('installSkills', () => {
     await installSkills(root)
 
     const installedSkill = path.join(root, '.agents/skills/hello-skill/SKILL.md')
-    const linkedSkill = path.join(root, '.cursor/skills/hello-skill')
+    const linkedSkill = path.join(root, '.claude/skills/hello-skill')
     expect(existsSync(installedSkill)).toBe(true)
     expect(lstatSync(linkedSkill).isSymbolicLink()).toBe(true)
     expect(readFileSync(installedSkill, 'utf8')).toContain('Hello skill')

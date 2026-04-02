@@ -62,7 +62,7 @@ Declares which skills to install and where to put them:
 ```jsonc
 {
   "installDir": ".agents/skills",
-  "linkTargets": [".cursor/skills"],
+  "linkTargets": [".claude/skills"],
   "skills": {
     "find-skills": "https://github.com/vercel-labs/skills.git#path:/skills/find-skills",
     "my-local-skill": "file:./local-source#path:/skills/my-local-skill"

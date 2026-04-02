@@ -44,7 +44,7 @@ describe('install stages', () => {
 
     const manifest: SkillsManifest = {
       installDir: '.agents/skills',
-      linkTargets: ['.cursor/skills'],
+      linkTargets: ['.claude/skills'],
       skills: {
         'hello-skill': `file:${sourceRoot}#path:/skills/hello-skill`,
       },
@@ -53,7 +53,7 @@ describe('install stages', () => {
     const lockfile: SkillsLock = {
       lockfileVersion: '0.1',
       installDir: '.agents/skills',
-      linkTargets: ['.cursor/skills'],
+      linkTargets: ['.claude/skills'],
       skills: {
         'hello-skill': {
           specifier: `file:${sourceRoot}#path:/skills/hello-skill`,
@@ -68,7 +68,7 @@ describe('install stages', () => {
 
     const installed = readFileSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'), 'utf8')
     expect(installed).toContain('Hello stage')
-    expect(existsSync(path.join(root, '.cursor/skills/hello-skill'))).toBe(true)
+    expect(existsSync(path.join(root, '.claude/skills/hello-skill'))).toBe(true)
   })
 })
 

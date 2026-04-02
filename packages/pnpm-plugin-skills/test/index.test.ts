@@ -15,7 +15,7 @@ describe('preResolution', () => {
       JSON.stringify(
         {
           installDir: '.agents/skills',
-          linkTargets: ['.cursor/skills'],
+          linkTargets: ['.claude/skills'],
           skills: {
             'hello-skill': 'file:./skills-source#path:/skills/hello-skill',
           },
@@ -30,7 +30,7 @@ describe('preResolution', () => {
         "lockfileVersion: '0.1'",
         'installDir: .agents/skills',
         'linkTargets:',
-        '  - .cursor/skills',
+        '  - .claude/skills',
         'skills:',
         '  hello-skill:',
         '    specifier: file:./skills-source#path:/skills/hello-skill',
@@ -49,6 +49,6 @@ describe('preResolution', () => {
     expect(result).toBeUndefined()
     expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
     expect(readFileSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'), 'utf8')).toContain('Hello from plugin')
-    expect(existsSync(path.join(root, '.cursor/skills/hello-skill'))).toBe(true)
+    expect(existsSync(path.join(root, '.claude/skills/hello-skill'))).toBe(true)
   })
 })

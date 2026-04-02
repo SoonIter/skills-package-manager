@@ -1,7 +1,7 @@
 lockfileVersion: "0.1"
 installDir: .agents/skills
 linkTargets:
-  - .cursor/skills
+  - .claude/skills
 skills:
   hello-skill:
     specifier: file:./packages/skills-package-manager/test/fixtures/local-source#path:/skills/hello-skill
@@ -22,6 +22,6 @@ skills:
     resolution:
       type: git
       url: https://github.com/ReScienceLab/opc-skills.git
-      commit: c2ab0cbd3fa06eea5e58cee88a206968f8dfa4dc
+      commit: 062d3d5ad2516cbfaff22f3474903136106ffa3d
       path: /skills/logo-creator
-    digest: sha256-c8926837ed578aa62d2e4eb2e8ec45408d50a45c3dd92576c093b695e43f228e
+    digest: sha256-2f91738f370d3b5a5afb422505da031960c08d86f43d848aed248fb908f49ef5

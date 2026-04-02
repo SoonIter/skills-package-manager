@@ -1,7 +1,7 @@
 {
   "installDir": ".agents/skills",
   "linkTargets": [
-    ".cursor/skills"
+    ".claude/skills"
   ],
   "skills": {
     "hello-skill": "file:./packages/skills-package-manager/test/fixtures/local-source#path:/skills/hello-skill",
