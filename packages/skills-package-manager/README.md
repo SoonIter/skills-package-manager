@@ -4,6 +4,19 @@ Core library and CLI for managing agent skills.
 
 ## CLI Usage
 
+```bash
+spm --help
+spm --version
+spm add <specifier> [--skill <name>]
+spm install
+spm update [skill...]
+spm init [--yes]
+```
+
+- `spm` with no command shows top-level help
+- `spm --help` prints top-level help
+- `spm --version` prints the package version
+
 ### `spm add`
 
 Add skills to your project.
