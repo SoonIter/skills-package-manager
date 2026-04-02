@@ -95,11 +95,19 @@ describe('promptInitManifestOptions', () => {
 })
 
 describe('documentation', () => {
-  it('documents init command in package README', () => {
+  it('documents top-level CLI usage and commands in package README', () => {
     const readme = readFileSync(path.resolve(__dirname, '..', 'README.md'), 'utf8')
 
+    expect(readme).toContain('spm --help')
+    expect(readme).toContain('spm --version')
+    expect(readme).toContain('spm add <specifier> [--skill <name>]')
+    expect(readme).toContain('spm install')
+    expect(readme).toContain('spm update [skill...]')
+    expect(readme).toContain('spm init [--yes]')
+    expect(readme).toContain('### `spm add`')
+    expect(readme).toContain('### `spm install`')
+    expect(readme).toContain('### `spm update`')
     expect(readme).toContain('### `spm init`')
-    expect(readme).toContain('spm init --yes')
   })
 })
 
