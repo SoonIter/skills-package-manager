@@ -130,8 +130,10 @@ const skills = await listRepoSkills('vercel-labs', 'skills')
 | Part | Description | Example |
 |------|-------------|---------|
 | `source` | Git URL or `file:` path | `https://github.com/o/r.git`, `file:./local` |
-| `ref` | Optional git ref | `main`, `v1.0.0`, `HEAD` |
+| `ref` | Optional git ref | `main`, `v1.0.0`, `HEAD`, `6cb0992`, `6cb0992a176f2ca142e19f64dca8ac12025b035e` |
 | `path` | Path to skill directory within source | `/skills/my-skill` |
+
+`ref` can point to a branch, tag, full commit SHA, or short commit SHA.
 
 ### Resolution Types
 
