@@ -66,9 +66,8 @@ When you run `spm install`, the following happens:
 
 1. **Read manifest** — Load `skills.json` to get the list of skills to install
 2. **Read lockfile** — Load `skills-lock.yaml` if it exists
-3. **Sync lockfile** — For each skill in manifest:
-   - If specifier changed or skill not in lockfile: resolve new version (may involve git network requests)
-   - Otherwise: use existing lockfile entry
+3. **Sync lockfile** — Resolve each skill in the manifest to produce the lockfile entries for this install
+   - This step may involve git/network requests, even when a corresponding entry already exists in `skills-lock.yaml`
 4. **Prune** — Remove skills that are no longer in the manifest
 5. **Fetch** — Download/copy skills to `installDir`
 6. **Link** — Create symlinks in `linkTargets`

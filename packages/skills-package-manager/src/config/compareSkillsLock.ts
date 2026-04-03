@@ -43,12 +43,39 @@ function isSpecifierCompatible(manifestSpecifier: string, lockSpecifier: string)
   return manifest.ref === lock.ref
 }
 
+function normalizeInstallDir(dir: string | undefined): string {
+  return dir ?? '.agents/skills'
+}
+
+function normalizeLinkTargets(targets: string[] | undefined): string[] {
+  return targets ?? []
+}
+
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false
+  return a.every((val, i) => val === b[i])
+}
+
 /**
  * Check if lockfile is in sync with manifest
  * Uses semantic comparison of specifiers (not strict string equality)
+ * Also checks installDir and linkTargets match
  */
 export function isLockInSync(manifest: SkillsManifest, lock: SkillsLock | null): boolean {
   if (!lock) return false
+
+  // Check installDir matches
+  if (normalizeInstallDir(manifest.installDir) !== normalizeInstallDir(lock.installDir)) {
+    return false
+  }
+
+  // Check linkTargets matches
+  if (!arraysEqual(
+    normalizeLinkTargets(manifest.linkTargets),
+    normalizeLinkTargets(lock.linkTargets)
+  )) {
+    return false
+  }
 
   const manifestSkills = Object.entries(manifest.skills)
   const lockSkillNames = Object.keys(lock.skills)
