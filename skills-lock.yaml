@@ -3,12 +3,6 @@ installDir: .agents/skills
 linkTargets:
   - .claude/skills
 skills:
-  hello-skill:
-    specifier: file:./packages/skills-package-manager/test/fixtures/local-source#path:/skills/hello-skill
-    resolution:
-      type: file
-      path: packages/skills-package-manager/test/fixtures/local-source
-    digest: sha256-b5f9109d99f5657ba1e3088a57d133f7557af574ba65dc27068f37636ce5e5f0
   rspress-custom-theme:
     specifier: https://github.com/rstackjs/agent-skills.git#path:/skills/rspress-custom-theme
     resolution:
@@ -17,11 +11,3 @@ skills:
       commit: cf792a400cca4c3971e4b5d4fe73abe11f213381
       path: /skills/rspress-custom-theme
     digest: sha256-25a2da9d60fbdd74f72f547327468443f6f3de9045bdfd9ee539aa1c4dee761b
-  logo-creator:
-    specifier: https://github.com/ReScienceLab/opc-skills.git#path:/skills/logo-creator
-    resolution:
-      type: git
-      url: https://github.com/ReScienceLab/opc-skills.git
-      commit: 062d3d5ad2516cbfaff22f3474903136106ffa3d
-      path: /skills/logo-creator
-    digest: sha256-2f91738f370d3b5a5afb422505da031960c08d86f43d848aed248fb908f49ef5
