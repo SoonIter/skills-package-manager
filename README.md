@@ -53,10 +53,10 @@ npx skills-package-manager install
 
 | Scenario | Command | Why |
 |----------|---------|-----|
-| Local development, first setup | `spm install` | Creates lockfile if missing |
-| Local development, after `git pull` | `spm install` | Updates skills if manifest changed |
-| CI/CD pipeline | `spm install --frozen-lockfile` | Ensures exact versions, fails on misconfig |
-| Updating skill versions | `spm update` or `spm install` | Updates lockfile with latest versions |
+| Local development, first setup | `npx skills-package-manager install` | Creates lockfile if missing |
+| Local development, after `git pull` | `npx skills-package-manager install` | Updates skills if manifest changed |
+| CI/CD pipeline | `npx skills-package-manager install --frozen-lockfile` | Ensures exact versions, fails on misconfig |
+| Updating skill versions | `npx skills-package-manager update` or `npx skills-package-manager install` | Updates lockfile with latest versions |
 
 ### Update declared skills
 
