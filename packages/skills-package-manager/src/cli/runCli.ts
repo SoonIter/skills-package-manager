@@ -69,27 +69,32 @@ export async function runCli(argv: string[], context: InternalRunCliContext = {}
   cli
     .command('init [...args]', '', { allowUnknownOptions: true })
     .option('--yes [value]', 'Skip prompts and write defaults')
-    .action((args: string[] = [], options: { yes?: boolean | string; '--'?: string[]; [key: string]: unknown }) => {
-      if (args.length > 0) {
-        throw new Error('init does not accept positional arguments')
-      }
-
-      for (const key of Object.keys(options)) {
-        if (key === '--') {
-          continue
+    .action(
+      (
+        args: string[] = [],
+        options: { yes?: boolean | string; '--'?: string[]; [key: string]: unknown },
+      ) => {
+        if (args.length > 0) {
+          throw new Error('init does not accept positional arguments')
         }
 
-        if (key !== 'yes') {
-          throw new Error(`Unknown flag for init: --${formatFlagName(key)}`)
+        for (const key of Object.keys(options)) {
+          if (key === '--') {
+            continue
+          }
+
+          if (key !== 'yes') {
+            throw new Error(`Unknown flag for init: --${formatFlagName(key)}`)
+          }
         }
-      }
 
-      if (typeof options.yes === 'string') {
-        throw new Error('init --yes does not accept a value')
-      }
+        if (typeof options.yes === 'string') {
+          throw new Error('init --yes does not accept a value')
+        }
 
-      return handlers.initCommand({ cwd, yes: options.yes === true })
-    })
+        return handlers.initCommand({ cwd, yes: options.yes === true })
+      },
+    )
 
   cli.parse(argv, { run: false })
 

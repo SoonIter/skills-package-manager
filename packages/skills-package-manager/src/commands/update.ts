@@ -1,8 +1,8 @@
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
 import { resolveLockEntry } from '../config/syncSkillsLock'
-import { writeSkillsLock } from '../config/writeSkillsLock'
 import type { SkillsLock, UpdateCommandOptions, UpdateCommandResult } from '../config/types'
+import { writeSkillsLock } from '../config/writeSkillsLock'
 import { fetchSkillsFromLock, linkSkillsFromLock } from '../install/installSkills'
 
 function createEmptyResult(): UpdateCommandResult {
@@ -15,7 +15,7 @@ function createEmptyResult(): UpdateCommandResult {
   }
 }
 
-function createBaseLock(cwd: string, currentLock: SkillsLock | null): SkillsLock {
+function createBaseLock(_cwd: string, currentLock: SkillsLock | null): SkillsLock {
   if (currentLock) {
     return {
       ...currentLock,
@@ -61,7 +61,11 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
     try {
       const { entry } = await resolveLockEntry(options.cwd, specifier)
       const previous = currentLock?.skills[skillName]
-      if (previous?.resolution.type === 'git' && entry.resolution.type === 'git' && previous.resolution.commit === entry.resolution.commit) {
+      if (
+        previous?.resolution.type === 'git' &&
+        entry.resolution.type === 'git' &&
+        previous.resolution.commit === entry.resolution.commit
+      ) {
         result.unchanged.push(skillName)
         continue
       }

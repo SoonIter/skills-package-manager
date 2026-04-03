@@ -1,13 +1,17 @@
-import { describe, expect, it } from '@rstest/core'
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
+import { execSync } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { execSync } from 'node:child_process'
+import { describe, expect, it } from '@rstest/core'
 import YAML from 'yaml'
-import { resolveLockEntry } from '../src/config/syncSkillsLock'
-import { fetchSkillsFromLock, installStageHooks, linkSkillsFromLock } from '../src/install/installSkills'
 import { updateCommand } from '../src/commands/update'
+import { resolveLockEntry } from '../src/config/syncSkillsLock'
 import type { SkillsLock, SkillsManifest } from '../src/config/types'
+import {
+  fetchSkillsFromLock,
+  installStageHooks,
+  linkSkillsFromLock,
+} from '../src/install/installSkills'
 
 describe('resolveLockEntry', () => {
   it('resolves git specifiers to the current commit', async () => {
@@ -23,7 +27,10 @@ describe('resolveLockEntry', () => {
     execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
     const commit = execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
 
-    const { skillName, entry } = await resolveLockEntry(root, `${gitRepo}#HEAD&path:/skills/hello-skill`)
+    const { skillName, entry } = await resolveLockEntry(
+      root,
+      `${gitRepo}#HEAD&path:/skills/hello-skill`,
+    )
 
     expect(skillName).toBe('hello-skill')
     expect(entry.resolution.type).toBe('git')
@@ -70,7 +77,10 @@ describe('resolveLockEntry', () => {
     const commit = execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
     const shortCommit = commit.slice(0, 7)
 
-    const { entry } = await resolveLockEntry(root, `${gitRepo}#${shortCommit}&path:/skills/hello-skill`)
+    const { entry } = await resolveLockEntry(
+      root,
+      `${gitRepo}#${shortCommit}&path:/skills/hello-skill`,
+    )
 
     expect(entry.resolution.type).toBe('git')
     if (entry.resolution.type !== 'git') {
@@ -148,7 +158,9 @@ describe('updateCommand validation', () => {
       JSON.stringify({ skills: { alpha: 'file:./alpha#path:/alpha' } }, null, 2),
     )
 
-    await expect(updateCommand({ cwd: root, skills: ['missing'] })).rejects.toThrow('Unknown skill: missing')
+    await expect(updateCommand({ cwd: root, skills: ['missing'] })).rejects.toThrow(
+      'Unknown skill: missing',
+    )
   })
 })
 
@@ -200,7 +212,12 @@ describe('updateCommand resolve', () => {
         skills: {
           'hello-skill': {
             specifier: `${gitRepo}#HEAD&path:/skills/hello-skill`,
-            resolution: { type: 'git', url: gitRepo, commit: oldCommit, path: '/skills/hello-skill' },
+            resolution: {
+              type: 'git',
+              url: gitRepo,
+              commit: oldCommit,
+              path: '/skills/hello-skill',
+            },
             digest: `sha256-${oldCommit}`,
           },
           'local-skill': {
@@ -263,7 +280,12 @@ describe('updateCommand resolve', () => {
         skills: {
           'hello-skill': {
             specifier: `${gitRepo}#HEAD&path:/skills/hello-skill`,
-            resolution: { type: 'git', url: gitRepo, commit: oldCommit, path: '/skills/hello-skill' },
+            resolution: {
+              type: 'git',
+              url: gitRepo,
+              commit: oldCommit,
+              path: '/skills/hello-skill',
+            },
             digest: `sha256-${oldCommit}`,
           },
         },

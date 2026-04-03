@@ -1,5 +1,5 @@
-import type { SkillsLock, SkillsManifest } from './types'
 import { parseSpecifier } from '../specifiers/parseSpecifier'
+import type { SkillsLock, SkillsManifest } from './types'
 
 interface ParsedSpecifier {
   sourcePart: string
@@ -70,10 +70,9 @@ export function isLockInSync(manifest: SkillsManifest, lock: SkillsLock | null):
   }
 
   // Check linkTargets matches
-  if (!arraysEqual(
-    normalizeLinkTargets(manifest.linkTargets),
-    normalizeLinkTargets(lock.linkTargets)
-  )) {
+  if (
+    !arraysEqual(normalizeLinkTargets(manifest.linkTargets), normalizeLinkTargets(lock.linkTargets))
+  ) {
     return false
   }
 

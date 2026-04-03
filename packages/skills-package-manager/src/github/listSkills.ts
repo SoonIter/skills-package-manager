@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { readdir, readFile, rm, stat, mkdtemp } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
@@ -84,7 +84,10 @@ async function scanForSkills(baseDir: string, subDir: string): Promise<SkillInfo
 /**
  * Clone a git repo (shallow) into a temp dir, discover skills, then clean up.
  */
-export async function cloneAndDiscover(gitUrl: string, ref?: string): Promise<{ skills: SkillInfo[]; cleanup: () => Promise<void> }> {
+export async function cloneAndDiscover(
+  gitUrl: string,
+  ref?: string,
+): Promise<{ skills: SkillInfo[]; cleanup: () => Promise<void> }> {
   const tempDir = await mkdtemp(join(tmpdir(), 'skills-pm-discover-'))
 
   try {
@@ -124,12 +127,7 @@ export async function discoverSkillsInDir(baseDir: string): Promise<SkillInfo[]>
   }
 
   // Try common skill directories
-  const commonDirs = [
-    'skills',
-    '.agents/skills',
-    '.claude/skills',
-    '.github/skills',
-  ]
+  const commonDirs = ['skills', '.agents/skills', '.claude/skills', '.github/skills']
 
   for (const dir of commonDirs) {
     const skills = await scanForSkills(baseDir, dir)
@@ -146,7 +144,11 @@ export async function discoverSkillsInDir(baseDir: string): Promise<SkillInfo[]>
  * List skills in a GitHub repo by cloning and scanning.
  * This avoids GitHub API rate limits.
  */
-export async function listRepoSkills(owner: string, repo: string, ref?: string): Promise<SkillInfo[]> {
+export async function listRepoSkills(
+  owner: string,
+  repo: string,
+  ref?: string,
+): Promise<SkillInfo[]> {
   const gitUrl = `https://github.com/${owner}/${repo}.git`
   const { skills, cleanup } = await cloneAndDiscover(gitUrl, ref)
   await cleanup()
@@ -162,7 +164,9 @@ export function parseOwnerRepo(input: string): { owner: string; repo: string } |
 }
 
 export function parseGitHubUrl(input: string): { owner: string; repo: string } | null {
-  const match = input.match(/^https?:\/\/github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(?:\.git)?\/?$/)
+  const match = input.match(
+    /^https?:\/\/github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(?:\.git)?\/?$/,
+  )
   if (!match) {
     return null
   }

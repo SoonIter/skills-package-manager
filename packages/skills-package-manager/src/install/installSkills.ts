@@ -1,13 +1,13 @@
 import path from 'node:path'
+import { isLockInSync } from '../config/compareSkillsLock'
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
 import { syncSkillsLock } from '../config/syncSkillsLock'
-import { writeSkillsLock } from '../config/writeSkillsLock'
-import { isLockInSync } from '../config/compareSkillsLock'
 import type { SkillsLock, SkillsManifest } from '../config/types'
+import { writeSkillsLock } from '../config/writeSkillsLock'
 import { sha256 } from '../utils/hash'
-import { linkSkill } from './links'
 import { readInstallState, writeInstallState } from './installState'
+import { linkSkill } from './links'
 import { materializeGitSkill } from './materializeGitSkill'
 import { materializeLocalSkill } from './materializeLocalSkill'
 import { pruneManagedSkills } from './pruneManagedSkills'
@@ -25,7 +25,11 @@ function extractSkillPath(specifier: string, skillName: string): string {
   return `/${skillName}`
 }
 
-export async function fetchSkillsFromLock(rootDir: string, manifest: SkillsManifest, lockfile: SkillsLock) {
+export async function fetchSkillsFromLock(
+  rootDir: string,
+  manifest: SkillsManifest,
+  lockfile: SkillsLock,
+) {
   await installStageHooks.beforeFetch(rootDir, manifest, lockfile)
 
   const lockDigest = sha256(JSON.stringify(lockfile))
@@ -77,7 +81,11 @@ export async function fetchSkillsFromLock(rootDir: string, manifest: SkillsManif
   return { status: 'fetched', fetched: Object.keys(lockfile.skills) } as const
 }
 
-export async function linkSkillsFromLock(rootDir: string, manifest: SkillsManifest, lockfile: SkillsLock) {
+export async function linkSkillsFromLock(
+  rootDir: string,
+  manifest: SkillsManifest,
+  lockfile: SkillsLock,
+) {
   const installDir = manifest.installDir ?? '.agents/skills'
   const linkTargets = manifest.linkTargets ?? []
 
@@ -106,7 +114,9 @@ export async function installSkills(rootDir: string, options?: { frozenLockfile?
       throw new Error('Lockfile is required in frozen mode but none was found')
     }
     if (!isLockInSync(manifest, currentLock)) {
-      throw new Error('Lockfile is out of sync with manifest. Run install without --frozen-lockfile to update.')
+      throw new Error(
+        'Lockfile is out of sync with manifest. Run install without --frozen-lockfile to update.',
+      )
     }
     lockfile = currentLock
   } else {

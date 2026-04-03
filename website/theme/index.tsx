@@ -1,7 +1,7 @@
-import './index.css';
+import './index.css'
 
-import { Layout as OriginalLayout } from '@rspress/core/theme-original';
-import { Head } from '@rspress/core/runtime';
+import { Head } from '@rspress/core/runtime'
+import { Layout as OriginalLayout } from '@rspress/core/theme-original'
 
 function SiteFooter() {
   return (
@@ -10,8 +10,8 @@ function SiteFooter() {
         <div>
           <div className="spm-footer__title">skills-package-manager</div>
           <p className="spm-footer__text">
-            A lightweight package manager for discovering, installing, updating,
-            and linking AI agent skills.
+            A lightweight package manager for discovering, installing, updating, and linking AI
+            agent skills.
           </p>
         </div>
         <div className="spm-footer__links">
@@ -21,7 +21,7 @@ function SiteFooter() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 export function Layout() {
@@ -32,7 +32,7 @@ export function Layout() {
       </Head>
       <OriginalLayout bottom={<SiteFooter />} />
     </>
-  );
+  )
 }
 
-export * from '@rspress/core/theme-original';
+export * from '@rspress/core/theme-original'

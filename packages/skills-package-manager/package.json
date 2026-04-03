@@ -16,7 +16,10 @@
   "scripts": {
     "build": "rslib build"
   },
-  "files": ["bin", "dist"],
+  "files": [
+    "bin",
+    "dist"
+  ],
   "dependencies": {
     "@clack/prompts": "^1.1.0",
     "cac": "^7.0.0",

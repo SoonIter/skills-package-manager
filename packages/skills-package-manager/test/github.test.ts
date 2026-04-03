@@ -1,8 +1,8 @@
-import { describe, expect, it } from '@rstest/core'
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { parseOwnerRepo, parseGitHubUrl, discoverSkillsInDir } from '../src/github/listSkills'
+import { describe, expect, it } from '@rstest/core'
+import { discoverSkillsInDir, parseGitHubUrl, parseOwnerRepo } from '../src/github/listSkills'
 
 describe('parseOwnerRepo', () => {
   it('parses owner/repo format', () => {

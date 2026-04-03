@@ -1,8 +1,8 @@
-import { describe, expect, it } from '@rstest/core'
-import { existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { execSync } from 'node:child_process'
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { execSync } from 'node:child_process'
+import { describe, expect, it } from '@rstest/core'
 import YAML from 'yaml'
 import { addCommand } from '../src/commands/add'
 
@@ -102,6 +102,6 @@ describe('addCommand', () => {
     })
 
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
-    expect(manifest.skills['dogfood']).toBe(`${gitRepo}#HEAD&path:/dogfood`)
+    expect(manifest.skills.dogfood).toBe(`${gitRepo}#HEAD&path:/dogfood`)
   })
 })

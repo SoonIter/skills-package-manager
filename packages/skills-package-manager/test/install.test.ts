@@ -1,12 +1,12 @@
-import { describe, expect, it } from '@rstest/core'
-import { mkdtempSync, existsSync, lstatSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, lstatSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { describe, expect, it } from '@rstest/core'
 import YAML from 'yaml'
-import { fetchSkillsFromLock, installSkills } from '../src/install/installSkills'
 import type { SkillsLock, SkillsManifest } from '../src/config/types'
-import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
 import { writeSkillsLock } from '../src/config/writeSkillsLock'
+import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
+import { fetchSkillsFromLock, installSkills } from '../src/install/installSkills'
 
 describe('installSkills', () => {
   it('installs a local skill and creates symlinks', async () => {
@@ -48,10 +48,19 @@ describe('installSkills', () => {
     const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-git-source-'))
 
     require('node:fs').mkdirSync(path.join(gitRepo, 'skills/hello-git-skill'), { recursive: true })
-    require('node:fs').writeFileSync(path.join(gitRepo, 'skills/hello-git-skill/SKILL.md'), '# Hello from git\n')
+    require('node:fs').writeFileSync(
+      path.join(gitRepo, 'skills/hello-git-skill/SKILL.md'),
+      '# Hello from git\n',
+    )
     require('node:child_process').execSync('git init', { cwd: gitRepo, stdio: 'ignore' })
-    require('node:child_process').execSync('git config user.email test@example.com', { cwd: gitRepo, stdio: 'ignore' })
-    require('node:child_process').execSync('git config user.name test', { cwd: gitRepo, stdio: 'ignore' })
+    require('node:child_process').execSync('git config user.email test@example.com', {
+      cwd: gitRepo,
+      stdio: 'ignore',
+    })
+    require('node:child_process').execSync('git config user.name test', {
+      cwd: gitRepo,
+      stdio: 'ignore',
+    })
     require('node:child_process').execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
     require('node:child_process').execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
 
@@ -93,20 +102,41 @@ describe('installSkills', () => {
     const remoteRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-git-pinned-remote-'))
 
     require('node:fs').mkdirSync(path.join(gitRepo, 'skills/hello-git-skill'), { recursive: true })
-    require('node:fs').writeFileSync(path.join(gitRepo, 'skills/hello-git-skill/SKILL.md'), '# First version\n')
+    require('node:fs').writeFileSync(
+      path.join(gitRepo, 'skills/hello-git-skill/SKILL.md'),
+      '# First version\n',
+    )
     require('node:child_process').execSync('git init', { cwd: gitRepo, stdio: 'ignore' })
-    require('node:child_process').execSync('git config user.email test@example.com', { cwd: gitRepo, stdio: 'ignore' })
-    require('node:child_process').execSync('git config user.name test', { cwd: gitRepo, stdio: 'ignore' })
-    require('node:child_process').execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
-    require('node:child_process').execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
-    const pinnedCommit = require('node:child_process').execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
-
-    require('node:fs').writeFileSync(path.join(gitRepo, 'skills/hello-git-skill/SKILL.md'), '# Second version\n')
-    require('node:child_process').execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
-    require('node:child_process').execSync('git commit -m update', { cwd: gitRepo, stdio: 'ignore' })
-    require('node:child_process').execSync(`git clone --bare ${JSON.stringify(gitRepo)} ${JSON.stringify(remoteRepo)}`, {
+    require('node:child_process').execSync('git config user.email test@example.com', {
+      cwd: gitRepo,
       stdio: 'ignore',
     })
+    require('node:child_process').execSync('git config user.name test', {
+      cwd: gitRepo,
+      stdio: 'ignore',
+    })
+    require('node:child_process').execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
+    require('node:child_process').execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
+    const pinnedCommit = require('node:child_process')
+      .execSync('git rev-parse HEAD', { cwd: gitRepo })
+      .toString()
+      .trim()
+
+    require('node:fs').writeFileSync(
+      path.join(gitRepo, 'skills/hello-git-skill/SKILL.md'),
+      '# Second version\n',
+    )
+    require('node:child_process').execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
+    require('node:child_process').execSync('git commit -m update', {
+      cwd: gitRepo,
+      stdio: 'ignore',
+    })
+    require('node:child_process').execSync(
+      `git clone --bare ${JSON.stringify(gitRepo)} ${JSON.stringify(remoteRepo)}`,
+      {
+        stdio: 'ignore',
+      },
+    )
     const remoteUrl = `file://${remoteRepo}`
 
     const manifest: SkillsManifest = {
@@ -147,10 +177,19 @@ describe('installSkills', () => {
     const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-git-stale-source-'))
 
     require('node:fs').mkdirSync(path.join(gitRepo, 'skills/fixed-skill'), { recursive: true })
-    require('node:fs').writeFileSync(path.join(gitRepo, 'skills/fixed-skill/SKILL.md'), '# Fixed skill\n')
+    require('node:fs').writeFileSync(
+      path.join(gitRepo, 'skills/fixed-skill/SKILL.md'),
+      '# Fixed skill\n',
+    )
     require('node:child_process').execSync('git init', { cwd: gitRepo, stdio: 'ignore' })
-    require('node:child_process').execSync('git config user.email test@example.com', { cwd: gitRepo, stdio: 'ignore' })
-    require('node:child_process').execSync('git config user.name test', { cwd: gitRepo, stdio: 'ignore' })
+    require('node:child_process').execSync('git config user.email test@example.com', {
+      cwd: gitRepo,
+      stdio: 'ignore',
+    })
+    require('node:child_process').execSync('git config user.name test', {
+      cwd: gitRepo,
+      stdio: 'ignore',
+    })
     require('node:child_process').execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
     require('node:child_process').execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
 
@@ -190,7 +229,9 @@ describe('installSkills', () => {
 
     expect(existsSync(installedSkill)).toBe(true)
     expect(readFileSync(installedSkill, 'utf8')).toContain('Fixed skill')
-    expect(rewrittenLock.skills['fixed-skill'].specifier).toBe(`${gitRepo}#HEAD&path:/skills/fixed-skill`)
+    expect(rewrittenLock.skills['fixed-skill'].specifier).toBe(
+      `${gitRepo}#HEAD&path:/skills/fixed-skill`,
+    )
     expect(rewrittenLock.skills['']).toBeUndefined()
   })
 
@@ -269,7 +310,7 @@ describe('installSkills', () => {
       })
 
       await expect(installSkills(root, { frozenLockfile: true })).rejects.toThrow(
-        'Lockfile is required in frozen mode'
+        'Lockfile is required in frozen mode',
       )
     })
 
@@ -301,7 +342,7 @@ describe('installSkills', () => {
       })
 
       await expect(installSkills(root, { frozenLockfile: true })).rejects.toThrow(
-        'Lockfile is out of sync'
+        'Lockfile is out of sync',
       )
     })
 
@@ -380,18 +421,42 @@ describe('installSkills', () => {
       const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-ref-git-'))
 
       require('node:fs').mkdirSync(path.join(gitRepo, 'skills/hello-skill'), { recursive: true })
-      require('node:fs').writeFileSync(path.join(gitRepo, 'skills/hello-skill/SKILL.md'), '# Hello\n')
+      require('node:fs').writeFileSync(
+        path.join(gitRepo, 'skills/hello-skill/SKILL.md'),
+        '# Hello\n',
+      )
       require('node:child_process').execSync('git init', { cwd: gitRepo, stdio: 'ignore' })
-      require('node:child_process').execSync('git config user.email test@example.com', { cwd: gitRepo, stdio: 'ignore' })
-      require('node:child_process').execSync('git config user.name test', { cwd: gitRepo, stdio: 'ignore' })
+      require('node:child_process').execSync('git config user.email test@example.com', {
+        cwd: gitRepo,
+        stdio: 'ignore',
+      })
+      require('node:child_process').execSync('git config user.name test', {
+        cwd: gitRepo,
+        stdio: 'ignore',
+      })
       require('node:child_process').execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
-      require('node:child_process').execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
-      const commit1 = require('node:child_process').execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
+      require('node:child_process').execSync('git commit -m init', {
+        cwd: gitRepo,
+        stdio: 'ignore',
+      })
+      const commit1 = require('node:child_process')
+        .execSync('git rev-parse HEAD', { cwd: gitRepo })
+        .toString()
+        .trim()
 
-      require('node:fs').writeFileSync(path.join(gitRepo, 'skills/hello-skill/SKILL.md'), '# Updated\n')
+      require('node:fs').writeFileSync(
+        path.join(gitRepo, 'skills/hello-skill/SKILL.md'),
+        '# Updated\n',
+      )
       require('node:child_process').execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
-      require('node:child_process').execSync('git commit -m update', { cwd: gitRepo, stdio: 'ignore' })
-      const commit2 = require('node:child_process').execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
+      require('node:child_process').execSync('git commit -m update', {
+        cwd: gitRepo,
+        stdio: 'ignore',
+      })
+      const commit2 = require('node:child_process')
+        .execSync('git rev-parse HEAD', { cwd: gitRepo })
+        .toString()
+        .trim()
 
       // Manifest specifies first commit
       await writeSkillsManifest(root, {
@@ -422,7 +487,7 @@ describe('installSkills', () => {
       })
 
       await expect(installSkills(root, { frozenLockfile: true })).rejects.toThrow(
-        'Lockfile is out of sync'
+        'Lockfile is out of sync',
       )
     })
 
@@ -431,13 +496,28 @@ describe('installSkills', () => {
       const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-ref-match-git-'))
 
       require('node:fs').mkdirSync(path.join(gitRepo, 'skills/hello-skill'), { recursive: true })
-      require('node:fs').writeFileSync(path.join(gitRepo, 'skills/hello-skill/SKILL.md'), '# Hello\n')
+      require('node:fs').writeFileSync(
+        path.join(gitRepo, 'skills/hello-skill/SKILL.md'),
+        '# Hello\n',
+      )
       require('node:child_process').execSync('git init', { cwd: gitRepo, stdio: 'ignore' })
-      require('node:child_process').execSync('git config user.email test@example.com', { cwd: gitRepo, stdio: 'ignore' })
-      require('node:child_process').execSync('git config user.name test', { cwd: gitRepo, stdio: 'ignore' })
+      require('node:child_process').execSync('git config user.email test@example.com', {
+        cwd: gitRepo,
+        stdio: 'ignore',
+      })
+      require('node:child_process').execSync('git config user.name test', {
+        cwd: gitRepo,
+        stdio: 'ignore',
+      })
       require('node:child_process').execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
-      require('node:child_process').execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
-      const commit = require('node:child_process').execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
+      require('node:child_process').execSync('git commit -m init', {
+        cwd: gitRepo,
+        stdio: 'ignore',
+      })
+      const commit = require('node:child_process')
+        .execSync('git rev-parse HEAD', { cwd: gitRepo })
+        .toString()
+        .trim()
 
       // Manifest and lock both specify same commit
       await writeSkillsManifest(root, {

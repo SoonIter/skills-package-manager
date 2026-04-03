@@ -1,9 +1,9 @@
-import { describe, expect, it } from '@rstest/core'
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { runCli } from '../src/cli/runCli'
+import { describe, expect, it } from '@rstest/core'
 import { promptInitManifestOptions } from '../src/cli/prompt'
+import { runCli } from '../src/cli/runCli'
 import { initCommand } from '../src/commands/init'
 
 describe('initCommand', () => {
@@ -30,19 +30,18 @@ describe('initCommand', () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-init-exists-'))
     writeFileSync(path.join(root, 'skills.json'), JSON.stringify({ skills: {} }, null, 2))
 
-    await expect(initCommand({ cwd: root, yes: true })).rejects.toThrow('skills.json already exists')
+    await expect(initCommand({ cwd: root, yes: true })).rejects.toThrow(
+      'skills.json already exists',
+    )
   })
 
   it('uses interactive answers when yes is false', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-init-interactive-'))
 
-    const result = await initCommand(
-      { cwd: root },
-      async () => ({
-        installDir: '.custom/skills',
-        linkTargets: ['.claude/skills', '.continue/skills'],
-      }),
-    )
+    const result = await initCommand({ cwd: root }, async () => ({
+      installDir: '.custom/skills',
+      linkTargets: ['.claude/skills', '.continue/skills'],
+    }))
 
     expect(result).toEqual({
       installDir: '.custom/skills',

@@ -8,9 +8,14 @@
     "build": "pnpm -r --filter=!website build",
     "build:website": "pnpm --filter website build",
     "bump": "bumpp -r --no-tag --no-push",
-    "test": "rstest run"
+    "test": "rstest run",
+    "lint": "biome lint",
+    "format": "biome format --write",
+    "check": "biome check",
+    "check:write": "biome check --write"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.10",
     "@rstest/core": "^0.9.4",
     "bumpp": "^11.0.1",
     "path-serializer": "^0.6.0"

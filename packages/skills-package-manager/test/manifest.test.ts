@@ -1,9 +1,9 @@
-import { describe, expect, it } from '@rstest/core'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
+import { describe, expect, it } from '@rstest/core'
 import { readSkillsManifest } from '../src/config/readSkillsManifest'
+import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
 
 describe('manifest io', () => {
   it('writes default manifest shape', async () => {

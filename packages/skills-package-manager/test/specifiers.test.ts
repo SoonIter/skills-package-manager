@@ -3,7 +3,9 @@ import { normalizeSpecifier } from '../src/specifiers/normalizeSpecifier'
 
 describe('normalizeSpecifier', () => {
   it('parses git path specifier', () => {
-    expect(normalizeSpecifier('https://github.com/acme/skills.git#main&path:/skills/hello')).toEqual({
+    expect(
+      normalizeSpecifier('https://github.com/acme/skills.git#main&path:/skills/hello'),
+    ).toEqual({
       type: 'git',
       source: 'https://github.com/acme/skills.git',
       ref: 'main',
@@ -37,7 +39,9 @@ describe('normalizeSpecifier', () => {
 
   it('rejects duplicate path fragments', () => {
     expect(() =>
-      normalizeSpecifier('https://github.com/acme/skills.git#path:/skills/world#path:/skills/world'),
+      normalizeSpecifier(
+        'https://github.com/acme/skills.git#path:/skills/world#path:/skills/world',
+      ),
     ).toThrow('Invalid specifier: multiple # fragments are not supported')
   })
 })

@@ -18,8 +18,7 @@ async function captureOutput<TResult>(callback: () => Promise<TResult>) {
   try {
     const result = await callback()
     return { output: output.join('\n'), result }
-  }
-  finally {
+  } finally {
     console.info = info
     console.error = error
   }
@@ -43,7 +42,10 @@ function withHandlers<THandlers extends object>(handlers: THandlers) {
 
 describe('runCli dispatch', () => {
   it('dispatches add with specifier only', async () => {
-    const add = createAsyncSpy<[options: { cwd: string; specifier: string; skill?: string }], string>('added')
+    const add = createAsyncSpy<
+      [options: { cwd: string; specifier: string; skill?: string }],
+      string
+    >('added')
 
     const result = await runCli(['node', 'spm', 'add', 'github:owner/repo'], {
       cwd: '/workspace/project',
@@ -51,18 +53,25 @@ describe('runCli dispatch', () => {
     })
 
     expect(result).toBe('added')
-    expect(add.calls).toEqual([[{ cwd: '/workspace/project', specifier: 'github:owner/repo', skill: undefined }]])
+    expect(add.calls).toEqual([
+      [{ cwd: '/workspace/project', specifier: 'github:owner/repo', skill: undefined }],
+    ])
   })
 
   it('dispatches add with optional --skill', async () => {
-    const add = createAsyncSpy<[options: { cwd: string; specifier: string; skill?: string }], string>('added')
+    const add = createAsyncSpy<
+      [options: { cwd: string; specifier: string; skill?: string }],
+      string
+    >('added')
 
     await runCli(['node', 'spm', 'add', 'owner/repo', '--skill', 'my-skill'], {
       cwd: '/workspace/project',
       ...withHandlers({ addCommand: add.fn }),
     })
 
-    expect(add.calls).toEqual([[{ cwd: '/workspace/project', specifier: 'owner/repo', skill: 'my-skill' }]])
+    expect(add.calls).toEqual([
+      [{ cwd: '/workspace/project', specifier: 'owner/repo', skill: 'my-skill' }],
+    ])
   })
 
   it('dispatches install with cwd', async () => {
@@ -112,7 +121,9 @@ describe('runCli dispatch', () => {
   })
 
   it('shows top-level help when no command is provided', async () => {
-    const { output, result } = await captureOutput(() => runCli(['node', 'spm'], { cwd: '/workspace/project' }))
+    const { output, result } = await captureOutput(() =>
+      runCli(['node', 'spm'], { cwd: '/workspace/project' }),
+    )
 
     expect(result).toBeUndefined()
     expect(output).toContain('Usage:')

@@ -14,14 +14,16 @@
   --rp-c-gray-4: #64748b;
   --rp-c-shadow-1: 0 20px 48px rgba(2, 6, 23, 0.42);
   --rp-home-background-bg: linear-gradient(135deg, #0b1220 0%, #0f1b33 52%, #1e1b4b 100%);
-  --rp-home-mask-background-image: radial-gradient(
-      circle at 14% 18%,
-      rgba(45, 212, 191, 0.22),
-      transparent 28%
-    ),
+  --rp-home-mask-background-image:
+    radial-gradient(circle at 14% 18%, rgba(45, 212, 191, 0.22), transparent 28%),
     radial-gradient(circle at 86% 14%, rgba(14, 165, 233, 0.2), transparent 28%),
     radial-gradient(circle at 50% 72%, rgba(99, 102, 241, 0.18), transparent 32%),
-    linear-gradient(135deg, rgba(11, 18, 32, 0.96) 0%, rgba(15, 23, 42, 0.98) 48%, rgba(30, 41, 59, 0.98) 100%);
+    linear-gradient(
+      135deg,
+      rgba(11, 18, 32, 0.96) 0%,
+      rgba(15, 23, 42, 0.98) 48%,
+      rgba(30, 41, 59, 0.98) 100%
+    );
 }
 
 .rp-home-hero-image img,

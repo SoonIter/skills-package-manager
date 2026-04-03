@@ -1,11 +1,11 @@
-import type { SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
-import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
-import { sha256 } from '../utils/hash'
+import { execFile } from 'node:child_process'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
+import { sha256 } from '../utils/hash'
+import type { SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
 
 const execFileAsync = promisify(execFile)
 
@@ -59,7 +59,10 @@ async function resolveGitCommit(url: string, ref: string | null): Promise<string
   throw new Error(`Unable to resolve git ref ${target} for ${url}`)
 }
 
-export async function resolveLockEntry(cwd: string, specifier: string): Promise<{ skillName: string; entry: SkillsLockEntry }> {
+export async function resolveLockEntry(
+  cwd: string,
+  specifier: string,
+): Promise<{ skillName: string; entry: SkillsLockEntry }> {
   const normalized = normalizeSpecifier(specifier)
 
   if (normalized.type === 'file') {
@@ -97,7 +100,11 @@ export async function resolveLockEntry(cwd: string, specifier: string): Promise<
   throw new Error(`Unsupported specifier type in 0.1.0 core flow: ${normalized.type}`)
 }
 
-export async function syncSkillsLock(cwd: string, manifest: SkillsManifest, existingLock: SkillsLock | null): Promise<SkillsLock> {
+export async function syncSkillsLock(
+  cwd: string,
+  manifest: SkillsManifest,
+  _existingLock: SkillsLock | null,
+): Promise<SkillsLock> {
   const nextSkills: Record<string, SkillsLockEntry> = {}
 
   for (const specifier of Object.values(manifest.skills)) {

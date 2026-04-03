@@ -1,8 +1,6 @@
 {
   "installDir": ".agents/skills",
-  "linkTargets": [
-    ".claude/skills"
-  ],
+  "linkTargets": [".claude/skills"],
   "skills": {
     "rspress-custom-theme": "https://github.com/rstackjs/agent-skills.git#path:/skills/rspress-custom-theme"
   }

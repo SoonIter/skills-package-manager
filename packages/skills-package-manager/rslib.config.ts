@@ -7,7 +7,7 @@ export default defineConfig({
       dts: false,
       source: {
         entry: {
-          index: './src/index.ts'
+          index: './src/index.ts',
         },
       },
       output: {

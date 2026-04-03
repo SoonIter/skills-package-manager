@@ -16,7 +16,7 @@ export default defineConfig({
         cleanDistPath: true,
       },
     },
-      {
+    {
       bundle: true,
       format: 'esm',
       autoExternal: false,

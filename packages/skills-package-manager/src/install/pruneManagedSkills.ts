@@ -10,7 +10,12 @@ async function isManagedSkillDir(dirPath: string): Promise<boolean> {
   }
 }
 
-export async function pruneManagedSkills(rootDir: string, installDir: string, linkTargets: string[], wantedSkillNames: string[]) {
+export async function pruneManagedSkills(
+  rootDir: string,
+  installDir: string,
+  linkTargets: string[],
+  wantedSkillNames: string[],
+) {
   const wanted = new Set(wantedSkillNames)
   const absoluteInstallDir = path.join(rootDir, installDir)
 

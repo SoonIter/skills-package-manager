@@ -1,7 +1,7 @@
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { describe, it, expect } from '@rstest/core'
+import { describe, expect, it } from '@rstest/core'
 import { preResolution } from '../src/index'
 
 const repoRoot = path.resolve(__dirname, '../../..')
@@ -9,7 +9,10 @@ describe('preResolution', () => {
   it('installs skills from workspace root when manifest and lock exist', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'pnpm-plugin-skills-'))
     mkdirSync(path.join(root, 'skills-source/skills/hello-skill'), { recursive: true })
-    writeFileSync(path.join(root, 'skills-source/skills/hello-skill/SKILL.md'), '# Hello from plugin\n')
+    writeFileSync(
+      path.join(root, 'skills-source/skills/hello-skill/SKILL.md'),
+      '# Hello from plugin\n',
+    )
     writeFileSync(
       path.join(root, 'skills.json'),
       JSON.stringify(
@@ -48,7 +51,9 @@ describe('preResolution', () => {
 
     expect(result).toBeUndefined()
     expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
-    expect(readFileSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'), 'utf8')).toContain('Hello from plugin')
+    expect(readFileSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'), 'utf8')).toContain(
+      'Hello from plugin',
+    )
     expect(existsSync(path.join(root, '.claude/skills/hello-skill'))).toBe(true)
   })
 })
