@@ -53,3 +53,8 @@ export type UpdateCommandResult = {
   skipped: Array<{ name: string; reason: 'file-specifier' }>
   failed: Array<{ name: string; reason: string }>
 }
+
+export type InstallCommandOptions = {
+  cwd: string
+  frozenLockfile?: boolean
+}

@@ -60,6 +60,64 @@ Useful for:
 - Restoring skill dependencies in CI
 - Re-syncing the local skill directory after changing the manifest
 
+### Install Process
+
+When you run `spm install`, the following happens:
+
+1. **Read manifest** — Load `skills.json` to get the list of skills to install
+2. **Read lockfile** — Load `skills-lock.yaml` if it exists
+3. **Sync lockfile** — For each skill in manifest:
+   - If specifier changed or skill not in lockfile: resolve new version (may involve git network requests)
+   - Otherwise: use existing lockfile entry
+4. **Prune** — Remove skills that are no longer in the manifest
+5. **Fetch** — Download/copy skills to `installDir`
+6. **Link** — Create symlinks in `linkTargets`
+7. **Write lockfile** — Save updated `skills-lock.yaml`
+
+### `--frozen-lockfile`
+
+Prevent lockfile modifications and fail if it's out of sync.
+
+```bash
+spm install --frozen-lockfile
+```
+
+**When to use:**
+
+- CI/build environments where you want reproducible installs
+- When you want to ensure the lockfile is not accidentally modified
+- When you want faster installs (no git network requests to resolve refs)
+
+**Behavior differences from normal install:**
+
+| Aspect | Normal install | `--frozen-lockfile` |
+|--------|---------------|---------------------|
+| Lockfile updates | Yes, if manifest changed | No, fails if out of sync |
+| Git network requests | Yes, to resolve refs | No, uses locked commits |
+| First-time setup | Works without lockfile | Requires existing lockfile |
+| Use case | Development, updating deps | CI, reproducible builds |
+
+**Error scenarios:**
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "Lockfile is required in frozen mode" | No `skills-lock.yaml` exists | Run `spm install` without flag first |
+| "Lockfile is out of sync" | Manifest specifiers don't match lockfile | Run `spm install` without flag to update lockfile |
+
+### Troubleshooting
+
+**Install fails with "Lockfile is out of sync"**
+
+This means the specifiers in `skills.json` don't match what's in `skills-lock.yaml`. Common causes:
+
+1. You edited `skills.json` manually without updating the lockfile
+2. Someone else committed a new lockfile and your manifest is outdated
+
+Solutions:
+
+- Run `spm install` without `--frozen-lockfile` to update the lockfile
+- Or revert your manifest changes to match the lockfile
+
 ## `spm update`
 
 Refresh already-declared git-based skills.
