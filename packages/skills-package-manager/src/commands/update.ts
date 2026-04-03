@@ -1,3 +1,4 @@
+import { ErrorCode, ManifestError, SkillError } from '../errors'
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
 import { resolveLockEntry } from '../config/syncSkillsLock'
@@ -34,14 +35,22 @@ function createBaseLock(_cwd: string, currentLock: SkillsLock | null): SkillsLoc
 export async function updateCommand(options: UpdateCommandOptions): Promise<UpdateCommandResult> {
   const manifest = await readSkillsManifest(options.cwd)
   if (!manifest) {
-    return createEmptyResult()
+    throw new ManifestError({
+      code: ErrorCode.MANIFEST_NOT_FOUND,
+      filePath: `${options.cwd}/skills.json`,
+      message: 'No skills.json found in the current directory. Run "spm init" to create one.',
+    })
   }
 
   const currentLock = await readSkillsLock(options.cwd)
   const targetSkills = options.skills ?? Object.keys(manifest.skills)
   for (const skillName of targetSkills) {
     if (!(skillName in manifest.skills)) {
-      throw new Error(`Unknown skill: ${skillName}`)
+      throw new SkillError({
+        code: ErrorCode.SKILL_NOT_FOUND,
+        skillName,
+        message: `Unknown skill: ${skillName}`,
+      })
     }
   }
 

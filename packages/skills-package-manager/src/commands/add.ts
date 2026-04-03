@@ -1,5 +1,6 @@
 import * as p from '@clack/prompts'
 import pc from 'picocolors'
+import { ErrorCode, ParseError, SkillError } from '../errors'
 import { promptSkillSelection } from '../cli/prompt'
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
@@ -11,7 +12,7 @@ import { listRepoSkills, parseGitHubUrl, parseOwnerRepo } from '../github/listSk
 import { installSkills } from '../install/installSkills'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 
-function _isProtocolSpecifier(specifier: string): boolean {
+function isProtocolSpecifier(specifier: string): boolean {
   return /^[a-z]+:/.test(specifier)
 }
 
@@ -23,7 +24,21 @@ async function addSingleSkill(
   cwd: string,
   specifier: string,
 ): Promise<{ skillName: string; specifier: string }> {
-  const normalized = normalizeSpecifier(specifier)
+  let normalized
+  try {
+    normalized = normalizeSpecifier(specifier)
+  } catch (error) {
+    if (error instanceof ParseError) {
+      throw error
+    }
+    throw new ParseError({
+      code: ErrorCode.INVALID_SPECIFIER,
+      message: `Invalid specifier: ${(error as Error).message}`,
+      content: specifier,
+      cause: error as Error,
+    })
+  }
+
   const existingManifest = (await readSkillsManifest(cwd)) ?? {
     installDir: '.agents/skills',
     linkTargets: [],
@@ -32,7 +47,11 @@ async function addSingleSkill(
 
   const existing = existingManifest.skills[normalized.skillName]
   if (existing && existing !== normalized.normalized) {
-    throw new Error(`Skill ${normalized.skillName} already exists with a different specifier`)
+    throw new SkillError({
+      code: ErrorCode.SKILL_EXISTS,
+      skillName: normalized.skillName,
+      message: `Skill ${normalized.skillName} already exists with a different specifier`,
+    })
   }
 
   existingManifest.skills[normalized.skillName] = normalized.normalized
@@ -69,9 +88,7 @@ export async function addCommand(options: AddCommandOptions) {
     if (skill) {
       spinner.start(`Cloning ${source}...`)
       const skills = await listRepoSkills(owner, repo)
-      spinner.stop(
-        `Found ${pc.green(String(skills.length))} skill${skills.length !== 1 ? 's' : ''}`,
-      )
+      spinner.stop(`Found ${pc.green(String(skills.length))} skill${skills.length !== 1 ? 's' : ''}`)
 
       const found = skills.find((s) => s.name === skill)
       const skillPath = found?.path ?? `/${skill}`
@@ -89,7 +106,11 @@ export async function addCommand(options: AddCommandOptions) {
     if (skills.length === 0) {
       spinner.stop(pc.red('No skills found'))
       p.outro(pc.red(`No valid skills found in ${source}`))
-      throw new Error(`No skills found in ${source}`)
+      throw new SkillError({
+        code: ErrorCode.SKILL_NOT_FOUND,
+        skillName: source,
+        message: `No skills found in ${source}`,
+      })
     }
 
     spinner.stop(`Found ${pc.green(String(skills.length))} skill${skills.length !== 1 ? 's' : ''}`)

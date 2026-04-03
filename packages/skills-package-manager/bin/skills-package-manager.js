@@ -1,7 +1,11 @@
 #!/usr/bin/env node
-import { runCli } from '../dist/index.js'
+import { runCli, isSpmError, formatErrorForDisplay, getExitCode } from "../dist/index.js";
 
 runCli(process.argv).catch((error) => {
-  console.error(error instanceof Error ? error.message : error)
-  process.exitCode = 1
-})
+    if (isSpmError(error)) {
+        console.error(formatErrorForDisplay(error));
+        process.exit(getExitCode(error));
+    }
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+});

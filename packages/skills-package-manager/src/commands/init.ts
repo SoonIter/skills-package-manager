@@ -1,7 +1,8 @@
 import { access } from 'node:fs/promises'
 import path from 'node:path'
-import type { InitPromptResult } from '../cli/prompt'
+import { ErrorCode, FileSystemError, ManifestError } from '../errors'
 import { promptInitManifestOptions } from '../cli/prompt'
+import type { InitPromptResult } from '../cli/prompt'
 import type { InitCommandOptions, SkillsManifest } from '../config/types'
 import { writeSkillsManifest } from '../config/writeSkillsManifest'
 
@@ -10,13 +11,26 @@ async function assertManifestMissing(cwd: string): Promise<void> {
 
   try {
     await access(filePath)
-    throw new Error('skills.json already exists')
+    throw new ManifestError({
+      code: ErrorCode.MANIFEST_EXISTS,
+      filePath,
+      message: 'skills.json already exists',
+    })
   } catch (error) {
+    if (error instanceof ManifestError) {
+      throw error
+    }
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       return
     }
 
-    throw error
+    throw new FileSystemError({
+      code: ErrorCode.FS_ERROR,
+      operation: 'access',
+      path: filePath,
+      message: `Failed to check if manifest exists: ${(error as Error).message}`,
+      cause: error as Error,
+    })
   }
 }
 

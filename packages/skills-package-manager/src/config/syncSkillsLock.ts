@@ -1,11 +1,12 @@
-import { execFile } from 'node:child_process'
+import type { SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
+import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
+import { sha256 } from '../utils/hash'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
-import { sha256 } from '../utils/hash'
-import type { SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
+import { ErrorCode, GitError, ParseError } from '../errors'
 
 const execFileAsync = promisify(execFile)
 
@@ -56,14 +57,33 @@ async function resolveGitCommit(url: string, ref: string | null): Promise<string
     return clonedCommit
   }
 
-  throw new Error(`Unable to resolve git ref ${target} for ${url}`)
+  throw new GitError({
+    code: ErrorCode.GIT_REF_NOT_FOUND,
+    operation: 'resolve-ref',
+    repoUrl: url,
+    ref: target,
+    message: `Unable to resolve git ref "${target}" for ${url}`,
+  })
 }
 
 export async function resolveLockEntry(
   cwd: string,
   specifier: string,
 ): Promise<{ skillName: string; entry: SkillsLockEntry }> {
-  const normalized = normalizeSpecifier(specifier)
+  let normalized
+  try {
+    normalized = normalizeSpecifier(specifier)
+  } catch (error) {
+    if (error instanceof ParseError) {
+      throw error
+    }
+    throw new ParseError({
+      code: ErrorCode.INVALID_SPECIFIER,
+      message: `Failed to parse specifier "${specifier}": ${(error as Error).message}`,
+      content: specifier,
+      cause: error as Error,
+    })
+  }
 
   if (normalized.type === 'file') {
     const sourceRoot = path.resolve(cwd, normalized.source.slice('file:'.length))
@@ -97,13 +117,17 @@ export async function resolveLockEntry(
     }
   }
 
-  throw new Error(`Unsupported specifier type in 0.1.0 core flow: ${normalized.type}`)
+  throw new ParseError({
+    code: ErrorCode.INVALID_SPECIFIER,
+    message: `Unsupported specifier type in 0.1.0 core flow: ${normalized.type}`,
+    content: specifier,
+  })
 }
 
 export async function syncSkillsLock(
   cwd: string,
   manifest: SkillsManifest,
-  _existingLock: SkillsLock | null,
+  existingLock: SkillsLock | null,
 ): Promise<SkillsLock> {
   const nextSkills: Record<string, SkillsLockEntry> = {}
 

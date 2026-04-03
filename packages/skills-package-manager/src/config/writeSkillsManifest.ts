@@ -1,5 +1,6 @@
 import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { convertNodeError } from '../errors'
 import type { SkillsManifest } from './types'
 
 export async function writeSkillsManifest(
@@ -13,5 +14,9 @@ export async function writeSkillsManifest(
     skills: manifest.skills,
   }
 
-  await writeFile(filePath, `${JSON.stringify(nextManifest, null, 2)}\n`, 'utf8')
+  try {
+    await writeFile(filePath, `${JSON.stringify(nextManifest, null, 2)}\n`, 'utf8')
+  } catch (error) {
+    throw convertNodeError(error as NodeJS.ErrnoException, { operation: 'write', path: filePath })
+  }
 }

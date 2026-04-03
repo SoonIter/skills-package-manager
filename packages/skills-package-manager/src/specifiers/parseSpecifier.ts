@@ -1,9 +1,15 @@
+import { ErrorCode, ParseError } from '../errors'
+
 export function parseSpecifier(specifier: string) {
   const firstHashIndex = specifier.indexOf('#')
   const secondHashIndex = firstHashIndex >= 0 ? specifier.indexOf('#', firstHashIndex + 1) : -1
 
   if (secondHashIndex >= 0) {
-    throw new Error('Invalid specifier: multiple # fragments are not supported')
+    throw new ParseError({
+      code: ErrorCode.INVALID_SPECIFIER,
+      message: 'Invalid specifier: multiple # fragments are not supported',
+      content: specifier,
+    })
   }
 
   const hashIndex = firstHashIndex
@@ -11,7 +17,11 @@ export function parseSpecifier(specifier: string) {
   const fragment = hashIndex >= 0 ? specifier.slice(hashIndex + 1) : ''
 
   if (!sourcePart) {
-    throw new Error('Specifier source is required')
+    throw new ParseError({
+      code: ErrorCode.INVALID_SPECIFIER,
+      message: 'Specifier source is required',
+      content: specifier,
+    })
   }
 
   if (!fragment) {

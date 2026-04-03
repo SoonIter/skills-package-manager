@@ -1,9 +1,12 @@
 import { cac } from 'cac'
+import pc from 'picocolors'
 import packageJson from '../../package.json'
 import { addCommand } from '../commands/add'
 import { initCommand } from '../commands/init'
 import { installCommand } from '../commands/install'
 import { updateCommand } from '../commands/update'
+import { SpmError } from '../errors'
+import { formatErrorForDisplay } from '../errors'
 
 type CliHandlers = {
   addCommand: typeof addCommand
@@ -46,7 +49,7 @@ export async function runCli(argv: string[], context: InternalRunCliContext = {}
   cli
     .command('add [...positionals]')
     .option('--skill <name>', 'Select a skill')
-    .action((positionals: string[] = [], options: { skill?: string }) => {
+    .action(async (positionals: string[] = [], options: { skill?: string }) => {
       const specifier = positionals[0]
       if (!specifier) {
         throw new Error('Missing required specifier')
@@ -58,43 +61,38 @@ export async function runCli(argv: string[], context: InternalRunCliContext = {}
   cli
     .command('install [...args]')
     .option('--frozen-lockfile', 'Fail if lockfile is out of sync')
-    .action((_args: string[], options: { frozenLockfile?: boolean }) => {
+    .action(async (_args: string[], options: { frozenLockfile?: boolean }) => {
       return handlers.installCommand({ cwd, frozenLockfile: options.frozenLockfile })
     })
 
-  cli.command('update [...skills]').action((skills: string[] = []) => {
+  cli.command('update [...skills]').action(async (skills: string[] = []) => {
     return handlers.updateCommand({ cwd, skills: skills.length > 0 ? skills : undefined })
   })
 
   cli
     .command('init [...args]', '', { allowUnknownOptions: true })
     .option('--yes [value]', 'Skip prompts and write defaults')
-    .action(
-      (
-        args: string[] = [],
-        options: { yes?: boolean | string; '--'?: string[]; [key: string]: unknown },
-      ) => {
-        if (args.length > 0) {
-          throw new Error('init does not accept positional arguments')
+    .action(async (args: string[] = [], options: { yes?: boolean | string; '--'?: string[]; [key: string]: unknown }) => {
+      if (args.length > 0) {
+        throw new Error('init does not accept positional arguments')
+      }
+
+      for (const key of Object.keys(options)) {
+        if (key === '--') {
+          continue
         }
 
-        for (const key of Object.keys(options)) {
-          if (key === '--') {
-            continue
-          }
-
-          if (key !== 'yes') {
-            throw new Error(`Unknown flag for init: --${formatFlagName(key)}`)
-          }
+        if (key !== 'yes') {
+          throw new Error(`Unknown flag for init: --${formatFlagName(key)}`)
         }
+      }
 
-        if (typeof options.yes === 'string') {
-          throw new Error('init --yes does not accept a value')
-        }
+      if (typeof options.yes === 'string') {
+        throw new Error('init --yes does not accept a value')
+      }
 
-        return handlers.initCommand({ cwd, yes: options.yes === true })
-      },
-    )
+      return handlers.initCommand({ cwd, yes: options.yes === true })
+    })
 
   cli.parse(argv, { run: false })
 
@@ -123,5 +121,16 @@ export async function runCli(argv: string[], context: InternalRunCliContext = {}
     throw new Error(`Unknown command: ${argv[2]}`)
   }
 
-  return cli.runMatchedCommand()
+  try {
+    return await cli.runMatchedCommand()
+  } catch (error) {
+    // Enhance SPM errors with formatted output
+    if (error instanceof SpmError) {
+      // Create a new error with the formatted message for better CLI output
+      const enhancedError = new Error(formatErrorForDisplay(error))
+      // Preserve the original error as cause if possible
+      throw enhancedError
+    }
+    throw error
+  }
 }
