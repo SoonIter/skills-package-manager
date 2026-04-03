@@ -338,5 +338,138 @@ describe('installSkills', () => {
 
       expect(lockBefore).toBe(lockAfter)
     })
+
+    it('accepts lock with commit when manifest has no ref', async () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-noref-'))
+      const localSource = path.resolve(__dirname, 'fixtures/local-source')
+
+      // Manifest without ref (no commit SHA)
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': `file:${localSource}#path:/skills/hello-skill`,
+        },
+      })
+
+      // Lock with a resolved "commit" (for file type, this is just a different format)
+      await writeSkillsLock(root, {
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `file:${localSource}#path:/skills/hello-skill`,
+            resolution: {
+              type: 'file',
+              path: localSource,
+            },
+            digest: 'resolved-digest',
+          },
+        },
+      })
+
+      const result = await installSkills(root, { frozenLockfile: true })
+
+      expect(result.status).toBe('installed')
+      expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
+    })
+
+    it('throws when manifest ref differs from lock ref', async () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-ref-diff-'))
+      const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-ref-git-'))
+
+      require('node:fs').mkdirSync(path.join(gitRepo, 'skills/hello-skill'), { recursive: true })
+      require('node:fs').writeFileSync(path.join(gitRepo, 'skills/hello-skill/SKILL.md'), '# Hello\n')
+      require('node:child_process').execSync('git init', { cwd: gitRepo, stdio: 'ignore' })
+      require('node:child_process').execSync('git config user.email test@example.com', { cwd: gitRepo, stdio: 'ignore' })
+      require('node:child_process').execSync('git config user.name test', { cwd: gitRepo, stdio: 'ignore' })
+      require('node:child_process').execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
+      require('node:child_process').execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
+      const commit1 = require('node:child_process').execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
+
+      require('node:fs').writeFileSync(path.join(gitRepo, 'skills/hello-skill/SKILL.md'), '# Updated\n')
+      require('node:child_process').execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
+      require('node:child_process').execSync('git commit -m update', { cwd: gitRepo, stdio: 'ignore' })
+      const commit2 = require('node:child_process').execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
+
+      // Manifest specifies first commit
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': `${gitRepo}#${commit1}&path:/skills/hello-skill`,
+        },
+      })
+
+      // Lock has second commit
+      await writeSkillsLock(root, {
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `${gitRepo}#${commit2}&path:/skills/hello-skill`,
+            resolution: {
+              type: 'git',
+              url: gitRepo,
+              commit: commit2,
+              path: '/skills/hello-skill',
+            },
+            digest: 'digest-2',
+          },
+        },
+      })
+
+      await expect(installSkills(root, { frozenLockfile: true })).rejects.toThrow(
+        'Lockfile is out of sync'
+      )
+    })
+
+    it('accepts when manifest ref matches lock ref exactly', async () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-ref-match-'))
+      const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-ref-match-git-'))
+
+      require('node:fs').mkdirSync(path.join(gitRepo, 'skills/hello-skill'), { recursive: true })
+      require('node:fs').writeFileSync(path.join(gitRepo, 'skills/hello-skill/SKILL.md'), '# Hello\n')
+      require('node:child_process').execSync('git init', { cwd: gitRepo, stdio: 'ignore' })
+      require('node:child_process').execSync('git config user.email test@example.com', { cwd: gitRepo, stdio: 'ignore' })
+      require('node:child_process').execSync('git config user.name test', { cwd: gitRepo, stdio: 'ignore' })
+      require('node:child_process').execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
+      require('node:child_process').execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
+      const commit = require('node:child_process').execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
+
+      // Manifest and lock both specify same commit
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': `${gitRepo}#${commit}&path:/skills/hello-skill`,
+        },
+      })
+
+      await writeSkillsLock(root, {
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `${gitRepo}#${commit}&path:/skills/hello-skill`,
+            resolution: {
+              type: 'git',
+              url: gitRepo,
+              commit: commit,
+              path: '/skills/hello-skill',
+            },
+            digest: 'digest',
+          },
+        },
+      })
+
+      const result = await installSkills(root, { frozenLockfile: true })
+
+      expect(result.status).toBe('installed')
+      expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
+    })
   })
 })
