@@ -112,11 +112,15 @@ export async function installSkills(rootDir: string, options?: { frozenLockfile?
   } else {
     // Normal mode: sync lock with manifest (may trigger network requests)
     lockfile = await syncSkillsLock(rootDir, manifest, currentLock)
-    await writeSkillsLock(rootDir, lockfile)
   }
 
   await fetchSkillsFromLock(rootDir, manifest, lockfile)
   await linkSkillsFromLock(rootDir, manifest, lockfile)
+
+  // Write lockfile only after all operations succeed (atomicity)
+  if (!options?.frozenLockfile) {
+    await writeSkillsLock(rootDir, lockfile)
+  }
 
   return { status: 'installed', installed: Object.keys(lockfile.skills) } as const
 }
