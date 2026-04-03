@@ -2,6 +2,10 @@
   "name": "skills-package-manager",
   "version": "0.2.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SoonIter/skills-package-manager"
+  },
   "bin": {
     "skills-package-manager": "bin/skills-package-manager.js",
     "spm": "bin/spm.js"
