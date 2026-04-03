@@ -49,6 +49,15 @@ npx skills-package-manager install
 - `--frozen-lockfile` — Fail if lockfile is out of sync with manifest instead of updating it.
   Useful for CI/build environments to ensure reproducible installs without modifying the lockfile.
 
+#### Usage scenarios
+
+| Scenario | Command | Why |
+|----------|---------|-----|
+| Local development, first setup | `spm install` | Creates lockfile if missing |
+| Local development, after `git pull` | `spm install` | Updates skills if manifest changed |
+| CI/CD pipeline | `spm install --frozen-lockfile` | Ensures exact versions, fails on misconfig |
+| Updating skill versions | `spm update` or `spm install` | Updates lockfile with latest versions |
+
 ### Update declared skills
 
 ```bash

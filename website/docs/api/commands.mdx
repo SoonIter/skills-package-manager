@@ -36,6 +36,63 @@ When using `--frozen-lockfile`, the manifest and lockfile specifiers are compare
 
 Manifest specifiers without a ref (commit/branch) are compatible with any lockfile ref. This allows teams to omit specific commits in `skills.json` while still using `--frozen-lockfile` in CI.
 
+### Examples
+
+#### First-time install
+
+When setting up a project for the first time (no lockfile exists):
+
+```bash
+spm install
+```
+
+This will:
+
+- Resolve all git refs to specific commits
+- Create `skills-lock.yaml` with pinned versions
+- Install skills to `installDir`
+- Create symlinks in `linkTargets`
+
+#### CI install with frozen lockfile
+
+In CI/CD pipelines, use `--frozen-lockfile` for reproducible builds:
+
+```bash
+spm install --frozen-lockfile
+```
+
+This ensures:
+
+- The exact versions in `skills-lock.yaml` are installed
+- No network requests to resolve git refs (faster)
+- CI fails if lockfile is out of sync (catching misconfigurations)
+
+#### After adding a new skill
+
+After running `spm add` or manually editing `skills.json`:
+
+```bash
+spm install
+```
+
+This will:
+
+- Resolve the new skill's git ref
+- Update `skills-lock.yaml` with the new entry
+- Install and link the new skill
+
+#### Troubleshooting out-of-sync errors
+
+If you get "Lockfile is out of sync" with `--frozen-lockfile`:
+
+```bash
+# Option 1: Update the lockfile (recommended for local dev)
+spm install
+
+# Option 2: Check what changed
+git diff skills.json skills-lock.yaml
+```
+
 ## `spm update`
 
 Refresh the git-based skills declared in the manifest to their latest resolved versions, with the option to update only selected skills.
