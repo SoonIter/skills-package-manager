@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
 import { syncSkillsLock } from '../config/syncSkillsLock'
@@ -42,7 +43,7 @@ export async function fetchSkillsFromLock(rootDir: string, manifest: SkillsManif
       await materializeLocalSkill(
         rootDir,
         skillName,
-        entry.resolution.path,
+        path.resolve(rootDir, entry.resolution.path),
         extractSkillPath(entry.specifier, skillName),
         installDir,
       )

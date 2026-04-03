@@ -22,6 +22,7 @@ describe('addCommand', () => {
 
     expect(manifest.skills['hello-skill']).toBe('file:./local-source#path:/skills/hello-skill')
     expect(lockfile.skills['hello-skill'].resolution.type).toBe('file')
+    expect(lockfile.skills['hello-skill'].resolution.path).toBe('local-source')
   })
 
   it('installs and links a file skill immediately after add', async () => {
