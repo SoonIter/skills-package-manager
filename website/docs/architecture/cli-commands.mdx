@@ -60,6 +60,22 @@ Useful for:
 - Restoring skill dependencies in CI
 - Re-syncing the local skill directory after changing the manifest
 
+### `--frozen-lockfile`
+
+Prevent lockfile modifications and fail if it's out of sync.
+
+```bash
+spm install --frozen-lockfile
+```
+
+Behavior:
+- Requires `skills-lock.yaml` to exist
+- Requires manifest specifiers to be compatible with lockfile (see [Manifest and Lockfile](/architecture/manifest-and-lockfile))
+- Does not resolve git refs (no network requests)
+- Does not modify `skills-lock.yaml`
+
+Ideal for CI/build environments where you want to ensure the lockfile is authoritative and prevent accidental updates.
+
 ## `spm update`
 
 Refresh already-declared git-based skills.

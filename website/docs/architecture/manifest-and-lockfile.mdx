@@ -61,3 +61,38 @@ The former is suitable for review; the latter is suitable for reproducibility.
 2. Standardize `installDir` and `linkTargets` across the team
 3. Prefer explicit GitHub specifiers with `path:` for external skills
 4. When using local skills for internal development, keep the lockfile as well to track digest changes
+
+## Specifier Compatibility
+
+When comparing manifest and lockfile specifiers (e.g., with `spm install --frozen-lockfile`), the following rules apply:
+
+1. **Source must match**: The git URL or file path must be identical
+2. **Path must match**: The skill path within the repository must be identical
+3. **Ref compatibility**:
+   - Manifest without ref → compatible with any lock ref (use lock version)
+   - Manifest with ref → must match lock ref exactly
+
+This means you can omit the commit SHA in `skills.json`:
+
+```json
+{
+  "skills": {
+    "my-skill": "https://github.com/owner/repo.git#path:/skills/my-skill"
+  }
+}
+```
+
+And the lockfile will pin the exact version:
+
+```yaml
+skills:
+  my-skill:
+    specifier: https://github.com/owner/repo.git#abc1234&path:/skills/my-skill
+    resolution:
+      type: git
+      url: https://github.com/owner/repo.git
+      commit: abc1234...
+      path: /skills/my-skill
+```
+
+The `--frozen-lockfile` flag will accept this combination because the manifest specifier (without ref) is satisfied by the lockfile specifier (with resolved commit).

@@ -44,6 +44,11 @@ npx skills-package-manager add file:./my-skills#path:/skills/my-skill
 npx skills-package-manager install
 ```
 
+#### Options
+
+- `--frozen-lockfile` — Fail if lockfile is out of sync with manifest instead of updating it.
+  Useful for CI/build environments to ensure reproducible installs without modifying the lockfile.
+
 ### Update declared skills
 
 ```bash

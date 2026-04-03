@@ -16,6 +16,26 @@ Initialize a new `skills.json` manifest.
 
 Install all skills defined in `skills.json`, and synchronize `skills-lock.yaml`, `installDir`, and `linkTargets`.
 
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--frozen-lockfile` | Fail if lockfile is out of sync instead of updating it. Requires lockfile to exist and match manifest specifiers. |
+
+### Specifier Compatibility
+
+When using `--frozen-lockfile`, the manifest and lockfile specifiers are compared semantically:
+
+| Manifest | Lockfile | Result |
+|----------|----------|--------|
+| `git://repo.git#path:/skill` | `git://repo.git#abc123&path:/skill` | ✅ Compatible (manifest accepts any ref) |
+| `git://repo.git#main&path:/skill` | `git://repo.git#main&path:/skill` | ✅ Compatible (refs match) |
+| `git://repo.git#abc123&path:/skill` | `git://repo.git#abc123&path:/skill` | ✅ Compatible (refs match) |
+| `git://repo.git#abc123&path:/skill` | `git://repo.git#def456&path:/skill` | ❌ Incompatible (refs differ) |
+| `git://repo.git#path:/skill-a` | `git://repo.git#abc123&path:/skill-b` | ❌ Incompatible (paths differ) |
+
+Manifest specifiers without a ref (commit/branch) are compatible with any lockfile ref. This allows teams to omit specific commits in `skills.json` while still using `--frozen-lockfile` in CI.
+
 ## `spm update`
 
 Refresh the git-based skills declared in the manifest to their latest resolved versions, with the option to update only selected skills.
