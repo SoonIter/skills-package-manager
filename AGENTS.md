@@ -7,6 +7,22 @@
 - `website`: Rspress documentation site.
 - Root files such as `skills.json` and `skills-lock.yaml` document example skill manifests and lock state.
 
+## Documentation Structure
+
+Before you start your PR, check if you need to update the documents. The documentation site (`website/docs/`) is organized as follows:
+
+- **Getting Started**: `getting-started.mdx` - Quick start guide for new users.
+- **API Reference** (`api/`):
+  - `index.mdx` - API overview and introduction.
+  - `commands.mdx` - CLI command reference.
+  - `specifiers.mdx` - Skill specifier format and options.
+- **Architecture** (`architecture/`):
+  - `how-it-works.mdx` - High-level system overview.
+  - `cli-commands.mdx` - CLI command implementation details.
+  - `manifest-and-lockfile.mdx` - Manifest and lockfile formats.
+  - `pnpm-plugin.mdx` - pnpm plugin integration details.
+- **Public Assets** (`public/`): Logos and favicon files.
+
 ## Development Commands
 
 - `pnpm install`: install workspace dependencies.
