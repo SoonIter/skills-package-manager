@@ -9,7 +9,119 @@ import PnpmGuide from './_pnpm.mdx';
 </PageTab>
 <PageTab label="common">
 
-## 123123
+import { Steps } from '@rspress/core/theme';
+
+## 1. Initialize your project
+
+If you're not using pnpm or prefer a standalone workflow, you can use the CLI directly to manage skills.
+
+<Steps>
+
+### Install the CLI
+
+You don't need to install the CLI globally — just use `npx` to run it on demand:
+
+```bash
+npx skills-package-manager --help
+```
+
+### Create a `skills.json` manifest
+
+Initialize a new project with the `init` command:
+
+```bash
+# Interactive — prompt for installDir and linkTargets
+npx skills-package-manager init
+
+# Non-interactive — write the default manifest immediately
+npx skills-package-manager init --yes
+```
+
+```bash
+# Interactive — clone repo, discover skills, select via multiselect prompt
+npx skills-package-manager add vercel-labs/skills
+npx skills-package-manager add https://github.com/rstackjs/agent-skills
+
+# Non-interactive — add a specific skill by name
+npx skills-package-manager add vercel-labs/skills --skill find-skills
+```
+
+The default `skills.json` created by `init --yes`:
+
+```json
+{
+  "installDir": ".agents/skills",
+  "linkTargets": [],
+  "skills": {}
+}
+```
+
+This manifest defines:
+
+- `installDir`: where managed skills are materialized
+- `linkTargets`: which agent-specific directories receive links
+- `skills`: which skills should be installed (empty initially)
+
+### Install your first skills
+
+Add skills to your project using the `add` command:
+
+```bash
+# Interactive — clone repo, discover skills, select via multiselect prompt
+npx skills-package-manager add vercel-labs/skills
+npx skills-package-manager add https://github.com/rstackjs/agent-skills
+
+# Non-interactive — add a specific skill by name
+npx skills-package-manager add vercel-labs/skills --skill find-skills
+```
+
+After `add`, the skill is immediately resolved, materialized into `installDir`, and linked to each configured `linkTarget`.
+
+### Run install to materialize skills
+
+If you edited `skills.json` manually or want to ensure everything is synced:
+
+```bash
+npx skills-package-manager install
+```
+
+This reads `skills.json`, resolves each skill specifier, generates or updates `skills-lock.yaml`, materializes skills into `installDir`, and links them into every directory listed in `linkTargets`.
+
+### Add `.agents/skills` to `.gitignore`
+
+Since the skill directories are generated artifacts, you should add them to `.gitignore`:
+
+```txt title=".gitignore"
+.agents/skills
+.claude/skills
+```
+
+</Steps>
+
+## 2. Add more skills when needed
+
+When you want to introduce another skill, you can either edit `skills.json` directly or use the CLI:
+
+```bash
+npx skills-package-manager add vercel-labs/skills --skill find-skills
+npx skills-package-manager add https://github.com/rstackjs/agent-skills --skill rspress-custom-theme
+```
+
+## 3. Refresh remote skill versions
+
+When remote git-based skills should move forward to newer commits, run:
+
+```bash
+npx skills-package-manager update
+```
+
+Or update specific skills only:
+
+```bash
+npx skills-package-manager update find-skills rspress-custom-theme
+```
+
+This keeps the resolved lockfile state and linked directories aligned with the latest declared versions.
 
 </PageTab>
 

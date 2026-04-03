@@ -18,7 +18,26 @@ This tells pnpm to load `pnpm-plugin-skills` during installation.
 
 ### Declare the skills your project needs
 
-Create a `skills.json` file at the workspace root:
+Create a `skills.json` file at the workspace root. You can create it manually or use the CLI to initialize:
+
+```bash
+# Interactive — prompt for installDir and linkTargets
+npx skills-package-manager init
+
+# Non-interactive — write the default manifest immediately
+npx skills-package-manager init --yes
+```
+
+```bash
+# Interactive — clone repo, discover skills, select via multiselect prompt
+npx skills-package-manager add vercel-labs/skills
+npx skills-package-manager add https://github.com/rstackjs/agent-skills
+
+# Non-interactive — add a specific skill by name
+npx skills-package-manager add vercel-labs/skills --skill find-skills
+```
+
+Example `skills.json`:
 
 ```json
 {

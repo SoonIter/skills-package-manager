@@ -33,9 +33,7 @@ Before you start your PR, check if you need to update the documents. The documen
 
 ## Coding Conventions
 
-- Use TypeScript and follow the existing module style in each package:
-  - `skills-package-manager` uses ESM.
-  - `pnpm-plugin-skills` uses CommonJS output.
+- Use TypeScript and follow the existing module style in each package.
 - Match existing formatting, naming, and file organization before introducing new patterns.
 - Keep changes focused; avoid adding abstractions, comments, or files unless they are necessary.
 - Preserve manifest, lockfile, and CLI terminology consistently across code and docs.
