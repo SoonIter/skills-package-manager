@@ -222,4 +222,121 @@ describe('installSkills', () => {
     expect(existsSync(path.join(root, '.claude/skills/obsolete-skill'))).toBe(false)
     expect(existsSync(path.join(root, '.agents/skills/hello-skill'))).toBe(true)
   })
+
+  describe('frozen-lockfile', () => {
+    it('installs successfully when lock is in sync', async () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-ok-'))
+
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+        },
+      })
+
+      await writeSkillsLock(root, {
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+            resolution: {
+              type: 'file',
+              path: path.resolve(__dirname, 'fixtures/local-source'),
+            },
+            digest: 'test-digest',
+          },
+        },
+      })
+
+      const result = await installSkills(root, { frozenLockfile: true })
+
+      expect(result.status).toBe('installed')
+      expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
+    })
+
+    it('throws when lockfile is missing in frozen mode', async () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-missing-'))
+
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+        },
+      })
+
+      await expect(installSkills(root, { frozenLockfile: true })).rejects.toThrow(
+        'Lockfile is required in frozen mode'
+      )
+    })
+
+    it('throws when lock is out of sync with manifest', async () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-outofsync-'))
+
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+        },
+      })
+
+      await writeSkillsLock(root, {
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'different-skill': {
+            specifier: `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+            resolution: {
+              type: 'file',
+              path: path.resolve(__dirname, 'fixtures/local-source'),
+            },
+            digest: 'test-digest',
+          },
+        },
+      })
+
+      await expect(installSkills(root, { frozenLockfile: true })).rejects.toThrow(
+        'Lockfile is out of sync'
+      )
+    })
+
+    it('does not modify lockfile in frozen mode', async () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-nomodify-'))
+
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+        },
+      })
+
+      await writeSkillsLock(root, {
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+            resolution: {
+              type: 'file',
+              path: path.resolve(__dirname, 'fixtures/local-source'),
+            },
+            digest: 'original-digest',
+          },
+        },
+      })
+
+      const lockBefore = readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8')
+      await installSkills(root, { frozenLockfile: true })
+      const lockAfter = readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8')
+
+      expect(lockBefore).toBe(lockAfter)
+    })
+  })
 })

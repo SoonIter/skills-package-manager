@@ -55,9 +55,12 @@ export async function runCli(argv: string[], context: InternalRunCliContext = {}
       return handlers.addCommand({ cwd, specifier, skill: options.skill })
     })
 
-  cli.command('install [...args]').action(() => {
-    return handlers.installCommand({ cwd })
-  })
+  cli
+    .command('install [...args]')
+    .option('--frozen-lockfile', 'Fail if lockfile is out of sync')
+    .action((_args: string[], options: { frozenLockfile?: boolean }) => {
+      return handlers.installCommand({ cwd, frozenLockfile: options.frozenLockfile })
+    })
 
   cli.command('update [...skills]').action((skills: string[] = []) => {
     return handlers.updateCommand({ cwd, skills: skills.length > 0 ? skills : undefined })

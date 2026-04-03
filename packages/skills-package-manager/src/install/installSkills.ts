@@ -3,6 +3,7 @@ import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
 import { syncSkillsLock } from '../config/syncSkillsLock'
 import { writeSkillsLock } from '../config/writeSkillsLock'
+import { isLockInSync } from '../config/compareSkillsLock'
 import type { SkillsLock, SkillsManifest } from '../config/types'
 import { sha256 } from '../utils/hash'
 import { linkSkill } from './links'
@@ -89,17 +90,33 @@ export async function linkSkillsFromLock(rootDir: string, manifest: SkillsManife
   return { status: 'linked', linked: Object.keys(lockfile.skills) } as const
 }
 
-export async function installSkills(rootDir: string) {
+export async function installSkills(rootDir: string, options?: { frozenLockfile?: boolean }) {
   const manifest = await readSkillsManifest(rootDir)
   if (!manifest) {
     return { status: 'skipped', reason: 'manifest-missing' } as const
   }
 
   const currentLock = await readSkillsLock(rootDir)
-  const lockfile = await syncSkillsLock(rootDir, manifest, currentLock)
+
+  let lockfile: SkillsLock
+
+  if (options?.frozenLockfile) {
+    // Frozen mode: lock must exist and be in sync
+    if (!currentLock) {
+      throw new Error('Lockfile is required in frozen mode but none was found')
+    }
+    if (!isLockInSync(manifest, currentLock)) {
+      throw new Error('Lockfile is out of sync with manifest. Run install without --frozen-lockfile to update.')
+    }
+    lockfile = currentLock
+  } else {
+    // Normal mode: sync lock with manifest (may trigger network requests)
+    lockfile = await syncSkillsLock(rootDir, manifest, currentLock)
+    await writeSkillsLock(rootDir, lockfile)
+  }
+
   await fetchSkillsFromLock(rootDir, manifest, lockfile)
   await linkSkillsFromLock(rootDir, manifest, lockfile)
-  await writeSkillsLock(rootDir, lockfile)
 
   return { status: 'installed', installed: Object.keys(lockfile.skills) } as const
 }
