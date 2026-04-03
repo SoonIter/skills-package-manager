@@ -31,7 +31,7 @@ export async function resolveLockEntry(cwd: string, specifier: string): Promise<
         specifier: normalized.normalized,
         resolution: {
           type: 'file',
-          path: sourceRoot,
+          path: path.relative(cwd, sourceRoot) || '.',
         },
         digest: sha256(`${sourceRoot}:${normalized.path}`),
       },

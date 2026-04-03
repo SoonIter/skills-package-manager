@@ -7,8 +7,8 @@ skills:
     specifier: file:./packages/skills-package-manager/test/fixtures/local-source#path:/skills/hello-skill
     resolution:
       type: file
-      path: /Users/bytedance/Documents/codes/skills-pm/packages/skills-package-manager/test/fixtures/local-source
-    digest: sha256-465ee77b0f75d628a4f40881da78fbc448b4e767953d30f31eca605d53fe0f32
+      path: packages/skills-package-manager/test/fixtures/local-source
+    digest: sha256-b5f9109d99f5657ba1e3088a57d133f7557af574ba65dc27068f37636ce5e5f0
   rspress-custom-theme:
     specifier: https://github.com/rstackjs/agent-skills.git#path:/skills/rspress-custom-theme
     resolution:
