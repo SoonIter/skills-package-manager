@@ -1,42 +1,81 @@
-# skills-package-manager
+<div align="center">
 
-A package manager for [agent skills](https://skills.sh) — manage, install, and link SKILL.md-based skills into your AI coding agents.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./website/docs/public/logo-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="./website/docs/public/logo-light.svg">
+  <img alt="skills-package-manager logo" src="./website/docs/public/logo-light.svg" width="200">
+</picture>
 
-## Overview
+<h1>skills-package-manager</h1>
 
-skills-package-manager is a monorepo that provides:
+<p>
+  <strong>A package manager for <a href="https://skills.sh">agent skills</a></strong><br>
+  Manage, install, and link SKILL.md-based skills into your AI coding agents
+</p>
 
-- **[skills-package-manager](./packages/skills-package-manager/)** — Core library and `spm` CLI for managing agent skills
-- **[pnpm-plugin-skills](./packages/pnpm-plugin-skills/)** — pnpm plugin that auto-installs skills during `pnpm install`
+<p>
+  <a href="https://www.npmjs.com/package/skills-package-manager">
+    <img src="https://img.shields.io/npm/v/skills-package-manager.svg?style=flat-square&color=blue" alt="npm version">
+  </a>
+  <a href="https://www.npmjs.com/package/skills-package-manager">
+    <img src="https://img.shields.io/npm/dm/skills-package-manager.svg?style=flat-square&color=success" alt="npm downloads">
+  </a>
+  <img src="https://img.shields.io/badge/TypeScript-strict-blue?style=flat-square&logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/pnpm-supported-orange?style=flat-square&logo=pnpm" alt="pnpm">
+  <a href="./LICENSE">
+    <img src="https://img.shields.io/badge/license-ISC-blueviolet?style=flat-square" alt="license">
+  </a>
+</p>
 
-## Quick Start
+<p align="center">
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-features">Features</a> •
+  <a href="#-how-it-works">How It Works</a> •
+  <a href="#-specifier-format">Specifier Format</a> •
+  <a href="#-documentation">Documentation</a>
+</p>
 
-### Initialize a manifest
+---
+
+</div>
+
+## ✨ Features
+
+- 🚀 **Zero-config setup** — Get started with a single command
+- 🔗 **Git-based versioning** — Lock to specific commits, tags, or branches
+- 📦 **pnpm integration** — Auto-install skills during `pnpm install`
+- 🎯 **Multiple sources** — GitHub repos, local files, or npm packages
+- 🔒 **Reproducible installs** — Lockfile ensures consistent environments
+- ⚡ **Parallel resolution** — Fast dependency resolution
+- 🧩 **AI agent ready** — Seamless integration with Claude and other agents
+
+## 🚀 Quick Start
+
+### Initialize a project
 
 ```bash
+# Create a new skills.json manifest
 npx skills-package-manager init
+
+# Or skip the prompts
 npx skills-package-manager init --yes
 ```
 
-### Add a skill from GitHub
+### Add skills
 
 ```bash
-# Interactive — browse and select skills
+# 🔍 Interactive — browse and select from a repo
 npx skills-package-manager add vercel-labs/skills
 
-# By name
+# 🎯 Direct — specify skill by name
 npx skills-package-manager add vercel-labs/skills --skill find-skills
-# Full GitHub URL
+
+# 🔗 Full GitHub URL
 npx skills-package-manager add https://github.com/rstackjs/agent-skills --skill rspress-custom-theme
-```
 
-### Add a local skill
-
-```bash
+# 📁 Local skill
 npx skills-package-manager add file:./my-skills#path:/skills/my-skill
 ```
-
-`spm add` will install and link the newly added skills immediately.
 
 ### Install all skills
 
@@ -44,30 +83,30 @@ npx skills-package-manager add file:./my-skills#path:/skills/my-skill
 npx skills-package-manager install
 ```
 
-#### Options
+> 💡 **Tip:** Use `--frozen-lockfile` in CI/CD to ensure reproducible installs without modifying the lockfile.
 
-- `--frozen-lockfile` — Fail if lockfile is out of sync with manifest instead of updating it.
-  Useful for CI/build environments to ensure reproducible installs without modifying the lockfile.
-
-#### Usage scenarios
-
-| Scenario | Command | Why |
-|----------|---------|-----|
-| Local development, first setup | `npx skills-package-manager install` | Creates lockfile if missing |
-| Local development, after `git pull` | `npx skills-package-manager install` | Updates skills if manifest changed |
-| CI/CD pipeline | `npx skills-package-manager install --frozen-lockfile` | Ensures exact versions, fails on misconfig |
-| Updating skill versions | `npx skills-package-manager update` or `npx skills-package-manager install` | Updates lockfile with latest versions |
-
-### Update declared skills
+### Update skills
 
 ```bash
+# Update all skills
 npx skills-package-manager update
+
+# Update specific skills only
 npx skills-package-manager update find-skills rspress-custom-theme
 ```
 
-## How It Works
+## 📋 Usage Scenarios
 
-skills-package-manager uses two files to manage skills:
+| Scenario | Command | Why |
+|:---------|:--------|:----|
+| 🏠 First time setup | `npx skills-package-manager install` | Creates lockfile if missing |
+| 🔄 After `git pull` | `npx skills-package-manager install` | Updates skills if manifest changed |
+| 🏭 CI/CD pipeline | `npx skills-package-manager install --frozen-lockfile` | Ensures exact versions, fails on misconfig |
+| ⬆️ Version updates | `npx skills-package-manager update` | Updates lockfile with latest versions |
+
+## 🏗️ How It Works
+
+skills-package-manager uses two files to manage your skills:
 
 ### `skills.json` — Manifest
 
@@ -78,19 +117,25 @@ Declares which skills to install and where to put them:
   "installDir": ".agents/skills",
   "linkTargets": [".claude/skills"],
   "skills": {
+    // GitHub skill with path
     "find-skills": "https://github.com/vercel-labs/skills.git#path:/skills/find-skills",
-    "my-local-skill": "file:./local-source#path:/skills/my-local-skill"
+    // Local skill
+    "my-local-skill": "file:./local-source#path:/skills/my-local-skill",
+    // Short form — uses repo root
+    "create-ex": "https://github.com/therealXiaomanChu/ex-skill.git"
   }
 }
 ```
 
 ### `skills-lock.yaml` — Lockfile
 
-Locks resolved versions (git commits, file digests) for reproducible installs:
+Locks resolved versions for reproducible installs:
 
 ```yaml
 lockfileVersion: "0.1"
 installDir: .agents/skills
+linkTargets:
+  - .claude/skills
 skills:
   find-skills:
     specifier: https://github.com/vercel-labs/skills.git#path:/skills/find-skills
@@ -102,29 +147,33 @@ skills:
     digest: sha256-...
 ```
 
-## Specifier Format
+## 📝 Specifier Format
 
-Skills are referenced using specifiers with the following format:
+| Type | Format | Example |
+|:-----|:-------|:--------|
+| GitHub shorthand | `owner/repo` | `vercel-labs/skills` |
+| GitHub URL | `https://github.com/owner/repo` | `https://github.com/vercel-labs/skills` |
+| Git + path | `url.git#path:/skills/name` | `https://github.com/owner/repo.git#path:/skills/my-skill` |
+| Git + ref + path | `url.git#ref&path:/skills/name` | `https://github.com/owner/repo.git#main&path:/skills/my-skill` |
+| Local file | `file:./path#path:/skills/name` | `file:./local-source#path:/skills/my-skill` |
 
-| Type | Example |
-|------|---------|
-| GitHub shorthand | `owner/repo` |
-| GitHub URL | `https://github.com/owner/repo` |
-| Git + path | `https://github.com/owner/repo.git#path:/skills/my-skill` |
-| Git + ref + path | `https://github.com/owner/repo.git#main&path:/skills/my-skill` |
-| Local file | `file:./local-dir#path:/skills/my-skill` |
+## 🔌 pnpm Integration
 
-## pnpm Integration
-
-Install `pnpm-plugin-skills` as a config dependency to auto-install skills on every `pnpm install`:
+Install `pnpm-plugin-skills` as a config dependency for auto-install on every `pnpm install`:
 
 ```bash
 pnpm add pnpm-plugin-skills --config
 ```
 
-This adds it to `configDependencies` in `pnpm-workspace.yaml` automatically.
+This automatically adds it to `configDependencies` in `pnpm-workspace.yaml`.
 
-## Development
+## 📚 Documentation
+
+- 📖 [Getting Started Guide](https://skills-package-manager.dev/getting-started)
+- 📘 [API Reference](https://skills-package-manager.dev/api/)
+- 🏗️ [Architecture](https://skills-package-manager.dev/architecture/how-it-works)
+
+## 🛠️ Development
 
 ```bash
 # Install dependencies
@@ -133,8 +182,11 @@ pnpm install
 # Build all packages
 pnpm build
 
-# Run tests
+# Run the test suite
 pnpm test
+
+# Start docs dev server
+pnpm --filter website dev
 ```
 
 ### Project Structure
@@ -142,20 +194,44 @@ pnpm test
 ```
 skills-package-manager/
 ├── packages/
-│   ├── skills-package-manager/ # Core library and spm CLI
-│   └── pnpm-plugin-skills/     # pnpm plugin (auto-install on pnpm install)
-├── skills.json             # Manifest (which skills to install)
-├── skills-lock.yaml        # Lockfile (resolved versions)
+│   ├── skills-package-manager/  # Core library and spm CLI
+│   └── pnpm-plugin-skills/      # pnpm plugin (auto-install on pnpm install)
+├── website/                     # Documentation site (Rspress)
+├── skills.json                  # Example manifest
+├── skills-lock.yaml             # Example lockfile
 └── pnpm-workspace.yaml
 ```
 
-## Tech Stack
+## 🧰 Tech Stack
 
-- **TypeScript** — Strict mode
-- **Rslib** — Build tool (bundle mode)
-- **Rstest** — Test runner
-- **pnpm** — Package manager with workspace support
+| Technology | Purpose |
+|:-----------|:--------|
+| ![TypeScript](https://img.shields.io/badge/-TypeScript-3178C6?style=flat&logo=typescript&logoColor=white) | Strict type checking |
+| ![Rslib](https://img.shields.io/badge/-Rslib-000000?style=flat) | Modern build tool (bundle mode) |
+| ![Rstest](https://img.shields.io/badge/-Rstest-000000?style=flat) | Fast test runner |
+| ![pnpm](https://img.shields.io/badge/-pnpm-F69220?style=flat&logo=pnpm&logoColor=white) | Package manager with workspace support |
+| ![Rspress](https://img.shields.io/badge/-Rspress-000000?style=flat) | Documentation site generator |
 
-## License
+## 🤝 Contributing
 
-ISC
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+[ISC](./LICENSE) © [skills.sh](https://skills.sh)
+
+---
+
+<div align="center">
+
+**[⬆ Back to Top](#skills-package-manager)**
+
+Made with ❤️ for AI coding agents
+
+</div>
