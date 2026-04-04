@@ -1,12 +1,12 @@
-import type { SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
-import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
-import { sha256 } from '../utils/hash'
+import { execFile } from 'node:child_process'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { ErrorCode, GitError, ParseError } from '../errors'
+import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
+import { sha256 } from '../utils/hash'
+import type { SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
 
 const execFileAsync = promisify(execFile)
 
@@ -69,6 +69,7 @@ async function resolveGitCommit(url: string, ref: string | null): Promise<string
 export async function resolveLockEntry(
   cwd: string,
   specifier: string,
+  skillName?: string,
 ): Promise<{ skillName: string; entry: SkillsLockEntry }> {
   let normalized
   try {
@@ -85,10 +86,13 @@ export async function resolveLockEntry(
     })
   }
 
+  // Use provided skillName from manifest key, fallback to parsed skillName
+  const finalSkillName = skillName || normalized.skillName
+
   if (normalized.type === 'file') {
     const sourceRoot = path.resolve(cwd, normalized.source.slice('file:'.length))
     return {
-      skillName: normalized.skillName,
+      skillName: finalSkillName,
       entry: {
         specifier: normalized.normalized,
         resolution: {
@@ -103,7 +107,7 @@ export async function resolveLockEntry(
   if (normalized.type === 'git') {
     const commit = await resolveGitCommit(normalized.source, normalized.ref)
     return {
-      skillName: normalized.skillName,
+      skillName: finalSkillName,
       entry: {
         specifier: normalized.normalized,
         resolution: {
@@ -127,14 +131,16 @@ export async function resolveLockEntry(
 export async function syncSkillsLock(
   cwd: string,
   manifest: SkillsManifest,
-  existingLock: SkillsLock | null,
+  _existingLock: SkillsLock | null,
 ): Promise<SkillsLock> {
-  const nextSkills: Record<string, SkillsLockEntry> = {}
+  const entries = await Promise.all(
+    Object.entries(manifest.skills).map(async ([skillName, specifier]) => {
+      const { skillName: resolvedName, entry } = await resolveLockEntry(cwd, specifier, skillName)
+      return [resolvedName, entry] as const
+    }),
+  )
 
-  for (const specifier of Object.values(manifest.skills)) {
-    const { skillName, entry } = await resolveLockEntry(cwd, specifier)
-    nextSkills[skillName] = entry
-  }
+  const nextSkills: Record<string, SkillsLockEntry> = Object.fromEntries(entries)
 
   return {
     lockfileVersion: '0.1',

@@ -1,6 +1,5 @@
 import * as p from '@clack/prompts'
 import pc from 'picocolors'
-import { ErrorCode, ParseError, SkillError } from '../errors'
 import { promptSkillSelection } from '../cli/prompt'
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
@@ -8,11 +7,12 @@ import { syncSkillsLock } from '../config/syncSkillsLock'
 import type { AddCommandOptions } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
 import { writeSkillsManifest } from '../config/writeSkillsManifest'
+import { ErrorCode, ParseError, SkillError } from '../errors'
 import { listRepoSkills, parseGitHubUrl, parseOwnerRepo } from '../github/listSkills'
 import { installSkills } from '../install/installSkills'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 
-function isProtocolSpecifier(specifier: string): boolean {
+function _isProtocolSpecifier(specifier: string): boolean {
   return /^[a-z]+:/.test(specifier)
 }
 
@@ -88,7 +88,9 @@ export async function addCommand(options: AddCommandOptions) {
     if (skill) {
       spinner.start(`Cloning ${source}...`)
       const skills = await listRepoSkills(owner, repo)
-      spinner.stop(`Found ${pc.green(String(skills.length))} skill${skills.length !== 1 ? 's' : ''}`)
+      spinner.stop(
+        `Found ${pc.green(String(skills.length))} skill${skills.length !== 1 ? 's' : ''}`,
+      )
 
       const found = skills.find((s) => s.name === skill)
       const skillPath = found?.path ?? `/${skill}`

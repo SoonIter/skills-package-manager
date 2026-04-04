@@ -1,6 +1,6 @@
 import path from 'node:path'
-import { ErrorCode, ParseError } from '../errors'
 import type { NormalizedSpecifier } from '../config/types'
+import { ErrorCode, ParseError } from '../errors'
 import { parseSpecifier } from './parseSpecifier'
 
 export function normalizeSpecifier(specifier: string): NormalizedSpecifier {

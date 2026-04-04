@@ -18,6 +18,7 @@
     "@biomejs/biome": "^2.4.10",
     "@rstest/core": "^0.9.4",
     "bumpp": "^11.0.1",
-    "path-serializer": "^0.6.0"
+    "path-serializer": "^0.6.0",
+    "@types/node": "^24.0.0"
   }
 }

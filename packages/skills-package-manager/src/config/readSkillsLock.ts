@@ -1,8 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import YAML from 'yaml'
-import { ErrorCode, ParseError } from '../errors'
-import { convertNodeError } from '../errors'
+import { convertNodeError, ErrorCode, ParseError } from '../errors'
 import type { SkillsLock } from './types'
 
 export async function readSkillsLock(rootDir: string): Promise<SkillsLock | null> {

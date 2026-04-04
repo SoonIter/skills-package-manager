@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { ErrorCode, ParseError } from '../errors'
-import { convertNodeError } from '../errors'
+import { convertNodeError, ErrorCode, ParseError } from '../errors'
 import type { SkillsManifest } from './types'
 
 export async function readSkillsManifest(rootDir: string): Promise<SkillsManifest | null> {

@@ -1,11 +1,11 @@
-import { ErrorCode, ManifestError } from '../errors'
-import type { InstallCommandOptions } from '../config/types'
-import { readSkillsManifest } from '../config/readSkillsManifest'
-import { readSkillsLock } from '../config/readSkillsLock'
-import { syncSkillsLock } from '../config/syncSkillsLock'
-import { writeSkillsLock } from '../config/writeSkillsLock'
 import { isLockInSync } from '../config/compareSkillsLock'
-import { installSkills, fetchSkillsFromLock, linkSkillsFromLock } from '../install/installSkills'
+import { readSkillsLock } from '../config/readSkillsLock'
+import { readSkillsManifest } from '../config/readSkillsManifest'
+import { syncSkillsLock } from '../config/syncSkillsLock'
+import type { InstallCommandOptions } from '../config/types'
+import { writeSkillsLock } from '../config/writeSkillsLock'
+import { ErrorCode, ManifestError } from '../errors'
+import { fetchSkillsFromLock, linkSkillsFromLock } from '../install/installSkills'
 
 export async function installCommand(options: InstallCommandOptions) {
   const manifest = await readSkillsManifest(options.cwd)
@@ -32,7 +32,8 @@ export async function installCommand(options: InstallCommandOptions) {
       throw new ManifestError({
         code: ErrorCode.LOCKFILE_OUTDATED,
         filePath: `${options.cwd}/skills-lock.yaml`,
-        message: 'Lockfile is out of sync with manifest. Run install without --frozen-lockfile to update.',
+        message:
+          'Lockfile is out of sync with manifest. Run install without --frozen-lockfile to update.',
       })
     }
 

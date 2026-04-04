@@ -1,10 +1,10 @@
 import { access } from 'node:fs/promises'
 import path from 'node:path'
-import { ErrorCode, FileSystemError, ManifestError } from '../errors'
-import { promptInitManifestOptions } from '../cli/prompt'
 import type { InitPromptResult } from '../cli/prompt'
+import { promptInitManifestOptions } from '../cli/prompt'
 import type { InitCommandOptions, SkillsManifest } from '../config/types'
 import { writeSkillsManifest } from '../config/writeSkillsManifest'
+import { ErrorCode, FileSystemError, ManifestError } from '../errors'
 
 async function assertManifestMissing(cwd: string): Promise<void> {
   const filePath = path.join(cwd, 'skills.json')

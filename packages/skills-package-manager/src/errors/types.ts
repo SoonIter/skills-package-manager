@@ -54,7 +54,8 @@ export class GitError extends SpmError {
     cause?: Error
   }) {
     const message =
-      options.message ?? `git ${options.operation} failed${options.repoUrl ? ` for ${options.repoUrl}` : ''}`
+      options.message ??
+      `git ${options.operation} failed${options.repoUrl ? ` for ${options.repoUrl}` : ''}`
     super({
       code: options.code,
       message,
@@ -123,7 +124,8 @@ export class ManifestError extends SpmError {
       [ErrorCode.LOCKFILE_OUTDATED]: `Lockfile is out of date: ${options.filePath}`,
       [ErrorCode.MANIFEST_EXISTS]: `Manifest already exists: ${options.filePath}`,
     }
-    const message = options.message ?? defaultMessages[options.code] ?? `Manifest error: ${options.filePath}`
+    const message =
+      options.message ?? defaultMessages[options.code] ?? `Manifest error: ${options.filePath}`
     super({
       code: options.code,
       message,
@@ -152,7 +154,8 @@ export class SkillError extends SpmError {
       [ErrorCode.SKILL_EXISTS]: `Skill already exists: ${options.skillName}`,
       [ErrorCode.VALIDATION_ERROR]: `Skill validation failed: ${options.skillName}`,
     }
-    const message = options.message ?? defaultMessages[options.code] ?? `Skill error: ${options.skillName}`
+    const message =
+      options.message ?? defaultMessages[options.code] ?? `Skill error: ${options.skillName}`
     super({
       code: options.code,
       message,

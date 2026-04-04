@@ -1,9 +1,9 @@
-import { ErrorCode, ManifestError, SkillError } from '../errors'
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
 import { resolveLockEntry } from '../config/syncSkillsLock'
 import type { SkillsLock, UpdateCommandOptions, UpdateCommandResult } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
+import { ErrorCode, ManifestError, SkillError } from '../errors'
 import { fetchSkillsFromLock, linkSkillsFromLock } from '../install/installSkills'
 
 function createEmptyResult(): UpdateCommandResult {

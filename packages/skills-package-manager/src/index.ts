@@ -1,54 +1,61 @@
 // Commands
+
+// CLI
+export { runCli } from './cli/runCli'
 export { addCommand } from './commands/add'
 export { initCommand } from './commands/init'
 export { installCommand } from './commands/install'
 export { updateCommand } from './commands/update'
-
-// CLI
-export { runCli } from './cli/runCli'
-
+export { isLockInSync } from './config/compareSkillsLock'
+export { readSkillsLock } from './config/readSkillsLock'
+export { readSkillsManifest } from './config/readSkillsManifest'
 // Config
 export { resolveLockEntry } from './config/syncSkillsLock'
-export { isLockInSync } from './config/compareSkillsLock'
-export { readSkillsManifest } from './config/readSkillsManifest'
-export { readSkillsLock } from './config/readSkillsLock'
-export { writeSkillsManifest } from './config/writeSkillsManifest'
-export { writeSkillsLock } from './config/writeSkillsLock'
 export type {
-  SkillsManifest,
-  SkillsLock,
-  SkillsLockEntry,
-  NormalizedSpecifier,
   AddCommandOptions,
   InitCommandOptions,
   InstallCommandOptions,
+  NormalizedSpecifier,
+  SkillsLock,
+  SkillsLockEntry,
+  SkillsManifest,
   UpdateCommandOptions,
   UpdateCommandResult,
 } from './config/types'
-
-// Install
-export { fetchSkillsFromLock, installSkills, installStageHooks, linkSkillsFromLock } from './install/installSkills'
-
-// GitHub
-export { listRepoSkills, cloneAndDiscover, discoverSkillsInDir, parseOwnerRepo, parseGitHubUrl } from './github/listSkills'
-export type { SkillInfo } from './github/types'
-
-// Specifiers
-export { normalizeSpecifier } from './specifiers/normalizeSpecifier'
-export { parseSpecifier } from './specifiers/parseSpecifier'
-
+export { writeSkillsLock } from './config/writeSkillsLock'
+export { writeSkillsManifest } from './config/writeSkillsManifest'
 // Errors
 export {
+  convertNodeError,
   ErrorCode,
-  SpmError,
   FileSystemError,
+  formatErrorForDisplay,
   GitError,
+  getExitCode,
+  isSpmError,
   ManifestError,
   NetworkError,
   ParseError,
   SkillError,
-  convertNodeError,
-  formatErrorForDisplay,
-  isSpmError,
-  getExitCode,
+  SpmError,
 } from './errors'
+
+// GitHub
+export {
+  cloneAndDiscover,
+  discoverSkillsInDir,
+  listRepoSkills,
+  parseGitHubUrl,
+  parseOwnerRepo,
+} from './github/listSkills'
+export type { SkillInfo } from './github/types'
+// Install
+export {
+  fetchSkillsFromLock,
+  installSkills,
+  installStageHooks,
+  linkSkillsFromLock,
+} from './install/installSkills'
+// Specifiers
+export { normalizeSpecifier } from './specifiers/normalizeSpecifier'
+export { parseSpecifier } from './specifiers/parseSpecifier'

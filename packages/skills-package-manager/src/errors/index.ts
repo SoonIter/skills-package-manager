@@ -9,9 +9,16 @@ import {
   SkillError,
 } from './types'
 
-export { ErrorCode }
-export { SpmError }
-export { FileSystemError, GitError, ManifestError, NetworkError, ParseError, SkillError }
+export {
+  ErrorCode,
+  FileSystemError,
+  GitError,
+  ManifestError,
+  NetworkError,
+  ParseError,
+  SkillError,
+  SpmError,
+}
 
 /**
  * Converts a Node.js file system error to an appropriate SPM error type

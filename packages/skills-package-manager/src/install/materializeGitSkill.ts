@@ -22,7 +22,7 @@ async function checkoutCommit(checkoutRoot: string, commit: string) {
   }
 }
 
-async function fetchCommitFallback(checkoutRoot: string, commit: string, repoUrl?: string) {
+async function fetchCommitFallback(checkoutRoot: string, commit: string, _repoUrl?: string) {
   try {
     await execFileAsync('git', ['fetch', '--depth', '1', 'origin', commit], { cwd: checkoutRoot })
     return
