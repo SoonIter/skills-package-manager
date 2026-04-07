@@ -4,7 +4,7 @@ import { promptSkillSelection } from '../cli/prompt'
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
 import { syncSkillsLock } from '../config/syncSkillsLock'
-import type { AddCommandOptions } from '../config/types'
+import type { AddCommandOptions, NormalizedSpecifier } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
 import { writeSkillsManifest } from '../config/writeSkillsManifest'
 import { ErrorCode, ParseError, SkillError } from '../errors'
@@ -24,7 +24,7 @@ async function addSingleSkill(
   cwd: string,
   specifier: string,
 ): Promise<{ skillName: string; specifier: string }> {
-  let normalized
+  let normalized: NormalizedSpecifier
   try {
     normalized = normalizeSpecifier(specifier)
   } catch (error) {
