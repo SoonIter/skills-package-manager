@@ -1,5 +1,5 @@
 configDependencies:
-  pnpm-plugin-skills: 0.2.0+sha512-vtw3S4ZtkfISuyULnV1HDlDVR8X4ugY69SrsK5KnHze+xiZ2Vj1JRBKVQybT5Ay+y0cur1Hy3dMj9zwLU9ZJlA==
+  pnpm-plugin-skills: 0.3.0+sha512-grriFBSg98JI0lmNkuDg1a72JK+HVFlA5QRPjwN8dqH2me1Y+uapYq+uIJ3g8I3BlkdZ+SVJHyt4uknoKrUKwQ==
 
 packages:
   - website
