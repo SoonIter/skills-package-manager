@@ -4,7 +4,7 @@
   "version": "0.3.0",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "prepare": "pnpm run build",
+    "prepare": "simple-git-hooks && pnpm run build",
     "build": "pnpm -r --filter=!website build",
     "build:website": "pnpm --filter website build",
     "bump": "bumpp -r --no-tag --no-push",
@@ -14,11 +14,20 @@
     "check": "biome check",
     "check:write": "biome check --write"
   },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm exec nano-staged"
+  },
+  "nano-staged": {
+    "*.{js,ts,cjs,mjs,jsx,tsx,json,jsonc,yml,yaml}": "biome check --write --no-errors-on-unmatched",
+    "*.{md,mdx}": "biome format --write --no-errors-on-unmatched"
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.4.10",
     "@rstest/core": "^0.9.4",
     "bumpp": "^11.0.1",
+    "nano-staged": "^0.9.0",
     "path-serializer": "^0.6.0",
+    "simple-git-hooks": "^2.11.1",
     "@types/node": "^24.0.0"
   }
 }
