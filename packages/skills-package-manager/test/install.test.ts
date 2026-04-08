@@ -7,15 +7,16 @@ import type { SkillsLock, SkillsManifest } from '../src/config/types'
 import { writeSkillsLock } from '../src/config/writeSkillsLock'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
 import { fetchSkillsFromLock, installSkills } from '../src/install/installSkills'
+import { createSkillPackage, packDirectory } from './helpers'
 
 describe('installSkills', () => {
-  it('installs a local skill and creates symlinks', async () => {
+  it('installs a linked local skill and creates symlinks', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-'))
     await writeSkillsManifest(root, {
       installDir: '.agents/skills',
       linkTargets: ['.claude/skills'],
       skills: {
-        'hello-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+        'hello-skill': `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`,
       },
     })
     await writeSkillsLock(root, {
@@ -24,10 +25,10 @@ describe('installSkills', () => {
       linkTargets: ['.claude/skills'],
       skills: {
         'hello-skill': {
-          specifier: `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+          specifier: `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`,
           resolution: {
-            type: 'file',
-            path: path.resolve(__dirname, 'fixtures/local-source'),
+            type: 'link',
+            path: path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill'),
           },
           digest: 'test-digest',
         },
@@ -41,6 +42,78 @@ describe('installSkills', () => {
     expect(existsSync(installedSkill)).toBe(true)
     expect(lstatSync(linkedSkill).isSymbolicLink()).toBe(true)
     expect(readFileSync(installedSkill, 'utf8')).toContain('Hello skill')
+  })
+
+  it('installs a file skill from a tgz package', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-file-'))
+    const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
+    const tarballPath = packDirectory(packageRoot)
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'hello-skill': `file:${tarballPath}#path:/skills/hello-skill`,
+      },
+    })
+    await writeSkillsLock(root, {
+      lockfileVersion: '0.1',
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'hello-skill': {
+          specifier: `file:${tarballPath}#path:/skills/hello-skill`,
+          resolution: {
+            type: 'file',
+            tarball: path.relative(root, tarballPath),
+            path: '/skills/hello-skill',
+          },
+          digest: 'test-file-digest',
+        },
+      },
+    })
+
+    await installSkills(root)
+
+    const installedSkill = path.join(root, '.agents/skills/hello-skill/SKILL.md')
+    expect(existsSync(installedSkill)).toBe(true)
+    expect(readFileSync(installedSkill, 'utf8')).toContain('Hello from tgz')
+  })
+
+  it('installs an npm skill from a packed package source', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-npm-'))
+    const packageRoot = createSkillPackage('hello-skill', '# Hello from npm package\n')
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'hello-skill': `npm:${packageRoot}#path:/skills/hello-skill`,
+      },
+    })
+    await writeSkillsLock(root, {
+      lockfileVersion: '0.1',
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'hello-skill': {
+          specifier: `npm:${packageRoot}#path:/skills/hello-skill`,
+          resolution: {
+            type: 'npm',
+            packageName: '@tests/hello-skill',
+            version: '1.0.0',
+            path: '/skills/hello-skill',
+          },
+          digest: 'test-npm-digest',
+        },
+      },
+    })
+
+    await installSkills(root)
+
+    const installedSkill = path.join(root, '.agents/skills/hello-skill/SKILL.md')
+    expect(existsSync(installedSkill)).toBe(true)
+    expect(readFileSync(installedSkill, 'utf8')).toContain('Hello from npm package')
   })
 
   it('installs a git skill from a local git repository', async () => {
@@ -242,8 +315,8 @@ describe('installSkills', () => {
       installDir: '.agents/skills',
       linkTargets: ['.claude/skills'],
       skills: {
-        'hello-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
-        'obsolete-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+        'hello-skill': `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`,
+        'obsolete-skill': `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`,
       },
     })
 
@@ -253,7 +326,7 @@ describe('installSkills', () => {
       installDir: '.agents/skills',
       linkTargets: ['.claude/skills'],
       skills: {
-        'hello-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+        'hello-skill': `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`,
       },
     })
 
@@ -272,7 +345,7 @@ describe('installSkills', () => {
         installDir: '.agents/skills',
         linkTargets: [],
         skills: {
-          'hello-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+          'hello-skill': `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`,
         },
       })
 
@@ -282,10 +355,10 @@ describe('installSkills', () => {
         linkTargets: [],
         skills: {
           'hello-skill': {
-            specifier: `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+            specifier: `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`,
             resolution: {
-              type: 'file',
-              path: path.resolve(__dirname, 'fixtures/local-source'),
+              type: 'link',
+              path: path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill'),
             },
             digest: 'test-digest',
           },
@@ -305,7 +378,7 @@ describe('installSkills', () => {
         installDir: '.agents/skills',
         linkTargets: [],
         skills: {
-          'hello-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+          'hello-skill': `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`,
         },
       })
 
@@ -321,7 +394,7 @@ describe('installSkills', () => {
         installDir: '.agents/skills',
         linkTargets: [],
         skills: {
-          'hello-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+          'hello-skill': `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`,
         },
       })
 
@@ -331,10 +404,10 @@ describe('installSkills', () => {
         linkTargets: [],
         skills: {
           'different-skill': {
-            specifier: `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+            specifier: `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`,
             resolution: {
-              type: 'file',
-              path: path.resolve(__dirname, 'fixtures/local-source'),
+              type: 'link',
+              path: path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill'),
             },
             digest: 'test-digest',
           },
@@ -353,7 +426,7 @@ describe('installSkills', () => {
         installDir: '.agents/skills',
         linkTargets: [],
         skills: {
-          'hello-skill': `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+          'hello-skill': `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`,
         },
       })
 
@@ -363,10 +436,10 @@ describe('installSkills', () => {
         linkTargets: [],
         skills: {
           'hello-skill': {
-            specifier: `file:${path.resolve(__dirname, 'fixtures/local-source')}#path:/skills/hello-skill`,
+            specifier: `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`,
             resolution: {
-              type: 'file',
-              path: path.resolve(__dirname, 'fixtures/local-source'),
+              type: 'link',
+              path: path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill'),
             },
             digest: 'original-digest',
           },
@@ -382,14 +455,14 @@ describe('installSkills', () => {
 
     it('accepts lock with commit when manifest has no ref', async () => {
       const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-noref-'))
-      const localSource = path.resolve(__dirname, 'fixtures/local-source')
+      const localSource = path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')
 
       // Manifest without ref (no commit SHA)
       await writeSkillsManifest(root, {
         installDir: '.agents/skills',
         linkTargets: [],
         skills: {
-          'hello-skill': `file:${localSource}#path:/skills/hello-skill`,
+          'hello-skill': `link:${localSource}`,
         },
       })
 
@@ -400,9 +473,9 @@ describe('installSkills', () => {
         linkTargets: [],
         skills: {
           'hello-skill': {
-            specifier: `file:${localSource}#path:/skills/hello-skill`,
+            specifier: `link:${localSource}`,
             resolution: {
-              type: 'file',
+              type: 'link',
               path: localSource,
             },
             digest: 'resolved-digest',

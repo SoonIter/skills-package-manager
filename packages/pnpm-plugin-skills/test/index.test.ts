@@ -20,7 +20,7 @@ describe('preResolution', () => {
           installDir: '.agents/skills',
           linkTargets: ['.claude/skills'],
           skills: {
-            'hello-skill': 'file:./skills-source#path:/skills/hello-skill',
+            'hello-skill': 'link:./skills-source/skills/hello-skill',
           },
         },
         null,
@@ -36,10 +36,10 @@ describe('preResolution', () => {
         '  - .claude/skills',
         'skills:',
         '  hello-skill:',
-        '    specifier: file:./skills-source#path:/skills/hello-skill',
+        '    specifier: link:./skills-source/skills/hello-skill',
         '    resolution:',
-        '      type: file',
-        `      path: ${JSON.stringify(path.join(root, 'skills-source'))}`,
+        '      type: link',
+        `      path: ${JSON.stringify(path.join(root, 'skills-source/skills/hello-skill'))}`,
         '    digest: test-digest',
       ].join('\n'),
     )

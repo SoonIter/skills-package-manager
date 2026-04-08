@@ -31,7 +31,9 @@ spm add owner/repo --skill find-skills
 
 # Direct specifier — skip discovery
 spm add https://github.com/owner/repo.git#path:/skills/my-skill
-spm add file:./local-source#path:/skills/my-skill
+spm add link:./local-source/skills/my-skill
+spm add file:./skills-package.tgz#path:/skills/my-skill
+spm add npm:@scope/skills-package#path:/skills/my-skill
 ```
 
 After `spm add`, the newly added skills are resolved, materialized into `installDir`, and linked to each configured `linkTarget` immediately.
@@ -86,7 +88,7 @@ This resolves each skill from its specifier, materializes it into `installDir` (
 
 ### `spm update`
 
-Refresh git-based skills declared in `skills.json` without changing the manifest:
+Refresh resolvable skills declared in `skills.json` without changing the manifest:
 
 ```bash
 spm update
@@ -96,8 +98,8 @@ spm update find-skills rspress-custom-theme
 Behavior:
 
 - Uses `skills.json` as the source of truth
-- Re-resolves git refs to the latest commit
-- Skips `file:` skills
+- Re-resolves git refs and npm package targets
+- Skips `link:` skills
 - Fails immediately for unknown skill names
 - Writes `skills-lock.yaml` only after fetch and link succeed
 
@@ -129,7 +131,7 @@ const skills = await listRepoSkills('vercel-labs', 'skills')
 
 | Part | Description | Example |
 |------|-------------|---------|
-| `source` | Git URL or `file:` path | `https://github.com/o/r.git`, `file:./local` |
+| `source` | Git URL, direct `link:` skill path, `file:` tarball, or `npm:` package | `https://github.com/o/r.git`, `link:./local/skills/my-skill`, `file:./skills.tgz`, `npm:@scope/pkg` |
 | `ref` | Optional git ref | `main`, `v1.0.0`, `HEAD`, `6cb0992`, `6cb0992a176f2ca142e19f64dca8ac12025b035e` |
 | `path` | Path to skill directory within source | `/skills/my-skill` |
 
@@ -138,7 +140,9 @@ const skills = await listRepoSkills('vercel-labs', 'skills')
 ### Resolution Types
 
 - **`git`** — Clones the repo, resolves commit hash, copies skill files
-- **`file`** — Reads from local filesystem, computes content digest
+- **`link`** — Reads from a local directory and copies the selected skill
+- **`file`** — Extracts a local `tgz` package and copies the selected skill
+- **`npm`** — Packs an npm package source, locks the resolved version, and installs from the package contents
 
 ## Architecture
 

@@ -8,12 +8,12 @@ import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
 describe('manifest io', () => {
   it('writes default manifest shape', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-'))
-    await writeSkillsManifest(root, { skills: { hello: 'file:./skills/hello' } })
+    await writeSkillsManifest(root, { skills: { hello: 'link:./skills/hello' } })
     const manifest = await readSkillsManifest(root)
     expect(manifest).toEqual({
       installDir: '.agents/skills',
       linkTargets: [],
-      skills: { hello: 'file:./skills/hello' },
+      skills: { hello: 'link:./skills/hello' },
     })
   })
 })

@@ -19,11 +19,35 @@ export function normalizeSpecifier(specifier: string): NormalizedSpecifier {
     })
   }
 
-  const type = parsed.sourcePart.startsWith('file:')
-    ? 'file'
-    : parsed.sourcePart.startsWith('npm:')
-      ? 'npm'
-      : 'git'
+  const type = parsed.sourcePart.startsWith('link:')
+    ? 'link'
+    : parsed.sourcePart.startsWith('file:')
+      ? 'file'
+      : parsed.sourcePart.startsWith('npm:')
+        ? 'npm'
+        : 'git'
+
+  if (type === 'link') {
+    if (parsed.ref !== null || parsed.path) {
+      throw new ParseError({
+        code: ErrorCode.INVALID_SPECIFIER,
+        message: 'Invalid link specifier: link: must point directly to a skill directory',
+        content: specifier,
+      })
+    }
+
+    const linkPath = parsed.sourcePart.slice('link:'.length).replace(/\\/g, '/').replace(/\/+$/, '')
+    const skillName = path.posix.basename(linkPath)
+
+    return {
+      type,
+      source: parsed.sourcePart,
+      ref: null,
+      path: '/',
+      normalized: parsed.sourcePart,
+      skillName,
+    }
+  }
 
   const skillPath = parsed.path || '/'
   const skillName = path.posix.basename(skillPath)

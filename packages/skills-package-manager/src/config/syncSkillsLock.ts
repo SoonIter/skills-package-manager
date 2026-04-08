@@ -1,9 +1,11 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
+import type { NormalizedSpecifier } from '../config/types'
 import { ErrorCode, GitError, ParseError } from '../errors'
+import { cleanupPackedNpmPackage, packNpmPackage } from '../npm/packPackage'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { sha256 } from '../utils/hash'
 import type { InstallProgressListener, SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
@@ -89,17 +91,34 @@ export async function resolveLockEntry(
   // Use provided skillName from manifest key, fallback to parsed skillName
   const finalSkillName = skillName || normalized.skillName
 
+  if (normalized.type === 'link') {
+    const sourceRoot = path.resolve(cwd, normalized.source.slice('link:'.length))
+    return {
+      skillName: finalSkillName,
+      entry: {
+        specifier: normalized.normalized,
+        resolution: {
+          type: 'link',
+          path: path.relative(cwd, sourceRoot) || '.',
+        },
+        digest: sha256(sourceRoot),
+      },
+    }
+  }
+
   if (normalized.type === 'file') {
-    const sourceRoot = path.resolve(cwd, normalized.source.slice('file:'.length))
+    const tarballPath = path.resolve(cwd, normalized.source.slice('file:'.length))
+    const tarballContent = await readFile(tarballPath)
     return {
       skillName: finalSkillName,
       entry: {
         specifier: normalized.normalized,
         resolution: {
           type: 'file',
-          path: path.relative(cwd, sourceRoot) || '.',
+          tarball: path.relative(cwd, tarballPath) || '.',
+          path: normalized.path,
         },
-        digest: sha256(`${sourceRoot}:${normalized.path}`),
+        digest: sha256(Buffer.concat([tarballContent, Buffer.from(`:${normalized.path}`)])),
       },
     }
   }
@@ -118,6 +137,30 @@ export async function resolveLockEntry(
         },
         digest: sha256(`${normalized.source}:${commit}:${normalized.path}`),
       },
+    }
+  }
+
+  if (normalized.type === 'npm') {
+    const packageSpecifier = normalized.source.slice('npm:'.length)
+    const packed = await packNpmPackage(packageSpecifier)
+
+    try {
+      return {
+        skillName: finalSkillName,
+        entry: {
+          specifier: normalized.normalized,
+          resolution: {
+            type: 'npm',
+            packageName: packed.name,
+            version: packed.version,
+            path: normalized.path,
+            integrity: packed.integrity,
+          },
+          digest: sha256(`${packed.name}:${packed.version}:${normalized.path}`),
+        },
+      }
+    } finally {
+      await cleanupPackedNpmPackage(packed.tarballPath)
     }
   }
 

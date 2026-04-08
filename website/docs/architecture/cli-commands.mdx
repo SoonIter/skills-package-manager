@@ -16,7 +16,9 @@ spm add owner/repo --skill find-skills
 
 # Use a full specifier directly
 spm add https://github.com/owner/repo.git#path:/skills/my-skill
-spm add file:./local-source#path:/skills/my-skill
+spm add link:./local-source/skills/my-skill
+spm add file:./skills-package.tgz#path:/skills/my-skill
+spm add npm:@scope/skills-package#path:/skills/my-skill
 ```
 
 Behavior overview:
@@ -58,7 +60,7 @@ Useful for:
 
 - Initializing a new environment
 - Restoring skill dependencies in CI
-- Re-syncing the local skill directory after changing the manifest
+- Re-syncing the managed skill directory after changing the manifest
 
 ### Install Process
 
@@ -119,7 +121,7 @@ Solutions:
 
 ## `spm update`
 
-Refresh already-declared git-based skills.
+Refresh already-declared resolvable skills.
 
 ```bash
 spm update
@@ -129,8 +131,8 @@ spm update find-skills rspress-custom-theme
 Update behavior:
 
 - Uses `skills.json` as the source of truth
-- Re-resolves git refs to the latest commit
-- Skips local `file:` skills
+- Re-resolves git refs and npm package targets
+- Skips local `link:` skills
 - Fails immediately on unknown skill names
 - Writes back `skills-lock.yaml` only after fetch and link both succeed
 
@@ -141,4 +143,4 @@ Update behavior:
 | `spm add` | Introduce a new skill for the first time |
 | `spm init` | Create the initial `skills.json` manifest |
 | `spm install` | Restore all skills from the manifest |
-| `spm update` | Refresh versions of remote git-based skills |
+| `spm update` | Refresh versions of resolvable git or npm skills |

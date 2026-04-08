@@ -12,6 +12,7 @@ import {
   installStageHooks,
   linkSkillsFromLock,
 } from '../src/install/installSkills'
+import { createSkillPackage, packDirectory } from './helpers'
 
 describe('resolveLockEntry', () => {
   it('resolves git specifiers to the current commit', async () => {
@@ -124,7 +125,7 @@ describe('install stages', () => {
       installDir: '.agents/skills',
       linkTargets: ['.claude/skills'],
       skills: {
-        'hello-skill': `file:${sourceRoot}#path:/skills/hello-skill`,
+        'hello-skill': `link:${path.join(sourceRoot, 'skills/hello-skill')}`,
       },
     }
 
@@ -134,8 +135,8 @@ describe('install stages', () => {
       linkTargets: ['.claude/skills'],
       skills: {
         'hello-skill': {
-          specifier: `file:${sourceRoot}#path:/skills/hello-skill`,
-          resolution: { type: 'file', path: sourceRoot },
+          specifier: `link:${path.join(sourceRoot, 'skills/hello-skill')}`,
+          resolution: { type: 'link', path: path.join(sourceRoot, 'skills/hello-skill') },
           digest: 'sha256-test',
         },
       },
@@ -155,7 +156,7 @@ describe('updateCommand validation', () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-missing-'))
     writeFileSync(
       path.join(root, 'skills.json'),
-      JSON.stringify({ skills: { alpha: 'file:./alpha#path:/alpha' } }, null, 2),
+      JSON.stringify({ skills: { alpha: 'link:./alpha' } }, null, 2),
     )
 
     await expect(updateCommand({ cwd: root, skills: ['missing'] })).rejects.toThrow(
@@ -165,7 +166,7 @@ describe('updateCommand validation', () => {
 })
 
 describe('updateCommand resolve', () => {
-  it('updates git targets and skips file targets', async () => {
+  it('updates git targets and skips link targets', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-targets-'))
     const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-git-'))
     const fileRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-file-'))
@@ -195,7 +196,7 @@ describe('updateCommand resolve', () => {
           linkTargets: [],
           skills: {
             'hello-skill': `${gitRepo}#HEAD&path:/skills/hello-skill`,
-            'local-skill': `file:${fileRepo}#path:/local-skill`,
+            'local-skill': `link:${fileRepo}/local-skill`,
           },
         },
         null,
@@ -221,8 +222,8 @@ describe('updateCommand resolve', () => {
             digest: `sha256-${oldCommit}`,
           },
           'local-skill': {
-            specifier: `file:${fileRepo}#path:/local-skill`,
-            resolution: { type: 'file', path: fileRepo },
+            specifier: `link:${fileRepo}/local-skill`,
+            resolution: { type: 'link', path: `${fileRepo}/local-skill` },
             digest: 'sha256-local',
           },
         },
@@ -232,11 +233,98 @@ describe('updateCommand resolve', () => {
     const result = await updateCommand({ cwd: root })
 
     expect(result.updated).toEqual(['hello-skill'])
-    expect(result.skipped).toEqual([{ name: 'local-skill', reason: 'file-specifier' }])
+    expect(result.skipped).toEqual([{ name: 'local-skill', reason: 'link-specifier' }])
     expect(result.failed).toEqual([])
     expect(result.unchanged).toEqual([])
     const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
     expect(lockfile.skills['hello-skill'].resolution.commit).toBe(newCommit)
+  })
+
+  it('updates npm targets when the resolved package version changes', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-npm-'))
+    const packageRoot = createSkillPackage('hello-skill', '# Version 1\n')
+
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': `npm:${packageRoot}#path:/skills/hello-skill`,
+          },
+        },
+        null,
+        2,
+      ),
+    )
+
+    writeFileSync(
+      path.join(root, 'skills-lock.yaml'),
+      YAML.stringify({
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `npm:${packageRoot}#path:/skills/hello-skill`,
+            resolution: {
+              type: 'npm',
+              packageName: '@tests/hello-skill',
+              version: '0.9.0',
+              path: '/skills/hello-skill',
+            },
+            digest: 'sha256-old',
+          },
+        },
+      }),
+    )
+
+    const result = await updateCommand({ cwd: root })
+
+    expect(result.updated).toEqual(['hello-skill'])
+    expect(result.failed).toEqual([])
+    const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+    expect(lockfile.skills['hello-skill'].resolution.version).toBe('1.0.0')
+  })
+
+  it('marks file tarball targets unchanged when the tarball digest matches', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-file-unchanged-'))
+    const packageRoot = createSkillPackage('hello-skill', '# Packed skill\n')
+    const tarballPath = packDirectory(packageRoot)
+    const { entry } = await resolveLockEntry(root, `file:${tarballPath}#path:/skills/hello-skill`)
+
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': `file:${tarballPath}#path:/skills/hello-skill`,
+          },
+        },
+        null,
+        2,
+      ),
+    )
+
+    writeFileSync(
+      path.join(root, 'skills-lock.yaml'),
+      YAML.stringify({
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': entry,
+        },
+      }),
+    )
+
+    const result = await updateCommand({ cwd: root })
+
+    expect(result.unchanged).toEqual(['hello-skill'])
+    expect(result.updated).toEqual([])
   })
 
   it('does not write the new lockfile when fetch fails', async () => {

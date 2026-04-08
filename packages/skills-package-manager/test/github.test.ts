@@ -21,6 +21,7 @@ describe('parseOwnerRepo', () => {
 
   it('returns null for protocol specifiers', () => {
     expect(parseOwnerRepo('file:./local-source')).toBeNull()
+    expect(parseOwnerRepo('link:./local-source')).toBeNull()
     expect(parseOwnerRepo('npm:@scope/pkg')).toBeNull()
     expect(parseOwnerRepo('https://github.com/owner/repo.git')).toBeNull()
   })

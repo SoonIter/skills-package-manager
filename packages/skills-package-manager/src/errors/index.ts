@@ -116,7 +116,9 @@ export function formatErrorForDisplay(error: unknown): string {
         output += `\nExpected formats:`
         output += `\n  - owner/repo (GitHub shorthand)`
         output += `\n  - https://github.com/owner/repo.git`
-        output += `\n  - file:./path/to/skill`
+        output += `\n  - link:./path/to/skill-dir`
+        output += `\n  - file:./path/to/skill-package.tgz#path:/skill`
+        output += `\n  - npm:@scope/skill-package#path:/skill`
       }
     } else if (error instanceof ManifestError) {
       if (error.code === ErrorCode.LOCKFILE_OUTDATED) {

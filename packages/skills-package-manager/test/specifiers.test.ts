@@ -15,13 +15,41 @@ describe('normalizeSpecifier', () => {
     })
   })
 
-  it('parses file path specifier', () => {
-    expect(normalizeSpecifier('file:./fixtures/local-source#path:/skills/hello-skill')).toEqual({
+  it('parses link specifier that points directly to a skill directory', () => {
+    expect(normalizeSpecifier('link:./fixtures/local-source/skills/hello-skill')).toEqual({
+      type: 'link',
+      source: 'link:./fixtures/local-source/skills/hello-skill',
+      ref: null,
+      path: '/',
+      normalized: 'link:./fixtures/local-source/skills/hello-skill',
+      skillName: 'hello-skill',
+    })
+  })
+
+  it('rejects link specifiers with path fragments', () => {
+    expect(() =>
+      normalizeSpecifier('link:./fixtures/local-source#path:/skills/hello-skill'),
+    ).toThrow('Invalid link specifier')
+  })
+
+  it('parses file tarball specifier', () => {
+    expect(normalizeSpecifier('file:./fixtures/skills.tgz#path:/skills/hello-skill')).toEqual({
       type: 'file',
-      source: 'file:./fixtures/local-source',
+      source: 'file:./fixtures/skills.tgz',
       ref: null,
       path: '/skills/hello-skill',
-      normalized: 'file:./fixtures/local-source#path:/skills/hello-skill',
+      normalized: 'file:./fixtures/skills.tgz#path:/skills/hello-skill',
+      skillName: 'hello-skill',
+    })
+  })
+
+  it('parses npm specifier', () => {
+    expect(normalizeSpecifier('npm:@acme/skills#path:/skills/hello-skill')).toEqual({
+      type: 'npm',
+      source: 'npm:@acme/skills',
+      ref: null,
+      path: '/skills/hello-skill',
+      normalized: 'npm:@acme/skills#path:/skills/hello-skill',
       skillName: 'hello-skill',
     })
   })

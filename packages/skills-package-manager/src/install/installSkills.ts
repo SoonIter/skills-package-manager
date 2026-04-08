@@ -5,24 +5,36 @@ import { readSkillsManifest } from '../config/readSkillsManifest'
 import { syncSkillsLock } from '../config/syncSkillsLock'
 import type { InstallProgressListener, SkillsLock, SkillsManifest } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
+import { cleanupPackedNpmPackage, packNpmPackage } from '../npm/packPackage'
+import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { sha256 } from '../utils/hash'
 import { readInstallState, writeInstallState } from './installState'
 import { linkSkill } from './links'
 import { materializeGitSkill } from './materializeGitSkill'
 import { materializeLocalSkill } from './materializeLocalSkill'
+import { materializePackedSkill } from './materializePackedSkill'
 import { pruneManagedSkills } from './pruneManagedSkills'
 
 export const installStageHooks = {
   beforeFetch: async (_rootDir: string, _manifest: SkillsManifest, _lockfile: SkillsLock) => {},
 }
 
-function extractSkillPath(specifier: string, skillName: string): string {
-  const marker = '#path:'
-  const index = specifier.indexOf(marker)
-  if (index >= 0) {
-    return specifier.slice(index + marker.length)
+function resolveNpmPackSource(specifier: string, packageName: string, version: string): string {
+  const normalized = normalizeSpecifier(specifier)
+  const source = normalized.source.slice('npm:'.length)
+
+  if (
+    source.startsWith('.') ||
+    source.startsWith('/') ||
+    source.startsWith('~') ||
+    source.startsWith('file:') ||
+    source.startsWith('http://') ||
+    source.startsWith('https://')
+  ) {
+    return source
   }
-  return `/${skillName}`
+
+  return `${packageName}@${version}`
 }
 
 export async function fetchSkillsFromLock(
@@ -47,12 +59,23 @@ export async function fetchSkillsFromLock(
   await pruneManagedSkills(rootDir, installDir, linkTargets, Object.keys(lockfile.skills))
 
   for (const [skillName, entry] of Object.entries(lockfile.skills)) {
-    if (entry.resolution.type === 'file') {
+    if (entry.resolution.type === 'link') {
       await materializeLocalSkill(
         rootDir,
         skillName,
         path.resolve(rootDir, entry.resolution.path),
-        extractSkillPath(entry.specifier, skillName),
+        '/',
+        installDir,
+      )
+      continue
+    }
+
+    if (entry.resolution.type === 'file') {
+      await materializePackedSkill(
+        rootDir,
+        skillName,
+        path.resolve(rootDir, entry.resolution.tarball),
+        entry.resolution.path,
         installDir,
       )
       options?.onProgress?.({ type: 'added', skillName })
@@ -69,6 +92,29 @@ export async function fetchSkillsFromLock(
         installDir,
       )
       options?.onProgress?.({ type: 'added', skillName })
+      continue
+    }
+
+    if (entry.resolution.type === 'npm') {
+      const packed = await packNpmPackage(
+        resolveNpmPackSource(
+          entry.specifier,
+          entry.resolution.packageName,
+          entry.resolution.version,
+        ),
+      )
+
+      try {
+        await materializePackedSkill(
+          rootDir,
+          skillName,
+          packed.tarballPath,
+          entry.resolution.path,
+          installDir,
+        )
+      } finally {
+        await cleanupPackedNpmPackage(packed.tarballPath)
+      }
       continue
     }
 
