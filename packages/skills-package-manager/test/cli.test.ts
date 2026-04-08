@@ -1,6 +1,11 @@
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
 import packageJson from '../package.json'
 import { runCli } from '../src/cli/runCli'
+import { writeSkillsLock } from '../src/config/writeSkillsLock'
+import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
 
 async function captureOutput<TResult>(callback: () => Promise<TResult>) {
   const output: string[] = []
@@ -137,5 +142,118 @@ describe('runCli dispatch', () => {
 
     expect(result).toBeUndefined()
     expect(output.trim()).toBe(packageJson.version)
+  })
+
+  it('prints install progress summary in non-tty mode', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-cli-progress-'))
+    const sourceRoot = path.resolve(__dirname, 'fixtures/local-source')
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'hello-skill': `file:${sourceRoot}#path:/skills/hello-skill`,
+      },
+    })
+    await writeSkillsLock(root, {
+      lockfileVersion: '0.1',
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'hello-skill': {
+          specifier: `file:${sourceRoot}#path:/skills/hello-skill`,
+          resolution: {
+            type: 'file',
+            path: sourceRoot,
+          },
+          digest: 'test-digest',
+        },
+      },
+    })
+
+    const output: string[] = []
+    const info = console.info
+    const isTTYDescriptor = Object.getOwnPropertyDescriptor(process.stderr, 'isTTY')
+
+    console.info = (...args: unknown[]) => {
+      output.push(args.map((arg) => String(arg)).join(' '))
+    }
+
+    Object.defineProperty(process.stderr, 'isTTY', { value: false, configurable: true })
+
+    try {
+      await runCli(['node', 'spm', 'install'], { cwd: root })
+    } finally {
+      console.info = info
+      if (isTTYDescriptor) {
+        Object.defineProperty(process.stderr, 'isTTY', isTTYDescriptor)
+      } else {
+        delete (process.stderr as { isTTY?: boolean }).isTTY
+      }
+    }
+
+    const combined = output.join('\n')
+    expect(combined).toContain('spm install: starting (1 skill)')
+    expect(combined).toContain('spm install: resolved 1/1, added 1/1, installed 1/1')
+    expect(combined).not.toContain('\r')
+  })
+
+  it('renders dynamic progress line in tty mode', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-cli-progress-tty-'))
+    const sourceRoot = path.resolve(__dirname, 'fixtures/local-source')
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'hello-skill': `file:${sourceRoot}#path:/skills/hello-skill`,
+      },
+    })
+    await writeSkillsLock(root, {
+      lockfileVersion: '0.1',
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'hello-skill': {
+          specifier: `file:${sourceRoot}#path:/skills/hello-skill`,
+          resolution: {
+            type: 'file',
+            path: sourceRoot,
+          },
+          digest: 'test-digest',
+        },
+      },
+    })
+
+    const writes: string[] = []
+    const infos: string[] = []
+    const info = console.info
+    const originalWrite = process.stderr.write.bind(process.stderr)
+    const isTTYDescriptor = Object.getOwnPropertyDescriptor(process.stderr, 'isTTY')
+
+    console.info = (...args: unknown[]) => {
+      infos.push(args.map((arg) => String(arg)).join(' '))
+    }
+
+    Object.defineProperty(process.stderr, 'isTTY', { value: true, configurable: true })
+    ;(process.stderr.write as unknown as (chunk: string) => boolean) = (chunk: string) => {
+      writes.push(String(chunk))
+      return true
+    }
+
+    try {
+      await runCli(['node', 'spm', 'install'], { cwd: root })
+    } finally {
+      console.info = info
+      ;(process.stderr.write as unknown as typeof process.stderr.write) = originalWrite
+      if (isTTYDescriptor) {
+        Object.defineProperty(process.stderr, 'isTTY', isTTYDescriptor)
+      } else {
+        delete (process.stderr as { isTTY?: boolean }).isTTY
+      }
+    }
+
+    const combinedWrites = writes.join('')
+    expect(combinedWrites).toContain('\r')
+    expect(combinedWrites).toContain('resolved 1/1, added 1/1, installed 1/1')
+    expect(infos.at(-1)).toBe('spm install: resolved 1/1, added 1/1, installed 1/1')
   })
 })

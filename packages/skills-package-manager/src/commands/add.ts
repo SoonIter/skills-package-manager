@@ -96,7 +96,9 @@ export async function addCommand(options: AddCommandOptions) {
       const skillPath = found?.path ?? `/${skill}`
       const gitSpecifier = buildGitHubSpecifier(owner, repo, skillPath)
       const result = await addSingleSkill(cwd, gitSpecifier)
+      spinner.start('Installing skills...')
       await installSkills(cwd)
+      spinner.stop('Installed skills')
       p.outro(`Added ${pc.cyan(result.skillName)}`)
       return result
     }
@@ -127,13 +129,18 @@ export async function addCommand(options: AddCommandOptions) {
       p.log.success(`Added ${pc.cyan(result.skillName)}`)
     }
 
+    spinner.start('Installing skills...')
     await installSkills(cwd)
+    spinner.stop('Installed skills')
     p.outro('Done')
     return results.length === 1 ? results[0] : results
   }
 
   // Protocol specifier (file:, npm:, git URL with fragment, etc.) — direct add
   const result = await addSingleSkill(cwd, specifier)
+  const spinner = p.spinner()
+  spinner.start('Installing skills...')
   await installSkills(cwd)
+  spinner.stop('Installed skills')
   return result
 }

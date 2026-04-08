@@ -6,7 +6,7 @@ import { promisify } from 'node:util'
 import { ErrorCode, GitError, ParseError } from '../errors'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { sha256 } from '../utils/hash'
-import type { SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
+import type { InstallProgressListener, SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
 
 const execFileAsync = promisify(execFile)
 
@@ -132,10 +132,14 @@ export async function syncSkillsLock(
   cwd: string,
   manifest: SkillsManifest,
   _existingLock: SkillsLock | null,
+  options?: {
+    onProgress?: InstallProgressListener
+  },
 ): Promise<SkillsLock> {
   const entries = await Promise.all(
     Object.entries(manifest.skills).map(async ([skillName, specifier]) => {
       const { skillName: resolvedName, entry } = await resolveLockEntry(cwd, specifier, skillName)
+      options?.onProgress?.({ type: 'resolved', skillName: resolvedName })
       return [resolvedName, entry] as const
     }),
   )

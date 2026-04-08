@@ -15,6 +15,8 @@ export type {
   AddCommandOptions,
   InitCommandOptions,
   InstallCommandOptions,
+  InstallProgressEvent,
+  InstallProgressListener,
   NormalizedSpecifier,
   SkillsLock,
   SkillsLockEntry,
@@ -56,6 +58,7 @@ export {
   installStageHooks,
   linkSkillsFromLock,
 } from './install/installSkills'
+export { createInstallProgressReporter } from './install/progressReporter'
 // Specifiers
 export { normalizeSpecifier } from './specifiers/normalizeSpecifier'
 export { parseSpecifier } from './specifiers/parseSpecifier'

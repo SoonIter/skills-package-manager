@@ -551,5 +551,44 @@ describe('installSkills', () => {
       expect(result.status).toBe('installed')
       expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
     })
+
+    it('emits resolved/added/installed progress events in frozen mode', async () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-progress-'))
+      const sourceRoot = path.resolve(__dirname, 'fixtures/local-source')
+
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': `file:${sourceRoot}#path:/skills/hello-skill`,
+        },
+      })
+
+      await writeSkillsLock(root, {
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `file:${sourceRoot}#path:/skills/hello-skill`,
+            resolution: {
+              type: 'file',
+              path: sourceRoot,
+            },
+            digest: 'digest',
+          },
+        },
+      })
+
+      const events: string[] = []
+      await installSkills(root, {
+        frozenLockfile: true,
+        onProgress: (event) => {
+          events.push(`${event.type}:${event.skillName}`)
+        },
+      })
+
+      expect(events).toEqual(['resolved:hello-skill', 'added:hello-skill', 'installed:hello-skill'])
+    })
   })
 })
