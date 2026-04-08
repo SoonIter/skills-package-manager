@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { promisify } from 'node:util'
 import type { SkillInfo } from './types'
 
@@ -38,7 +38,7 @@ async function parseSkillDir(dir: string, relativePath: string): Promise<SkillIn
   try {
     const content = await readFile(join(dir, 'SKILL.md'), 'utf8')
     const meta = parseSkillFrontmatter(content)
-    const dirName = dir.split('/').pop() ?? ''
+    const dirName = basename(dir)
     return {
       name: meta.name || dirName,
       description: meta.description,
