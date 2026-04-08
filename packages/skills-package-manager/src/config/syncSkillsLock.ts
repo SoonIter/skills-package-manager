@@ -3,12 +3,19 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
+import type { NormalizedSpecifier } from '../config/types'
 import { ErrorCode, GitError, ParseError } from '../errors'
+import { resolveNpmPackage } from '../npm/packPackage'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
-import { sha256 } from '../utils/hash'
+import { sha256, sha256Directory, sha256File } from '../utils/hash'
 import type { InstallProgressListener, SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
 
 const execFileAsync = promisify(execFile)
+
+function toPortableRelativePath(from: string, to: string): string {
+  const relativePath = path.relative(from, to) || '.'
+  return path.sep === '/' ? relativePath : relativePath.split(path.sep).join('/')
+}
 
 async function resolveGitCommitByLsRemote(url: string, target: string): Promise<string | null> {
   try {
@@ -89,17 +96,33 @@ export async function resolveLockEntry(
   // Use provided skillName from manifest key, fallback to parsed skillName
   const finalSkillName = skillName || normalized.skillName
 
+  if (normalized.type === 'link') {
+    const sourceRoot = path.resolve(cwd, normalized.source.slice('link:'.length))
+    return {
+      skillName: finalSkillName,
+      entry: {
+        specifier: normalized.normalized,
+        resolution: {
+          type: 'link',
+          path: toPortableRelativePath(cwd, sourceRoot),
+        },
+        digest: await sha256Directory(sourceRoot),
+      },
+    }
+  }
+
   if (normalized.type === 'file') {
-    const sourceRoot = path.resolve(cwd, normalized.source.slice('file:'.length))
+    const tarballPath = path.resolve(cwd, normalized.source.slice('file:'.length))
     return {
       skillName: finalSkillName,
       entry: {
         specifier: normalized.normalized,
         resolution: {
           type: 'file',
-          path: path.relative(cwd, sourceRoot) || '.',
+          tarball: toPortableRelativePath(cwd, tarballPath),
+          path: normalized.path,
         },
-        digest: sha256(`${sourceRoot}:${normalized.path}`),
+        digest: await sha256File(tarballPath, `:${normalized.path}`),
       },
     }
   }
@@ -117,6 +140,37 @@ export async function resolveLockEntry(
           path: normalized.path,
         },
         digest: sha256(`${normalized.source}:${commit}:${normalized.path}`),
+      },
+    }
+  }
+
+  if (normalized.type === 'npm') {
+    const packageSpecifier = normalized.source.slice('npm:'.length)
+    const resolved = await resolveNpmPackage(cwd, packageSpecifier)
+
+    return {
+      skillName: finalSkillName,
+      entry: {
+        specifier: normalized.normalized,
+        resolution: {
+          type: 'npm',
+          packageName: resolved.name,
+          version: resolved.version,
+          path: normalized.path,
+          tarball: resolved.tarballUrl,
+          integrity: resolved.integrity,
+          registry: resolved.registry,
+        },
+        digest: sha256(
+          [
+            resolved.name,
+            resolved.version,
+            resolved.tarballUrl,
+            resolved.integrity ?? '',
+            resolved.registry ?? '',
+            normalized.path,
+          ].join(':'),
+        ),
       },
     }
   }

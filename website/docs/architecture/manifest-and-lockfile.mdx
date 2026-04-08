@@ -12,7 +12,9 @@ skills-package-manager uses two files to describe and lock the installed state o
   "linkTargets": [".claude/skills"],
   "skills": {
     "find-skills": "https://github.com/vercel-labs/skills.git#path:/skills/find-skills",
-    "my-local-skill": "file:./local-source#path:/skills/my-local-skill"
+    "my-local-skill": "link:./local-source/skills/my-local-skill",
+    "my-packed-skill": "file:./skills-package.tgz#path:/skills/my-packed-skill",
+    "my-npm-skill": "npm:@scope/skills-package#path:/skills/my-npm-skill"
   }
 }
 ```
@@ -43,8 +45,8 @@ skills:
 
 It typically contains:
 
-- The resolved source type: `git` or `file`
-- A specific commit or local content digest
+- The resolved source type: `git`, `link`, `file`, or `npm`
+- A specific commit, local content digest, tarball reference, or resolved package version and integrity
 - The skill path
 - The final content digest
 
@@ -60,13 +62,13 @@ The former is suitable for review; the latter is suitable for reproducibility.
 1. Always commit both `skills.json` and `skills-lock.yaml`
 2. Standardize `installDir` and `linkTargets` across the team
 3. Prefer explicit GitHub specifiers with `path:` for external skills
-4. When using local skills for internal development, keep the lockfile as well to track digest changes
+4. When using local `link:` skills for internal development, keep the lockfile as well to track digest changes
 
 ## Specifier Compatibility
 
 When comparing manifest and lockfile specifiers (e.g., with `spm install --frozen-lockfile`), the following rules apply:
 
-1. **Source must match**: The git URL or file path must be identical
+1. **Source must match**: The git URL, local path, tarball path, or npm source must be identical
 2. **Path must match**: The skill path within the repository must be identical
 3. **Ref compatibility**:
    - Manifest without ref → compatible with any lock ref (use lock version)

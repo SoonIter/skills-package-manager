@@ -1,6 +1,6 @@
-import { cp, readFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { ensureDir, writeJson } from '../utils/fs'
+import { ensureDir, replaceDir, writeJson } from '../utils/fs'
 
 export async function materializeLocalSkill(
   rootDir: string,
@@ -26,7 +26,7 @@ export async function materializeLocalSkill(
 
   const targetDir = path.join(rootDir, installDir, skillName)
   await ensureDir(path.dirname(targetDir))
-  await cp(absoluteSkillPath, targetDir, { recursive: true, force: true })
+  await replaceDir(absoluteSkillPath, targetDir)
   await writeJson(path.join(targetDir, '.skills-pm.json'), {
     name: skillName,
     installedBy: 'skills-package-manager',

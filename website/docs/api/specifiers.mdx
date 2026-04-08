@@ -5,7 +5,8 @@ skills-package-manager uses specifiers to describe where skills come from.
 ## General format
 
 ```text
-<source>#[ref&]path:<skill-path>
+git/file/npm: <source>#[ref&]path:<skill-path>
+link: link:<path-to-skill-dir>
 ```
 
 ## Supported forms
@@ -17,17 +18,21 @@ skills-package-manager uses specifiers to describe where skills come from.
 | Git + path | `https://github.com/owner/repo.git#path:/skills/my-skill` |
 | Git + ref + path | `https://github.com/owner/repo.git#main&path:/skills/my-skill` |
 | Git + commit SHA + path | `https://github.com/owner/repo.git#6cb0992a176f2ca142e19f64dca8ac12025b035e&path:/skills/my-skill` |
-| Local file | `file:./local-dir#path:/skills/my-skill` |
+| Local link | `link:./local-dir/skills/my-skill` |
+| Local tarball | `file:./skills-package.tgz#path:/skills/my-skill` |
+| npm package | `npm:@scope/skills-package#path:/skills/my-skill` |
 
 ## Notes
 
-- `source`: A Git repository URL or a local `file:` path
+- `source`: A Git repository URL, a local `link:` path, a local `file:` tarball, or an `npm:` package name
 - `ref`: An optional git ref, such as `main`, a tag, a full commit SHA, or a short commit SHA
-- `path`: The directory of the skill inside the source repository
+- `path`: The directory of the skill inside the source repository or package
 
 ## Resolution types
 
 - `git`: Clone the repository, resolve the commit, and copy the skill files
-- `file`: Read the local directory and compute a digest
+- `link`: Read the local directory and copy the skill files
+- `file`: Extract the local `tgz` package and copy the skill files
+- `npm`: Resolve the package from the configured registry, lock the tarball URL/version/integrity, and copy the skill files
 
-For team collaboration, it is recommended to use explicit specifiers with `path:` whenever possible. This makes the manifest more stable and easier to review.
+`npm:` reads `registry` and scoped `@scope:registry` from `.npmrc`, and reuses matching auth entries for private registries.

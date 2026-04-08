@@ -5,6 +5,7 @@ import type { SkillsLock, UpdateCommandOptions, UpdateCommandResult } from '../c
 import { writeSkillsLock } from '../config/writeSkillsLock'
 import { ErrorCode, ManifestError, SkillError } from '../errors'
 import { fetchSkillsFromLock, linkSkillsFromLock } from '../install/installSkills'
+import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 
 function createEmptyResult(): UpdateCommandResult {
   return {
@@ -62,18 +63,47 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
   for (const skillName of targetSkills) {
     const specifier = manifest.skills[skillName]
 
-    if (specifier.startsWith('file:')) {
-      result.skipped.push({ name: skillName, reason: 'file-specifier' })
-      continue
-    }
-
     try {
+      const normalized = normalizeSpecifier(specifier)
+      if (normalized.type === 'link') {
+        result.skipped.push({ name: skillName, reason: 'link-specifier' })
+        continue
+      }
+
       const { entry } = await resolveLockEntry(options.cwd, specifier)
       const previous = currentLock?.skills[skillName]
       if (
         previous?.resolution.type === 'git' &&
         entry.resolution.type === 'git' &&
-        previous.resolution.commit === entry.resolution.commit
+        previous.specifier === entry.specifier &&
+        previous.resolution.url === entry.resolution.url &&
+        previous.resolution.commit === entry.resolution.commit &&
+        previous.resolution.path === entry.resolution.path
+      ) {
+        result.unchanged.push(skillName)
+        continue
+      }
+
+      if (
+        previous?.resolution.type === 'npm' &&
+        entry.resolution.type === 'npm' &&
+        previous.specifier === entry.specifier &&
+        previous.resolution.packageName === entry.resolution.packageName &&
+        previous.resolution.version === entry.resolution.version &&
+        previous.resolution.path === entry.resolution.path &&
+        previous.resolution.tarball === entry.resolution.tarball &&
+        previous.resolution.integrity === entry.resolution.integrity &&
+        previous.resolution.registry === entry.resolution.registry
+      ) {
+        result.unchanged.push(skillName)
+        continue
+      }
+
+      if (
+        previous?.resolution.type === 'file' &&
+        entry.resolution.type === 'file' &&
+        previous.specifier === entry.specifier &&
+        previous.digest === entry.digest
       ) {
         result.unchanged.push(skillName)
         continue
