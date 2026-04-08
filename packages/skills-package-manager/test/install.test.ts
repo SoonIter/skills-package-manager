@@ -1,4 +1,12 @@
-import { existsSync, lstatSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  lstatSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
@@ -7,7 +15,7 @@ import type { SkillsLock, SkillsManifest } from '../src/config/types'
 import { writeSkillsLock } from '../src/config/writeSkillsLock'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
 import { fetchSkillsFromLock, installSkills } from '../src/install/installSkills'
-import { createSkillPackage, packDirectory } from './helpers'
+import { createSkillPackage, packDirectory, startMockNpmRegistry } from './helpers'
 
 describe('installSkills', () => {
   it('installs a linked local skill and creates symlinks', async () => {
@@ -83,37 +91,92 @@ describe('installSkills', () => {
   it('installs an npm skill from a packed package source', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-npm-'))
     const packageRoot = createSkillPackage('hello-skill', '# Hello from npm package\n')
+    const registry = await startMockNpmRegistry(packageRoot, { authToken: 'test-token' })
 
-    await writeSkillsManifest(root, {
-      installDir: '.agents/skills',
-      linkTargets: [],
-      skills: {
-        'hello-skill': `npm:${packageRoot}#path:/skills/hello-skill`,
-      },
-    })
-    await writeSkillsLock(root, {
-      lockfileVersion: '0.1',
-      installDir: '.agents/skills',
-      linkTargets: [],
-      skills: {
-        'hello-skill': {
-          specifier: `npm:${packageRoot}#path:/skills/hello-skill`,
-          resolution: {
-            type: 'npm',
-            packageName: '@tests/hello-skill',
-            version: '1.0.0',
-            path: '/skills/hello-skill',
-          },
-          digest: 'test-npm-digest',
+    try {
+      writeFileSync(
+        path.join(root, '.npmrc'),
+        `registry=${registry.registryUrl}\n${registry.authTokenConfigLine}\n`,
+      )
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': `npm:${registry.packageName}#path:/skills/hello-skill`,
         },
-      },
-    })
+      })
+      await writeSkillsLock(root, {
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `npm:${registry.packageName}#path:/skills/hello-skill`,
+            resolution: {
+              type: 'npm',
+              packageName: registry.packageName,
+              version: registry.version,
+              path: '/skills/hello-skill',
+              tarball: registry.tarballUrl,
+              integrity: registry.integrity,
+              registry: registry.registryUrl,
+            },
+            digest: 'test-npm-digest',
+          },
+        },
+      })
 
-    await installSkills(root)
+      await installSkills(root, { frozenLockfile: true })
 
-    const installedSkill = path.join(root, '.agents/skills/hello-skill/SKILL.md')
-    expect(existsSync(installedSkill)).toBe(true)
-    expect(readFileSync(installedSkill, 'utf8')).toContain('Hello from npm package')
+      const installedSkill = path.join(root, '.agents/skills/hello-skill/SKILL.md')
+      expect(existsSync(installedSkill)).toBe(true)
+      expect(readFileSync(installedSkill, 'utf8')).toContain('Hello from npm package')
+    } finally {
+      await registry.close()
+    }
+  })
+
+  it('verifies npm tarball integrity before installing', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-npm-integrity-'))
+    const packageRoot = createSkillPackage('hello-skill', '# Hello from npm package\n')
+    const registry = await startMockNpmRegistry(packageRoot)
+
+    try {
+      writeFileSync(path.join(root, '.npmrc'), `registry=${registry.registryUrl}\n`)
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': `npm:${registry.packageName}#path:/skills/hello-skill`,
+        },
+      })
+      await writeSkillsLock(root, {
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `npm:${registry.packageName}#path:/skills/hello-skill`,
+            resolution: {
+              type: 'npm',
+              packageName: registry.packageName,
+              version: registry.version,
+              path: '/skills/hello-skill',
+              tarball: registry.tarballUrl,
+              integrity: 'sha512-invalid',
+              registry: registry.registryUrl,
+            },
+            digest: 'test-npm-digest',
+          },
+        },
+      })
+
+      await expect(installSkills(root, { frozenLockfile: true })).rejects.toThrow(
+        'Integrity check failed',
+      )
+    } finally {
+      await registry.close()
+    }
   })
 
   it('installs a git skill from a local git repository', async () => {
@@ -335,6 +398,51 @@ describe('installSkills', () => {
     expect(existsSync(path.join(root, '.agents/skills/obsolete-skill'))).toBe(false)
     expect(existsSync(path.join(root, '.claude/skills/obsolete-skill'))).toBe(false)
     expect(existsSync(path.join(root, '.agents/skills/hello-skill'))).toBe(true)
+  })
+
+  it('reinstalls missing managed skills even when the lock digest is unchanged', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-reinstall-missing-'))
+    const specifier = `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'hello-skill': specifier,
+      },
+    })
+
+    await installSkills(root)
+    unlinkSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))
+
+    await installSkills(root)
+
+    expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
+  })
+
+  it('replaces installed skill directories so deleted source files do not linger', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-replace-dir-'))
+    const sourceRoot = mkdtempSync(path.join(tmpdir(), 'skills-pm-replace-dir-source-'))
+    const skillDir = path.join(sourceRoot, 'hello-skill')
+
+    require('node:fs').mkdirSync(skillDir, { recursive: true })
+    writeFileSync(path.join(skillDir, 'SKILL.md'), '# Hello\n')
+    writeFileSync(path.join(skillDir, 'legacy.txt'), 'legacy\n')
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'hello-skill': `link:${skillDir}`,
+      },
+    })
+
+    await installSkills(root)
+    rmSync(path.join(skillDir, 'legacy.txt'))
+
+    await installSkills(root)
+
+    expect(existsSync(path.join(root, '.agents/skills/hello-skill/legacy.txt'))).toBe(false)
   })
 
   describe('frozen-lockfile', () => {

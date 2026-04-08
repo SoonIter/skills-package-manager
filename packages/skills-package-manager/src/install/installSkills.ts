@@ -1,3 +1,4 @@
+import { access } from 'node:fs/promises'
 import path from 'node:path'
 import { isLockInSync } from '../config/compareSkillsLock'
 import { readSkillsLock } from '../config/readSkillsLock'
@@ -5,8 +6,7 @@ import { readSkillsManifest } from '../config/readSkillsManifest'
 import { syncSkillsLock } from '../config/syncSkillsLock'
 import type { InstallProgressListener, SkillsLock, SkillsManifest } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
-import { cleanupPackedNpmPackage, packNpmPackage } from '../npm/packPackage'
-import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
+import { cleanupPackedNpmPackage, downloadNpmPackageTarball } from '../npm/packPackage'
 import { sha256 } from '../utils/hash'
 import { readInstallState, writeInstallState } from './installState'
 import { linkSkill } from './links'
@@ -19,19 +19,20 @@ export const installStageHooks = {
   beforeFetch: async (_rootDir: string, _manifest: SkillsManifest, _lockfile: SkillsLock) => {},
 }
 
-function resolveNpmPackSource(specifier: string, packageName: string, version: string): string {
-  const normalized = normalizeSpecifier(specifier)
-  const source = normalized.source.slice('npm:'.length)
-
-  if (source.startsWith('.') || source.startsWith('/') || source.startsWith('~')) {
-    return source
+async function areManagedSkillsInstalled(
+  rootDir: string,
+  installDir: string,
+  skillNames: string[],
+): Promise<boolean> {
+  for (const skillName of skillNames) {
+    try {
+      await access(path.join(rootDir, installDir, skillName, 'SKILL.md'))
+    } catch {
+      return false
+    }
   }
 
-  if (source.includes(':')) {
-    return source
-  }
-
-  return `${packageName}@${version}`
+  return true
 }
 
 export async function fetchSkillsFromLock(
@@ -44,87 +45,107 @@ export async function fetchSkillsFromLock(
 ) {
   await installStageHooks.beforeFetch(rootDir, manifest, lockfile)
 
-  const lockDigest = sha256(JSON.stringify(lockfile))
-  const state = await readInstallState(rootDir)
-  if (state?.lockDigest === lockDigest) {
-    return { status: 'skipped', reason: 'up-to-date' } as const
-  }
-
   const installDir = manifest.installDir ?? '.agents/skills'
   const linkTargets = manifest.linkTargets ?? []
 
   await pruneManagedSkills(rootDir, installDir, linkTargets, Object.keys(lockfile.skills))
 
-  for (const [skillName, entry] of Object.entries(lockfile.skills)) {
-    if (entry.resolution.type === 'link') {
-      await materializeLocalSkill(
-        rootDir,
-        skillName,
-        path.resolve(rootDir, entry.resolution.path),
-        '/',
-        installDir,
-      )
-      continue
-    }
+  const lockDigest = sha256(JSON.stringify(lockfile))
+  const state = await readInstallState(rootDir, installDir)
+  if (
+    state?.lockDigest === lockDigest &&
+    (await areManagedSkillsInstalled(rootDir, installDir, Object.keys(lockfile.skills)))
+  ) {
+    return { status: 'skipped', reason: 'up-to-date' } as const
+  }
 
-    if (entry.resolution.type === 'file') {
-      await materializePackedSkill(
-        rootDir,
-        skillName,
-        path.resolve(rootDir, entry.resolution.tarball),
-        entry.resolution.path,
-        installDir,
-      )
-      options?.onProgress?.({ type: 'added', skillName })
-      continue
-    }
+  const downloadedTarballs = new Map<string, Promise<string>>()
 
-    if (entry.resolution.type === 'git') {
-      await materializeGitSkill(
-        rootDir,
-        skillName,
-        entry.resolution.url,
-        entry.resolution.commit,
-        entry.resolution.path,
-        installDir,
-      )
-      options?.onProgress?.({ type: 'added', skillName })
-      continue
-    }
+  try {
+    for (const [skillName, entry] of Object.entries(lockfile.skills)) {
+      if (entry.resolution.type === 'link') {
+        await materializeLocalSkill(
+          rootDir,
+          skillName,
+          path.resolve(rootDir, entry.resolution.path),
+          '/',
+          installDir,
+        )
+        options?.onProgress?.({ type: 'added', skillName })
+        continue
+      }
 
-    if (entry.resolution.type === 'npm') {
-      const packed = await packNpmPackage(
-        resolveNpmPackSource(
-          entry.specifier,
-          entry.resolution.packageName,
-          entry.resolution.version,
-        ),
-      )
-
-      try {
+      if (entry.resolution.type === 'file') {
         await materializePackedSkill(
           rootDir,
           skillName,
-          packed.tarballPath,
+          path.resolve(rootDir, entry.resolution.tarball),
           entry.resolution.path,
           installDir,
         )
-      } finally {
-        await cleanupPackedNpmPackage(packed.tarballPath)
+        options?.onProgress?.({ type: 'added', skillName })
+        continue
       }
-      continue
+
+      if (entry.resolution.type === 'git') {
+        await materializeGitSkill(
+          rootDir,
+          skillName,
+          entry.resolution.url,
+          entry.resolution.commit,
+          entry.resolution.path,
+          installDir,
+        )
+        options?.onProgress?.({ type: 'added', skillName })
+        continue
+      }
+
+      if (entry.resolution.type === 'npm') {
+        const cacheKey = `${entry.resolution.tarball}\0${entry.resolution.integrity ?? ''}`
+        let tarballPathPromise = downloadedTarballs.get(cacheKey)
+        if (!tarballPathPromise) {
+          tarballPathPromise = downloadNpmPackageTarball(
+            rootDir,
+            entry.resolution.tarball,
+            entry.resolution.integrity,
+          )
+          downloadedTarballs.set(cacheKey, tarballPathPromise)
+        }
+
+        const tarballPath = await tarballPathPromise
+        await materializePackedSkill(
+          rootDir,
+          skillName,
+          tarballPath,
+          entry.resolution.path,
+          installDir,
+        )
+        options?.onProgress?.({ type: 'added', skillName })
+        continue
+      }
+
+      throw new Error(`Unsupported resolution type in 0.1.0 core flow: ${entry.resolution.type}`)
     }
 
-    throw new Error(`Unsupported resolution type in 0.1.0 core flow: ${entry.resolution.type}`)
-  }
+    await writeInstallState(rootDir, installDir, {
+      lockDigest,
+      installDir,
+      linkTargets,
+      installerVersion: '0.1.0',
+      installedAt: new Date().toISOString(),
+    })
+  } finally {
+    const settledTarballs = await Promise.allSettled(downloadedTarballs.values())
+    const downloadedPaths = new Set(
+      settledTarballs
+        .filter(
+          (result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled',
+        )
+        .map((result) => result.value),
+    )
 
-  await writeInstallState(rootDir, {
-    lockDigest,
-    installDir,
-    linkTargets,
-    installerVersion: '0.1.0',
-    installedAt: new Date().toISOString(),
-  })
+    await Promise.all([...downloadedPaths].map((tarballPath) => cleanupPackedNpmPackage(tarballPath)))
+  }
 
   return { status: 'fetched', fetched: Object.keys(lockfile.skills) } as const
 }
@@ -164,7 +185,6 @@ export async function installSkills(
   let lockfile: SkillsLock
 
   if (options?.frozenLockfile) {
-    // Frozen mode: lock must exist and be in sync
     if (!currentLock) {
       throw new Error('Lockfile is required in frozen mode but none was found')
     }
@@ -178,7 +198,6 @@ export async function installSkills(
       options?.onProgress?.({ type: 'resolved', skillName })
     }
   } else {
-    // Normal mode: sync lock with manifest (may trigger network requests)
     lockfile = await syncSkillsLock(rootDir, manifest, currentLock, {
       onProgress: options?.onProgress,
     })
@@ -187,7 +206,6 @@ export async function installSkills(
   await fetchSkillsFromLock(rootDir, manifest, lockfile, { onProgress: options?.onProgress })
   await linkSkillsFromLock(rootDir, manifest, lockfile, { onProgress: options?.onProgress })
 
-  // Write lockfile only after all operations succeed (atomicity)
   if (!options?.frozenLockfile) {
     await writeSkillsLock(rootDir, lockfile)
   }

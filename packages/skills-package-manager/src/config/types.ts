@@ -20,7 +20,15 @@ export type SkillsLockEntry = {
     | { type: 'link'; path: string }
     | { type: 'file'; tarball: string; path: string }
     | { type: 'git'; url: string; commit: string; path: string }
-    | { type: 'npm'; packageName: string; version: string; path: string; integrity?: string }
+    | {
+        type: 'npm'
+        packageName: string
+        version: string
+        path: string
+        tarball: string
+        integrity?: string
+        registry?: string
+      }
   digest: string
 }
 

@@ -5,7 +5,8 @@ skills-package-manager uses specifiers to describe where skills come from.
 ## General format
 
 ```text
-<source>#[ref&]path:<skill-path>
+git/file/npm: <source>#[ref&]path:<skill-path>
+link: link:<path-to-skill-dir>
 ```
 
 ## Supported forms
@@ -23,7 +24,7 @@ skills-package-manager uses specifiers to describe where skills come from.
 
 ## Notes
 
-- `source`: A Git repository URL, a local `link:` path, a local `file:` tarball, or an `npm:` package source
+- `source`: A Git repository URL, a local `link:` path, a local `file:` tarball, or an `npm:` package name
 - `ref`: An optional git ref, such as `main`, a tag, a full commit SHA, or a short commit SHA
 - `path`: The directory of the skill inside the source repository or package
 
@@ -32,6 +33,6 @@ skills-package-manager uses specifiers to describe where skills come from.
 - `git`: Clone the repository, resolve the commit, and copy the skill files
 - `link`: Read the local directory and copy the skill files
 - `file`: Extract the local `tgz` package and copy the skill files
-- `npm`: Pack the npm source, lock the resolved package version, and copy the skill files
+- `npm`: Resolve the package from the configured registry, lock the tarball URL/version/integrity, and copy the skill files
 
-For team collaboration, it is recommended to use explicit specifiers with `path:` whenever possible. This makes the manifest more stable and easier to review.
+`npm:` reads `registry` and scoped `@scope:registry` from `.npmrc`, and reuses matching auth entries for private registries.

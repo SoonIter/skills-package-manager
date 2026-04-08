@@ -125,13 +125,14 @@ const skills = await listRepoSkills('vercel-labs', 'skills')
 
 ## Specifier Format
 
-```
-<source>#[ref&]path:<skill-path>
+```text
+git/file/npm: <source>#[ref&]path:<skill-path>
+link: link:<path-to-skill-dir>
 ```
 
 | Part | Description | Example |
 |------|-------------|---------|
-| `source` | Git URL, direct `link:` skill path, `file:` tarball, or `npm:` package | `https://github.com/o/r.git`, `link:./local/skills/my-skill`, `file:./skills.tgz`, `npm:@scope/pkg` |
+| `source` | Git URL, direct `link:` skill path, `file:` tarball, or `npm:` package name | `https://github.com/o/r.git`, `link:./local/skills/my-skill`, `file:./skills.tgz`, `npm:@scope/pkg` |
 | `ref` | Optional git ref | `main`, `v1.0.0`, `HEAD`, `6cb0992`, `6cb0992a176f2ca142e19f64dca8ac12025b035e` |
 | `path` | Path to skill directory within source | `/skills/my-skill` |
 
@@ -142,7 +143,9 @@ const skills = await listRepoSkills('vercel-labs', 'skills')
 - **`git`** — Clones the repo, resolves commit hash, copies skill files
 - **`link`** — Reads from a local directory and copies the selected skill
 - **`file`** — Extracts a local `tgz` package and copies the selected skill
-- **`npm`** — Packs an npm package source, locks the resolved version, and installs from the package contents
+- **`npm`** — Resolves a package from the configured npm registry, locks the tarball URL/version/integrity, and installs from the downloaded tarball
+
+`npm:` reads `registry` and scoped `@scope:registry` values from `.npmrc`. Matching `:_authToken`, `:_auth`, or `username` + `:_password` entries are also used for private registry requests.
 
 ## Architecture
 

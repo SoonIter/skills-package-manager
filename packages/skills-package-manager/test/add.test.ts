@@ -5,7 +5,7 @@ import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
 import YAML from 'yaml'
 import { addCommand } from '../src/commands/add'
-import { createSkillPackage, packDirectory } from './helpers'
+import { createSkillPackage, packDirectory, startMockNpmRegistry } from './helpers'
 
 describe('addCommand', () => {
   it('writes manifest and lock for a file skill specifier', async () => {
@@ -58,19 +58,33 @@ describe('addCommand', () => {
   it('writes manifest and lock for an npm skill specifier', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-npm-'))
     const packageRoot = createSkillPackage('hello-skill', '# Hello from npm\n')
+    const registry = await startMockNpmRegistry(packageRoot, { authToken: 'test-token' })
 
-    await addCommand({
-      cwd: root,
-      specifier: `npm:${packageRoot}#path:/skills/hello-skill`,
-    })
+    try {
+      writeFileSync(
+        path.join(root, '.npmrc'),
+        `registry=${registry.registryUrl}\n${registry.authTokenConfigLine}\n`,
+      )
 
-    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
-    const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+      await addCommand({
+        cwd: root,
+        specifier: `npm:${registry.packageName}#path:/skills/hello-skill`,
+      })
 
-    expect(manifest.skills['hello-skill']).toBe(`npm:${packageRoot}#path:/skills/hello-skill`)
-    expect(lockfile.skills['hello-skill'].resolution.type).toBe('npm')
-    expect(lockfile.skills['hello-skill'].resolution.packageName).toBe('@tests/hello-skill')
-    expect(lockfile.skills['hello-skill'].resolution.version).toBe('1.0.0')
+      const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+      const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+
+      expect(manifest.skills['hello-skill']).toBe(
+        `npm:${registry.packageName}#path:/skills/hello-skill`,
+      )
+      expect(lockfile.skills['hello-skill'].resolution.type).toBe('npm')
+      expect(lockfile.skills['hello-skill'].resolution.packageName).toBe('@tests/hello-skill')
+      expect(lockfile.skills['hello-skill'].resolution.version).toBe('1.0.0')
+      expect(lockfile.skills['hello-skill'].resolution.tarball).toBe(registry.tarballUrl)
+      expect(lockfile.skills['hello-skill'].resolution.registry).toBe(registry.registryUrl)
+    } finally {
+      await registry.close()
+    }
   })
 
   it('writes manifest and lock for a git skill specifier', async () => {

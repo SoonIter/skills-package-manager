@@ -12,7 +12,7 @@ import {
   installStageHooks,
   linkSkillsFromLock,
 } from '../src/install/installSkills'
-import { createSkillPackage, packDirectory } from './helpers'
+import { createSkillPackage, packDirectory, startMockNpmRegistry } from './helpers'
 
 describe('resolveLockEntry', () => {
   it('recomputes link digests from skill directory contents', async () => {
@@ -126,6 +126,33 @@ describe('resolveLockEntry', () => {
       throw new Error('Expected git resolution')
     }
     expect(entry.resolution.commit).toBe(commit)
+  })
+
+  it('resolves npm registry from scoped .npmrc entries', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-resolve-npm-registry-'))
+    const packageRoot = createSkillPackage('hello-skill', '# Hello registry\n')
+    const registry = await startMockNpmRegistry(packageRoot, { authToken: 'test-token' })
+
+    try {
+      writeFileSync(
+        path.join(root, '.npmrc'),
+        `registry=http://127.0.0.1:9/\n@tests:registry=${registry.registryUrl}\n${registry.authTokenConfigLine}\n`,
+      )
+
+      const { entry } = await resolveLockEntry(
+        root,
+        'npm:@tests/hello-skill#path:/skills/hello-skill',
+      )
+
+      expect(entry.resolution.type).toBe('npm')
+      if (entry.resolution.type !== 'npm') {
+        throw new Error('Expected npm resolution')
+      }
+      expect(entry.resolution.registry).toBe(registry.registryUrl)
+      expect(entry.resolution.tarball).toBe(registry.tarballUrl)
+    } finally {
+      await registry.close()
+    }
   })
 })
 
@@ -312,96 +339,114 @@ describe('updateCommand resolve', () => {
   it('updates npm targets when the resolved package version changes', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-npm-'))
     const packageRoot = createSkillPackage('hello-skill', '# Version 1\n')
+    const registry = await startMockNpmRegistry(packageRoot)
 
-    writeFileSync(
-      path.join(root, 'skills.json'),
-      JSON.stringify(
-        {
+    try {
+      writeFileSync(path.join(root, '.npmrc'), `registry=${registry.registryUrl}\n`)
+      writeFileSync(
+        path.join(root, 'skills.json'),
+        JSON.stringify(
+          {
+            installDir: '.agents/skills',
+            linkTargets: [],
+            skills: {
+              'hello-skill': `npm:${registry.packageName}#path:/skills/hello-skill`,
+            },
+          },
+          null,
+          2,
+        ),
+      )
+
+      writeFileSync(
+        path.join(root, 'skills-lock.yaml'),
+        YAML.stringify({
+          lockfileVersion: '0.1',
           installDir: '.agents/skills',
           linkTargets: [],
           skills: {
-            'hello-skill': `npm:${packageRoot}#path:/skills/hello-skill`,
-          },
-        },
-        null,
-        2,
-      ),
-    )
-
-    writeFileSync(
-      path.join(root, 'skills-lock.yaml'),
-      YAML.stringify({
-        lockfileVersion: '0.1',
-        installDir: '.agents/skills',
-        linkTargets: [],
-        skills: {
-          'hello-skill': {
-            specifier: `npm:${packageRoot}#path:/skills/hello-skill`,
-            resolution: {
-              type: 'npm',
-              packageName: '@tests/hello-skill',
-              version: '0.9.0',
-              path: '/skills/hello-skill',
+            'hello-skill': {
+              specifier: `npm:${registry.packageName}#path:/skills/hello-skill`,
+              resolution: {
+                type: 'npm',
+                packageName: registry.packageName,
+                version: '0.9.0',
+                path: '/skills/hello-skill',
+                tarball: `${registry.registryUrl}tarballs/old.tgz`,
+                integrity: 'sha512-old',
+                registry: registry.registryUrl,
+              },
+              digest: 'sha256-old',
             },
-            digest: 'sha256-old',
           },
-        },
-      }),
-    )
+        }),
+      )
 
-    const result = await updateCommand({ cwd: root })
+      const result = await updateCommand({ cwd: root })
 
-    expect(result.updated).toEqual(['hello-skill'])
-    expect(result.failed).toEqual([])
-    const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
-    expect(lockfile.skills['hello-skill'].resolution.version).toBe('1.0.0')
+      expect(result.updated).toEqual(['hello-skill'])
+      expect(result.failed).toEqual([])
+      const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+      expect(lockfile.skills['hello-skill'].resolution.version).toBe('1.0.0')
+      expect(lockfile.skills['hello-skill'].resolution.tarball).toBe(registry.tarballUrl)
+    } finally {
+      await registry.close()
+    }
   })
 
   it('updates npm targets when integrity changes at the same version', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-npm-integrity-'))
     const packageRoot = createSkillPackage('hello-skill', '# Version 1\n')
+    const registry = await startMockNpmRegistry(packageRoot)
 
-    writeFileSync(
-      path.join(root, 'skills.json'),
-      JSON.stringify(
-        {
+    try {
+      writeFileSync(path.join(root, '.npmrc'), `registry=${registry.registryUrl}\n`)
+      writeFileSync(
+        path.join(root, 'skills.json'),
+        JSON.stringify(
+          {
+            installDir: '.agents/skills',
+            linkTargets: [],
+            skills: {
+              'hello-skill': `npm:${registry.packageName}#path:/skills/hello-skill`,
+            },
+          },
+          null,
+          2,
+        ),
+      )
+
+      writeFileSync(
+        path.join(root, 'skills-lock.yaml'),
+        YAML.stringify({
+          lockfileVersion: '0.1',
           installDir: '.agents/skills',
           linkTargets: [],
           skills: {
-            'hello-skill': `npm:${packageRoot}#path:/skills/hello-skill`,
-          },
-        },
-        null,
-        2,
-      ),
-    )
-
-    writeFileSync(
-      path.join(root, 'skills-lock.yaml'),
-      YAML.stringify({
-        lockfileVersion: '0.1',
-        installDir: '.agents/skills',
-        linkTargets: [],
-        skills: {
-          'hello-skill': {
-            specifier: `npm:${packageRoot}#path:/skills/hello-skill`,
-            resolution: {
-              type: 'npm',
-              packageName: '@tests/hello-skill',
-              version: '1.0.0',
-              path: '/skills/hello-skill',
-              integrity: 'sha512-old',
+            'hello-skill': {
+              specifier: `npm:${registry.packageName}#path:/skills/hello-skill`,
+              resolution: {
+                type: 'npm',
+                packageName: registry.packageName,
+                version: registry.version,
+                path: '/skills/hello-skill',
+                tarball: registry.tarballUrl,
+                integrity: 'sha512-old',
+                registry: registry.registryUrl,
+              },
+              digest: 'sha256-old',
             },
-            digest: 'sha256-old',
           },
-        },
-      }),
-    )
+        }),
+      )
 
-    const result = await updateCommand({ cwd: root })
+      const result = await updateCommand({ cwd: root })
 
-    expect(result.updated).toEqual(['hello-skill'])
-    expect(result.unchanged).toEqual([])
+      expect(result.updated).toEqual(['hello-skill'])
+      expect(result.unchanged).toEqual([])
+    } finally {
+      await registry.close()
+    }
   })
 
   it('marks file tarball targets unchanged when the tarball digest matches', async () => {
