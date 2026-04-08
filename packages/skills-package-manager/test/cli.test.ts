@@ -6,6 +6,7 @@ import packageJson from '../package.json'
 import { runCli } from '../src/cli/runCli'
 import { writeSkillsLock } from '../src/config/writeSkillsLock'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
+import { createSkillPackage, packDirectory } from './helpers'
 
 async function captureOutput<TResult>(callback: () => Promise<TResult>) {
   const output: string[] = []
@@ -146,12 +147,13 @@ describe('runCli dispatch', () => {
 
   it('prints install progress summary in non-tty mode', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-cli-progress-'))
-    const sourceRoot = path.resolve(__dirname, 'fixtures/local-source')
+    const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
+    const tarballPath = packDirectory(packageRoot)
     await writeSkillsManifest(root, {
       installDir: '.agents/skills',
       linkTargets: [],
       skills: {
-        'hello-skill': `file:${sourceRoot}#path:/skills/hello-skill`,
+        'hello-skill': `file:${tarballPath}#path:/skills/hello-skill`,
       },
     })
     await writeSkillsLock(root, {
@@ -160,10 +162,11 @@ describe('runCli dispatch', () => {
       linkTargets: [],
       skills: {
         'hello-skill': {
-          specifier: `file:${sourceRoot}#path:/skills/hello-skill`,
+          specifier: `file:${tarballPath}#path:/skills/hello-skill`,
           resolution: {
             type: 'file',
-            path: sourceRoot,
+            tarball: path.relative(root, tarballPath),
+            path: '/skills/hello-skill',
           },
           digest: 'test-digest',
         },
@@ -199,12 +202,13 @@ describe('runCli dispatch', () => {
 
   it('renders dynamic progress line in tty mode', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-cli-progress-tty-'))
-    const sourceRoot = path.resolve(__dirname, 'fixtures/local-source')
+    const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
+    const tarballPath = packDirectory(packageRoot)
     await writeSkillsManifest(root, {
       installDir: '.agents/skills',
       linkTargets: [],
       skills: {
-        'hello-skill': `file:${sourceRoot}#path:/skills/hello-skill`,
+        'hello-skill': `file:${tarballPath}#path:/skills/hello-skill`,
       },
     })
     await writeSkillsLock(root, {
@@ -213,10 +217,11 @@ describe('runCli dispatch', () => {
       linkTargets: [],
       skills: {
         'hello-skill': {
-          specifier: `file:${sourceRoot}#path:/skills/hello-skill`,
+          specifier: `file:${tarballPath}#path:/skills/hello-skill`,
           resolution: {
             type: 'file',
-            path: sourceRoot,
+            tarball: path.relative(root, tarballPath),
+            path: '/skills/hello-skill',
           },
           digest: 'test-digest',
         },

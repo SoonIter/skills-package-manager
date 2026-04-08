@@ -735,13 +735,14 @@ describe('installSkills', () => {
 
     it('emits resolved/added/installed progress events in frozen mode', async () => {
       const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-progress-'))
-      const sourceRoot = path.resolve(__dirname, 'fixtures/local-source')
+      const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
+      const tarballPath = packDirectory(packageRoot)
 
       await writeSkillsManifest(root, {
         installDir: '.agents/skills',
         linkTargets: [],
         skills: {
-          'hello-skill': `file:${sourceRoot}#path:/skills/hello-skill`,
+          'hello-skill': `file:${tarballPath}#path:/skills/hello-skill`,
         },
       })
 
@@ -751,10 +752,11 @@ describe('installSkills', () => {
         linkTargets: [],
         skills: {
           'hello-skill': {
-            specifier: `file:${sourceRoot}#path:/skills/hello-skill`,
+            specifier: `file:${tarballPath}#path:/skills/hello-skill`,
             resolution: {
               type: 'file',
-              path: sourceRoot,
+              tarball: path.relative(root, tarballPath),
+              path: '/skills/hello-skill',
             },
             digest: 'digest',
           },
