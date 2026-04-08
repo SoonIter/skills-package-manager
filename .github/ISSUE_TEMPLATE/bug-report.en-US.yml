@@ -1,0 +1,58 @@
+name: '🐞 Bug Report'
+description: Report a bug in skills-package-manager
+title: '[Bug]: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this issue. Before submitting, please note:
+
+         - Confirm that your problem cannot be solved by the [documentation](https://skills-package-manager.dev).
+         - Make sure you searched in the [Issues](https://github.com/sooniter/skills-package-manager/issues) and have not found the same issue.
+         - If this looks like an upstream package manager or Git provider issue, please report it to the relevant repository as well.
+
+  - type: textarea
+    id: versions
+    attributes:
+      label: Version
+      description: Paste your environment details below, including OS, Node.js, pnpm, and the versions of `skills-package-manager` / `pnpm-plugin-skills` if applicable.
+      placeholder: |
+        OS:
+        Node.js:
+        pnpm:
+        skills-package-manager:
+        pnpm-plugin-skills:
+      render: sh
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: Describe the bug clearly, including the expected behavior, actual behavior, logs, or screenshots if relevant.
+    validations:
+      required: true
+
+  - type: input
+    id: repro
+    attributes:
+      label: Reproduce link
+      description: Please provide a minimal reproduction repository or example project.
+      placeholder: paste link here
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce-steps
+    attributes:
+      label: Reproduce Steps
+      description: Provide the minimal steps required to reproduce the problem.
+      placeholder: |
+        for example:
+        1. run `pnpm install`
+        2. run `npx skills-package-manager install`
+        3. check the error logs
+    validations:
+      required: true

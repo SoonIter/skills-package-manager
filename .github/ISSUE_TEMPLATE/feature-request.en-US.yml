@@ -1,0 +1,29 @@
+name: '💡 Feature Request'
+description: Submit a feature request for skills-package-manager
+title: '[Feature]: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for submitting a feature request. Before submitting, please note:
+
+         - Confirm that this is a general capability gap and cannot be solved with the current CLI, manifest format, or pnpm plugin flow.
+         - Make sure you searched in the [Issues](https://github.com/sooniter/skills-package-manager/issues) and did not find the same request.
+         - Include the workflow or use case you want to improve so the request can be evaluated concretely.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What problem does this feature solve?
+      description: Describe the use case, current limitation, and why it matters.
+    validations:
+      required: true
+
+  - type: textarea
+    id: api
+    attributes:
+      label: What does the proposed API look like?
+      description: Describe the expected CLI, manifest, lockfile, or plugin behavior. Include examples if possible.
+    validations:
+      required: true
