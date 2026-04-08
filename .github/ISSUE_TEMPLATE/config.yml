@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Read the documentation
+    url: https://skills-package-manager.dev
+    about: Check the guides and API reference before opening an issue
