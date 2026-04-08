@@ -1,9 +1,9 @@
-import { execSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { c } from 'tar'
 
 export function createSkillPackage(skillName: string, content: string, version = '1.0.0'): string {
   const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-package-'))
@@ -24,9 +24,27 @@ export function createSkillPackage(skillName: string, content: string, version =
 }
 
 export function packDirectory(packageRoot: string): string {
-  const output = execSync('npm pack --json', { cwd: packageRoot }).toString().trim()
-  const [{ filename }] = JSON.parse(output) as Array<{ filename: string }>
-  return path.join(packageRoot, filename)
+  const manifest = JSON.parse(readFileSync(path.join(packageRoot, 'package.json'), 'utf8')) as {
+    name: string
+    version: string
+  }
+  const tarballName = `${manifest.name.replace(/^@/, '').replace('/', '-')}-${manifest.version}.tgz`
+  const tarballPath = path.join(packageRoot, tarballName)
+
+  rmSync(tarballPath, { force: true })
+  c(
+    {
+      sync: true,
+      gzip: true,
+      cwd: packageRoot,
+      file: tarballPath,
+      portable: true,
+      prefix: 'package/',
+    },
+    ['package.json', 'skills'],
+  )
+
+  return tarballPath
 }
 
 export async function startMockNpmRegistry(packageRoot: string, options?: { authToken?: string }) {
