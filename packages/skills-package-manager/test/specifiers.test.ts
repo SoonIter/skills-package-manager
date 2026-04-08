@@ -1,4 +1,5 @@
 import { describe, expect, it } from '@rstest/core'
+import { isLockInSync } from '../src/config/compareSkillsLock'
 import { normalizeSpecifier } from '../src/specifiers/normalizeSpecifier'
 
 describe('normalizeSpecifier', () => {
@@ -17,6 +18,17 @@ describe('normalizeSpecifier', () => {
 
   it('parses link specifier that points directly to a skill directory', () => {
     expect(normalizeSpecifier('link:./fixtures/local-source/skills/hello-skill')).toEqual({
+      type: 'link',
+      source: 'link:./fixtures/local-source/skills/hello-skill',
+      ref: null,
+      path: '/',
+      normalized: 'link:./fixtures/local-source/skills/hello-skill',
+      skillName: 'hello-skill',
+    })
+  })
+
+  it('canonicalizes link specifiers for stable comparisons', () => {
+    expect(normalizeSpecifier('link:.\\fixtures\\local-source\\skills\\hello-skill/')).toEqual({
       type: 'link',
       source: 'link:./fixtures/local-source/skills/hello-skill',
       ref: null,
@@ -71,5 +83,34 @@ describe('normalizeSpecifier', () => {
         'https://github.com/acme/skills.git#path:/skills/world#path:/skills/world',
       ),
     ).toThrow('Invalid specifier: multiple # fragments are not supported')
+  })
+
+  it('treats equivalent link specifiers as in sync', () => {
+    expect(
+      isLockInSync(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': 'link:.\\fixtures\\local-source\\skills\\hello-skill/',
+          },
+        },
+        {
+          lockfileVersion: '0.1',
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': {
+              specifier: 'link:./fixtures/local-source/skills/hello-skill',
+              resolution: {
+                type: 'link',
+                path: './fixtures/local-source/skills/hello-skill',
+              },
+              digest: 'sha256-test',
+            },
+          },
+        },
+      ),
+    ).toBe(true)
   })
 })

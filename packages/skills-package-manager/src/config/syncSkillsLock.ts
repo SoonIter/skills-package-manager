@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
@@ -7,10 +7,15 @@ import type { NormalizedSpecifier } from '../config/types'
 import { ErrorCode, GitError, ParseError } from '../errors'
 import { resolveNpmPackage } from '../npm/packPackage'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
-import { sha256, sha256Directory } from '../utils/hash'
+import { sha256, sha256Directory, sha256File } from '../utils/hash'
 import type { InstallProgressListener, SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
 
 const execFileAsync = promisify(execFile)
+
+function toPortableRelativePath(from: string, to: string): string {
+  const relativePath = path.relative(from, to) || '.'
+  return path.sep === '/' ? relativePath : relativePath.split(path.sep).join('/')
+}
 
 async function resolveGitCommitByLsRemote(url: string, target: string): Promise<string | null> {
   try {
@@ -99,7 +104,7 @@ export async function resolveLockEntry(
         specifier: normalized.normalized,
         resolution: {
           type: 'link',
-          path: path.relative(cwd, sourceRoot) || '.',
+          path: toPortableRelativePath(cwd, sourceRoot),
         },
         digest: await sha256Directory(sourceRoot),
       },
@@ -108,17 +113,16 @@ export async function resolveLockEntry(
 
   if (normalized.type === 'file') {
     const tarballPath = path.resolve(cwd, normalized.source.slice('file:'.length))
-    const tarballContent = await readFile(tarballPath)
     return {
       skillName: finalSkillName,
       entry: {
         specifier: normalized.normalized,
         resolution: {
           type: 'file',
-          tarball: path.relative(cwd, tarballPath) || '.',
+          tarball: toPortableRelativePath(cwd, tarballPath),
           path: normalized.path,
         },
-        digest: sha256(Buffer.concat([tarballContent, Buffer.from(`:${normalized.path}`)])),
+        digest: await sha256File(tarballPath, `:${normalized.path}`),
       },
     }
   }

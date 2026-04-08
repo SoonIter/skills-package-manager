@@ -1,6 +1,7 @@
 import path from 'node:path'
 import type { NormalizedSpecifier } from '../config/types'
 import { ErrorCode, ParseError } from '../errors'
+import { normalizeLinkSource } from './normalizeLinkSource'
 import { parseSpecifier } from './parseSpecifier'
 
 export function normalizeSpecifier(specifier: string): NormalizedSpecifier {
@@ -36,15 +37,16 @@ export function normalizeSpecifier(specifier: string): NormalizedSpecifier {
         : 'git'
 
   if (type === 'link') {
-    const linkPath = parsed.sourcePart.slice('link:'.length).replace(/\\/g, '/').replace(/\/+$/, '')
+    const linkSource = normalizeLinkSource(parsed.sourcePart)
+    const linkPath = linkSource.slice('link:'.length)
     const skillName = path.posix.basename(linkPath)
 
     return {
       type,
-      source: parsed.sourcePart,
+      source: linkSource,
       ref: null,
       path: '/',
-      normalized: parsed.sourcePart,
+      normalized: linkSource,
       skillName,
     }
   }

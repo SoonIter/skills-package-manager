@@ -1,9 +1,14 @@
 import { createHash } from 'node:crypto'
+import { createReadStream } from 'node:fs'
 import { lstat, readdir, readFile, readlink } from 'node:fs/promises'
 import path from 'node:path'
 
 export function sha256(content: Parameters<ReturnType<typeof createHash>['update']>[0]): string {
   return `sha256-${createHash('sha256').update(content).digest('hex')}`
+}
+
+function toPortablePath(filePath: string): string {
+  return path.sep === '/' ? filePath : filePath.split(path.sep).join('/')
 }
 
 async function hashDirectoryEntry(
@@ -16,7 +21,7 @@ async function hashDirectoryEntry(
 
   for (const entry of entries) {
     const absolutePath = path.join(currentDir, entry.name)
-    const relativePath = path.relative(rootDir, absolutePath).replace(/\\/g, '/')
+    const relativePath = toPortablePath(path.relative(rootDir, absolutePath))
     const stats = await lstat(absolutePath)
 
     if (stats.isSymbolicLink()) {
@@ -41,5 +46,19 @@ async function hashDirectoryEntry(
 export async function sha256Directory(rootDir: string): Promise<string> {
   const hash = createHash('sha256')
   await hashDirectoryEntry(hash, rootDir, rootDir)
+  return `sha256-${hash.digest('hex')}`
+}
+
+export async function sha256File(filePath: string, suffix = ''): Promise<string> {
+  const hash = createHash('sha256')
+
+  for await (const chunk of createReadStream(filePath)) {
+    hash.update(chunk)
+  }
+
+  if (suffix) {
+    hash.update(suffix)
+  }
+
   return `sha256-${hash.digest('hex')}`
 }

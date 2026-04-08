@@ -449,6 +449,63 @@ describe('updateCommand resolve', () => {
     }
   })
 
+  it('updates npm targets when the resolved registry changes at the same version', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-npm-registry-change-'))
+    const packageRoot = createSkillPackage('hello-skill', '# Version 1\n')
+    const registry = await startMockNpmRegistry(packageRoot)
+
+    try {
+      writeFileSync(path.join(root, '.npmrc'), `registry=${registry.registryUrl}\n`)
+      writeFileSync(
+        path.join(root, 'skills.json'),
+        JSON.stringify(
+          {
+            installDir: '.agents/skills',
+            linkTargets: [],
+            skills: {
+              'hello-skill': `npm:${registry.packageName}#path:/skills/hello-skill`,
+            },
+          },
+          null,
+          2,
+        ),
+      )
+
+      writeFileSync(
+        path.join(root, 'skills-lock.yaml'),
+        YAML.stringify({
+          lockfileVersion: '0.1',
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': {
+              specifier: `npm:${registry.packageName}#path:/skills/hello-skill`,
+              resolution: {
+                type: 'npm',
+                packageName: registry.packageName,
+                version: registry.version,
+                path: '/skills/hello-skill',
+                tarball: registry.tarballUrl,
+                integrity: registry.integrity,
+                registry: `${registry.registryUrl}mirror/`,
+              },
+              digest: 'sha256-old',
+            },
+          },
+        }),
+      )
+
+      const result = await updateCommand({ cwd: root })
+
+      expect(result.updated).toEqual(['hello-skill'])
+      expect(result.unchanged).toEqual([])
+      const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+      expect(lockfile.skills['hello-skill'].resolution.registry).toBe(registry.registryUrl)
+    } finally {
+      await registry.close()
+    }
+  })
+
   it('marks file tarball targets unchanged when the tarball digest matches', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-file-unchanged-'))
     const packageRoot = createSkillPackage('hello-skill', '# Packed skill\n')

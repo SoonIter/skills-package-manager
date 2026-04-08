@@ -92,7 +92,8 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
         previous.resolution.version === entry.resolution.version &&
         previous.resolution.path === entry.resolution.path &&
         previous.resolution.tarball === entry.resolution.tarball &&
-        previous.resolution.integrity === entry.resolution.integrity
+        previous.resolution.integrity === entry.resolution.integrity &&
+        previous.resolution.registry === entry.resolution.registry
       ) {
         result.unchanged.push(skillName)
         continue

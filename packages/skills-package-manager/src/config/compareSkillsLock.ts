@@ -1,3 +1,4 @@
+import { normalizeLinkSource } from '../specifiers/normalizeLinkSource'
 import { parseSpecifier } from '../specifiers/parseSpecifier'
 import type { SkillsLock, SkillsManifest } from './types'
 
@@ -9,10 +10,11 @@ interface ParsedSpecifier {
 
 function parseForComparison(specifier: string): ParsedSpecifier {
   const parsed = parseSpecifier(specifier)
+  const isLink = parsed.sourcePart.startsWith('link:')
   return {
-    sourcePart: parsed.sourcePart,
-    ref: parsed.ref,
-    path: parsed.path || '/',
+    sourcePart: isLink ? normalizeLinkSource(parsed.sourcePart) : parsed.sourcePart,
+    ref: isLink ? null : parsed.ref,
+    path: isLink ? '/' : parsed.path || '/',
   }
 }
 
