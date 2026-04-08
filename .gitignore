@@ -1,7 +1,10 @@
 node_modules
 log
 dist
+doc_build
+
+# agent
+.worktrees
 .agents/skills
 .claude/skills
-doc_build
-.worktrees
+.codex
