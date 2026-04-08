@@ -58,3 +58,10 @@ export type InstallCommandOptions = {
   cwd: string
   frozenLockfile?: boolean
 }
+
+export type InstallProgressEvent =
+  | { type: 'resolved'; skillName: string }
+  | { type: 'added'; skillName: string }
+  | { type: 'installed'; skillName: string }
+
+export type InstallProgressListener = (event: InstallProgressEvent) => void

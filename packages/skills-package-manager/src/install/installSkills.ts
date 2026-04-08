@@ -3,7 +3,7 @@ import { isLockInSync } from '../config/compareSkillsLock'
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
 import { syncSkillsLock } from '../config/syncSkillsLock'
-import type { SkillsLock, SkillsManifest } from '../config/types'
+import type { InstallProgressListener, SkillsLock, SkillsManifest } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
 import { sha256 } from '../utils/hash'
 import { readInstallState, writeInstallState } from './installState'
@@ -29,6 +29,9 @@ export async function fetchSkillsFromLock(
   rootDir: string,
   manifest: SkillsManifest,
   lockfile: SkillsLock,
+  options?: {
+    onProgress?: InstallProgressListener
+  },
 ) {
   await installStageHooks.beforeFetch(rootDir, manifest, lockfile)
 
@@ -52,6 +55,7 @@ export async function fetchSkillsFromLock(
         extractSkillPath(entry.specifier, skillName),
         installDir,
       )
+      options?.onProgress?.({ type: 'added', skillName })
       continue
     }
 
@@ -64,6 +68,7 @@ export async function fetchSkillsFromLock(
         entry.resolution.path,
         installDir,
       )
+      options?.onProgress?.({ type: 'added', skillName })
       continue
     }
 
@@ -85,6 +90,9 @@ export async function linkSkillsFromLock(
   rootDir: string,
   manifest: SkillsManifest,
   lockfile: SkillsLock,
+  options?: {
+    onProgress?: InstallProgressListener
+  },
 ) {
   const installDir = manifest.installDir ?? '.agents/skills'
   const linkTargets = manifest.linkTargets ?? []
@@ -93,12 +101,16 @@ export async function linkSkillsFromLock(
     for (const linkTarget of linkTargets) {
       await linkSkill(rootDir, installDir, linkTarget, skillName)
     }
+    options?.onProgress?.({ type: 'installed', skillName })
   }
 
   return { status: 'linked', linked: Object.keys(lockfile.skills) } as const
 }
 
-export async function installSkills(rootDir: string, options?: { frozenLockfile?: boolean }) {
+export async function installSkills(
+  rootDir: string,
+  options?: { frozenLockfile?: boolean; onProgress?: InstallProgressListener },
+) {
   const manifest = await readSkillsManifest(rootDir)
   if (!manifest) {
     return { status: 'skipped', reason: 'manifest-missing' } as const
@@ -119,13 +131,18 @@ export async function installSkills(rootDir: string, options?: { frozenLockfile?
       )
     }
     lockfile = currentLock
+    for (const skillName of Object.keys(lockfile.skills)) {
+      options?.onProgress?.({ type: 'resolved', skillName })
+    }
   } else {
     // Normal mode: sync lock with manifest (may trigger network requests)
-    lockfile = await syncSkillsLock(rootDir, manifest, currentLock)
+    lockfile = await syncSkillsLock(rootDir, manifest, currentLock, {
+      onProgress: options?.onProgress,
+    })
   }
 
-  await fetchSkillsFromLock(rootDir, manifest, lockfile)
-  await linkSkillsFromLock(rootDir, manifest, lockfile)
+  await fetchSkillsFromLock(rootDir, manifest, lockfile, { onProgress: options?.onProgress })
+  await linkSkillsFromLock(rootDir, manifest, lockfile, { onProgress: options?.onProgress })
 
   // Write lockfile only after all operations succeed (atomicity)
   if (!options?.frozenLockfile) {
