@@ -1,5 +1,6 @@
 import { execSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
@@ -152,6 +153,74 @@ describe('resolveLockEntry', () => {
       expect(entry.resolution.tarball).toBe(registry.tarballUrl)
     } finally {
       await registry.close()
+    }
+  })
+
+  it('changes npm digest when resolved integrity changes at the same version', async () => {
+    const rootA = mkdtempSync(path.join(tmpdir(), 'skills-pm-resolve-npm-digest-a-'))
+    const rootB = mkdtempSync(path.join(tmpdir(), 'skills-pm-resolve-npm-digest-b-'))
+    const packageRoot = createSkillPackage('hello-skill', '# Hello registry\n')
+    const tarballPath = packDirectory(packageRoot)
+    const tarballBuffer = readFileSync(tarballPath)
+    const packageName = '@tests/hello-skill'
+    const version = '1.0.0'
+    let integrity = 'sha512-first'
+    let port = 0
+
+    const server = createServer((req, res) => {
+      const requestPath = req.url?.split('?')[0] ?? '/'
+      if (decodeURIComponent(requestPath.slice(1)) === packageName) {
+        res.setHeader('content-type', 'application/json')
+        res.end(
+          JSON.stringify({
+            'dist-tags': { latest: version },
+            versions: {
+              [version]: {
+                name: packageName,
+                version,
+                dist: {
+                  tarball: `http://127.0.0.1:${port}/tarballs/hello-skill.tgz`,
+                  integrity,
+                },
+              },
+            },
+          }),
+        )
+        return
+      }
+
+      if (requestPath === '/tarballs/hello-skill.tgz') {
+        res.setHeader('content-type', 'application/octet-stream')
+        res.end(tarballBuffer)
+        return
+      }
+
+      res.statusCode = 404
+      res.end('not found')
+    })
+
+    try {
+      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()))
+      const address = server.address()
+      if (!address || typeof address === 'string') {
+        throw new Error('Failed to start test registry')
+      }
+      port = address.port
+
+      writeFileSync(path.join(rootA, '.npmrc'), `registry=http://127.0.0.1:${port}/\n`)
+      writeFileSync(path.join(rootB, '.npmrc'), `registry=http://127.0.0.1:${port}/\n`)
+
+      const first = await resolveLockEntry(rootA, `npm:${packageName}#path:/skills/hello-skill`)
+      integrity = 'sha512-second'
+      const second = await resolveLockEntry(rootB, `npm:${packageName}#path:/skills/hello-skill`)
+
+      expect(first.entry.resolution.type).toBe('npm')
+      expect(second.entry.resolution.type).toBe('npm')
+      expect(first.entry.digest).not.toBe(second.entry.digest)
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      )
     }
   })
 })

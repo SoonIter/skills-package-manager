@@ -162,7 +162,14 @@ export async function resolveLockEntry(
           registry: resolved.registry,
         },
         digest: sha256(
-          `${resolved.name}:${resolved.version}:${resolved.tarballUrl}:${normalized.path}`,
+          [
+            resolved.name,
+            resolved.version,
+            resolved.tarballUrl,
+            resolved.integrity ?? '',
+            resolved.registry ?? '',
+            normalized.path,
+          ].join(':'),
         ),
       },
     }
