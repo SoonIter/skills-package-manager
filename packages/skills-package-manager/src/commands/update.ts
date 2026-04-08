@@ -75,7 +75,10 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
       if (
         previous?.resolution.type === 'git' &&
         entry.resolution.type === 'git' &&
-        previous.resolution.commit === entry.resolution.commit
+        previous.specifier === entry.specifier &&
+        previous.resolution.url === entry.resolution.url &&
+        previous.resolution.commit === entry.resolution.commit &&
+        previous.resolution.path === entry.resolution.path
       ) {
         result.unchanged.push(skillName)
         continue
@@ -84,9 +87,11 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
       if (
         previous?.resolution.type === 'npm' &&
         entry.resolution.type === 'npm' &&
+        previous.specifier === entry.specifier &&
         previous.resolution.packageName === entry.resolution.packageName &&
         previous.resolution.version === entry.resolution.version &&
-        previous.resolution.path === entry.resolution.path
+        previous.resolution.path === entry.resolution.path &&
+        previous.resolution.integrity === entry.resolution.integrity
       ) {
         result.unchanged.push(skillName)
         continue
@@ -95,6 +100,7 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
       if (
         previous?.resolution.type === 'file' &&
         entry.resolution.type === 'file' &&
+        previous.specifier === entry.specifier &&
         previous.digest === entry.digest
       ) {
         result.unchanged.push(skillName)

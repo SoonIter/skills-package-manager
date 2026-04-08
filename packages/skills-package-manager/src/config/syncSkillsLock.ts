@@ -5,9 +5,9 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 import type { NormalizedSpecifier } from '../config/types'
 import { ErrorCode, GitError, ParseError } from '../errors'
-import { cleanupPackedNpmPackage, packNpmPackage } from '../npm/packPackage'
+import { resolveNpmPackage } from '../npm/packPackage'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
-import { sha256 } from '../utils/hash'
+import { sha256, sha256Directory } from '../utils/hash'
 import type { InstallProgressListener, SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
 
 const execFileAsync = promisify(execFile)
@@ -101,7 +101,7 @@ export async function resolveLockEntry(
           type: 'link',
           path: path.relative(cwd, sourceRoot) || '.',
         },
-        digest: sha256(sourceRoot),
+        digest: await sha256Directory(sourceRoot),
       },
     }
   }
@@ -142,25 +142,23 @@ export async function resolveLockEntry(
 
   if (normalized.type === 'npm') {
     const packageSpecifier = normalized.source.slice('npm:'.length)
-    const packed = await packNpmPackage(packageSpecifier)
+    const resolved = await resolveNpmPackage(cwd, packageSpecifier)
 
-    try {
-      return {
-        skillName: finalSkillName,
-        entry: {
-          specifier: normalized.normalized,
-          resolution: {
-            type: 'npm',
-            packageName: packed.name,
-            version: packed.version,
-            path: normalized.path,
-            integrity: packed.integrity,
-          },
-          digest: sha256(`${packed.name}:${packed.version}:${normalized.path}`),
+    return {
+      skillName: finalSkillName,
+      entry: {
+        specifier: normalized.normalized,
+        resolution: {
+          type: 'npm',
+          packageName: resolved.name,
+          version: resolved.version,
+          path: normalized.path,
+          tarball: resolved.tarballUrl,
+          integrity: resolved.integrity,
+          registry: resolved.registry,
         },
-      }
-    } finally {
-      await cleanupPackedNpmPackage(packed.tarballPath)
+        digest: sha256(`${resolved.name}:${resolved.version}:${resolved.tarballUrl}:${normalized.path}`),
+      },
     }
   }
 

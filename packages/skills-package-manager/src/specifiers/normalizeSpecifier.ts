@@ -4,6 +4,14 @@ import { ErrorCode, ParseError } from '../errors'
 import { parseSpecifier } from './parseSpecifier'
 
 export function normalizeSpecifier(specifier: string): NormalizedSpecifier {
+  if (specifier.startsWith('link:') && specifier.includes('#')) {
+    throw new ParseError({
+      code: ErrorCode.INVALID_SPECIFIER,
+      message: 'Invalid link specifier: link: must point directly to a skill directory',
+      content: specifier,
+    })
+  }
+
   let parsed: { sourcePart: string; ref: string | null; path: string }
   try {
     parsed = parseSpecifier(specifier)
@@ -28,14 +36,6 @@ export function normalizeSpecifier(specifier: string): NormalizedSpecifier {
         : 'git'
 
   if (type === 'link') {
-    if (parsed.ref !== null || parsed.path) {
-      throw new ParseError({
-        code: ErrorCode.INVALID_SPECIFIER,
-        message: 'Invalid link specifier: link: must point directly to a skill directory',
-        content: specifier,
-      })
-    }
-
     const linkPath = parsed.sourcePart.slice('link:'.length).replace(/\\/g, '/').replace(/\/+$/, '')
     const skillName = path.posix.basename(linkPath)
 

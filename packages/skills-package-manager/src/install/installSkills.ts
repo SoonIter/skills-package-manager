@@ -23,14 +23,11 @@ function resolveNpmPackSource(specifier: string, packageName: string, version: s
   const normalized = normalizeSpecifier(specifier)
   const source = normalized.source.slice('npm:'.length)
 
-  if (
-    source.startsWith('.') ||
-    source.startsWith('/') ||
-    source.startsWith('~') ||
-    source.startsWith('file:') ||
-    source.startsWith('http://') ||
-    source.startsWith('https://')
-  ) {
+  if (source.startsWith('.') || source.startsWith('/') || source.startsWith('~')) {
+    return source
+  }
+
+  if (source.includes(':')) {
     return source
   }
 

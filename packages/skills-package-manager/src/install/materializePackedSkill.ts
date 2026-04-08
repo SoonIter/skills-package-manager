@@ -1,11 +1,8 @@
-import { execFile } from 'node:child_process'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { promisify } from 'node:util'
+import { x } from 'tar'
 import { materializeLocalSkill } from './materializeLocalSkill'
-
-const execFileAsync = promisify(execFile)
 
 export async function materializePackedSkill(
   rootDir: string,
@@ -17,7 +14,14 @@ export async function materializePackedSkill(
   const extractRoot = await mkdtemp(path.join(tmpdir(), 'skills-pm-packed-skill-'))
 
   try {
-    await execFileAsync('tar', ['-xzf', tarballPath, '-C', extractRoot])
+    await mkdir(path.join(extractRoot, 'package'), { recursive: true })
+    await x({
+      file: tarballPath,
+      cwd: path.join(extractRoot, 'package'),
+      strip: 1,
+      preservePaths: false,
+      strict: true,
+    })
     await materializeLocalSkill(
       rootDir,
       skillName,

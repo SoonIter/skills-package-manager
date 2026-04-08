@@ -15,6 +15,21 @@ import {
 import { createSkillPackage, packDirectory } from './helpers'
 
 describe('resolveLockEntry', () => {
+  it('recomputes link digests from skill directory contents', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-resolve-link-'))
+    const skillDir = mkdtempSync(path.join(tmpdir(), 'skills-pm-resolve-link-source-'))
+
+    writeFileSync(path.join(skillDir, 'SKILL.md'), '# Hello skill\n')
+    const first = await resolveLockEntry(root, `link:${skillDir}`)
+
+    writeFileSync(path.join(skillDir, 'SKILL.md'), '# Updated skill\n')
+    const second = await resolveLockEntry(root, `link:${skillDir}`)
+
+    expect(first.entry.resolution.type).toBe('link')
+    expect(second.entry.resolution.type).toBe('link')
+    expect(first.entry.digest).not.toBe(second.entry.digest)
+  })
+
   it('resolves git specifiers to the current commit', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-resolve-'))
     const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-resolve-source-'))
@@ -240,6 +255,60 @@ describe('updateCommand resolve', () => {
     expect(lockfile.skills['hello-skill'].resolution.commit).toBe(newCommit)
   })
 
+  it('updates git targets when the path changes even if the commit is the same', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-git-path-'))
+    const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-git-path-source-'))
+
+    mkdirSync(path.join(gitRepo, 'skills/hello-skill'), { recursive: true })
+    mkdirSync(path.join(gitRepo, 'skills/alt-skill'), { recursive: true })
+    writeFileSync(path.join(gitRepo, 'skills/hello-skill/SKILL.md'), '# Version 1\n')
+    writeFileSync(path.join(gitRepo, 'skills/alt-skill/SKILL.md'), '# Version 2\n')
+    execSync('git init', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git config user.email test@example.com', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git config user.name test', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
+    const commit = execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
+
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': `${gitRepo}#HEAD&path:/skills/alt-skill`,
+          },
+        },
+        null,
+        2,
+      ),
+    )
+
+    writeFileSync(
+      path.join(root, 'skills-lock.yaml'),
+      YAML.stringify({
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `${gitRepo}#HEAD&path:/skills/hello-skill`,
+            resolution: { type: 'git', url: gitRepo, commit, path: '/skills/hello-skill' },
+            digest: 'sha256-old',
+          },
+        },
+      }),
+    )
+
+    const result = await updateCommand({ cwd: root })
+
+    expect(result.updated).toEqual(['hello-skill'])
+    expect(result.unchanged).toEqual([])
+    const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+    expect(lockfile.skills['hello-skill'].resolution.path).toBe('/skills/alt-skill')
+  })
+
   it('updates npm targets when the resolved package version changes', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-npm-'))
     const packageRoot = createSkillPackage('hello-skill', '# Version 1\n')
@@ -286,6 +355,53 @@ describe('updateCommand resolve', () => {
     expect(result.failed).toEqual([])
     const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
     expect(lockfile.skills['hello-skill'].resolution.version).toBe('1.0.0')
+  })
+
+  it('updates npm targets when integrity changes at the same version', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-npm-integrity-'))
+    const packageRoot = createSkillPackage('hello-skill', '# Version 1\n')
+
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': `npm:${packageRoot}#path:/skills/hello-skill`,
+          },
+        },
+        null,
+        2,
+      ),
+    )
+
+    writeFileSync(
+      path.join(root, 'skills-lock.yaml'),
+      YAML.stringify({
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `npm:${packageRoot}#path:/skills/hello-skill`,
+            resolution: {
+              type: 'npm',
+              packageName: '@tests/hello-skill',
+              version: '1.0.0',
+              path: '/skills/hello-skill',
+              integrity: 'sha512-old',
+            },
+            digest: 'sha256-old',
+          },
+        },
+      }),
+    )
+
+    const result = await updateCommand({ cwd: root })
+
+    expect(result.updated).toEqual(['hello-skill'])
+    expect(result.unchanged).toEqual([])
   })
 
   it('marks file tarball targets unchanged when the tarball digest matches', async () => {

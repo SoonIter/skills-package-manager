@@ -5,6 +5,7 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
+const npmExecutable = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 
 export type PackedNpmPackage = {
   name: string
@@ -24,12 +25,16 @@ export async function packNpmPackage(specifier: string): Promise<PackedNpmPackag
   const packRoot = await mkdtemp(path.join(tmpdir(), 'skills-pm-npm-pack-'))
 
   try {
-    const { stdout } = await execFileAsync('npm', ['pack', specifier, '--json'], { cwd: packRoot })
+    const { stdout, stderr } = await execFileAsync(
+      npmExecutable,
+      ['pack', specifier, '--json', '--ignore-scripts', '--silent'],
+      { cwd: packRoot },
+    )
     const parsed = JSON.parse(stdout) as NpmPackResult[]
     const result = parsed[0]
 
     if (!result?.name || !result.version || !result.filename) {
-      throw new Error(`Failed to pack npm package for ${specifier}`)
+      throw new Error(`Failed to pack npm package for ${specifier}${stderr ? `: ${stderr}` : ''}`)
     }
 
     return {
@@ -40,7 +45,9 @@ export async function packNpmPackage(specifier: string): Promise<PackedNpmPackag
     }
   } catch (error) {
     await rm(packRoot, { recursive: true, force: true }).catch(() => {})
-    throw error
+    throw new Error(`Failed to pack npm package for ${specifier}: ${(error as Error).message}`, {
+      cause: error as Error,
+    })
   }
 }
 
