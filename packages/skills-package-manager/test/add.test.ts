@@ -12,6 +12,7 @@ describe('addCommand', () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-'))
     const packageRoot = createSkillPackage('hello-skill', '# Hello skill\n')
     const tarballPath = packDirectory(packageRoot)
+    const portableTarballPath = path.relative(root, tarballPath).split(path.sep).join('/')
 
     await addCommand({
       cwd: root,
@@ -23,7 +24,7 @@ describe('addCommand', () => {
 
     expect(manifest.skills['hello-skill']).toBe(`file:${tarballPath}#path:/skills/hello-skill`)
     expect(lockfile.skills['hello-skill'].resolution.type).toBe('file')
-    expect(lockfile.skills['hello-skill'].resolution.tarball).toBe(path.relative(root, tarballPath))
+    expect(lockfile.skills['hello-skill'].resolution.tarball).toBe(portableTarballPath)
     expect(lockfile.skills['hello-skill'].resolution.path).toBe('/skills/hello-skill')
   })
 
