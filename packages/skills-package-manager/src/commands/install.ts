@@ -23,7 +23,7 @@ export async function installCommand(options: InstallCommandOptions) {
   const reporter = createInstallProgressReporter()
   const onProgress = (event: Parameters<typeof reporter.onProgress>[0]) =>
     reporter.onProgress(event)
-  reporter.start(totalSkills)
+  let started = false
 
   try {
     if (options.frozenLockfile) {
@@ -45,6 +45,8 @@ export async function installCommand(options: InstallCommandOptions) {
         })
       }
 
+      reporter.start(totalSkills)
+      started = true
       for (const skillName of Object.keys(currentLock.skills)) {
         onProgress({ type: 'resolved', skillName })
       }
@@ -60,6 +62,8 @@ export async function installCommand(options: InstallCommandOptions) {
     }
 
     // Normal mode: sync lock with manifest (may trigger network requests)
+    reporter.start(totalSkills)
+    started = true
     const lockfile = await syncSkillsLock(options.cwd, manifest, currentLock, { onProgress })
 
     reporter.setPhase('fetching')
@@ -74,7 +78,9 @@ export async function installCommand(options: InstallCommandOptions) {
 
     return { status: 'installed', installed: Object.keys(lockfile.skills) } as const
   } catch (error) {
-    reporter.fail()
+    if (started) {
+      reporter.fail()
+    }
     throw error
   }
 }

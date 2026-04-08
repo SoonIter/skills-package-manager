@@ -51,7 +51,7 @@ describe('createInstallProgressReporter', () => {
     reporter.setPhase('finalizing')
     reporter.complete()
 
-    expect(infos).toContain('spm install: starting (1 skills)')
+    expect(infos).toContain('spm install: starting (1 skill)')
     expect(infos).toContain('spm install: resolving...')
     expect(infos).toContain('spm install: fetching...')
     expect(infos).toContain('spm install: linking...')

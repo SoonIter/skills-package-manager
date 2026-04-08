@@ -192,7 +192,7 @@ describe('runCli dispatch', () => {
     }
 
     const combined = output.join('\n')
-    expect(combined).toContain('spm install: starting (1 skills)')
+    expect(combined).toContain('spm install: starting (1 skill)')
     expect(combined).toContain('spm install: resolved 1/1, added 1/1, installed 1/1')
     expect(combined).not.toContain('\r')
   })

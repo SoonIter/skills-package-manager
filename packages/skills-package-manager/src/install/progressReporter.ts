@@ -40,8 +40,12 @@ function clampCount(value: number, total: number): number {
 }
 
 function calculatePercent(snapshot: ProgressSnapshot): number {
+  if (snapshot.phase === 'done') {
+    return 100
+  }
+
   if (snapshot.total === 0) {
-    return snapshot.phase === 'done' ? 100 : 0
+    return 0
   }
 
   const maxSteps = snapshot.total * 3
@@ -115,7 +119,8 @@ export function createInstallProgressReporter(
       if (useTTY) {
         renderTTY()
       } else {
-        info(`spm install: starting (${snapshot.total} skills)`)
+        const noun = snapshot.total === 1 ? 'skill' : 'skills'
+        info(`spm install: starting (${snapshot.total} ${noun})`)
         logStage('resolving')
       }
     },
@@ -131,12 +136,20 @@ export function createInstallProgressReporter(
 
     onProgress(event: InstallProgressEvent): void {
       snapshot.currentSkill = event.skillName
-      if (event.type === 'resolved') {
-        snapshot.resolved = clampCount(snapshot.resolved + 1, snapshot.total)
-      } else if (event.type === 'added') {
-        snapshot.added = clampCount(snapshot.added + 1, snapshot.total)
-      } else {
-        snapshot.installed = clampCount(snapshot.installed + 1, snapshot.total)
+      switch (event.type) {
+        case 'resolved':
+          snapshot.resolved = clampCount(snapshot.resolved + 1, snapshot.total)
+          break
+        case 'added':
+          snapshot.added = clampCount(snapshot.added + 1, snapshot.total)
+          break
+        case 'installed':
+          snapshot.installed = clampCount(snapshot.installed + 1, snapshot.total)
+          break
+        default: {
+          const _exhaustive: never = event
+          void _exhaustive
+        }
       }
       render()
     },
