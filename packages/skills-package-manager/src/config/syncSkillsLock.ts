@@ -71,7 +71,7 @@ export async function resolveLockEntry(
   specifier: string,
   skillName?: string,
 ): Promise<{ skillName: string; entry: SkillsLockEntry }> {
-  let normalized
+  let normalized: NormalizedSpecifier
   try {
     normalized = normalizeSpecifier(specifier)
   } catch (error) {

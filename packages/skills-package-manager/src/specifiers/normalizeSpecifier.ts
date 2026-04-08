@@ -4,7 +4,7 @@ import { ErrorCode, ParseError } from '../errors'
 import { parseSpecifier } from './parseSpecifier'
 
 export function normalizeSpecifier(specifier: string): NormalizedSpecifier {
-  let parsed
+  let parsed: { sourcePart: string; ref: string | null; path: string }
   try {
     parsed = parseSpecifier(specifier)
   } catch (error) {
