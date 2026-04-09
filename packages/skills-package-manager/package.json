@@ -18,7 +18,8 @@
   },
   "files": [
     "bin",
-    "dist"
+    "dist",
+    "skills"
   ],
   "dependencies": {
     "@clack/prompts": "^1.1.0",

@@ -73,8 +73,8 @@ npx skills-package-manager add vercel-labs/skills --skill find-skills
 # 🔗 Full GitHub URL
 npx skills-package-manager add https://github.com/rstackjs/agent-skills --skill rspress-custom-theme
 
-# 📁 Local skill
-npx skills-package-manager add file:./my-skills#path:/skills/my-skill
+# 📁 Local skill directory
+npx skills-package-manager add link:./my-skills/my-skill
 ```
 
 ### Install all skills
@@ -116,16 +116,19 @@ Declares which skills to install and where to put them:
 {
   "installDir": ".agents/skills",
   "linkTargets": [".claude/skills"],
+  "selfSkill": false,
   "skills": {
     // GitHub skill with path
     "find-skills": "https://github.com/vercel-labs/skills.git#path:/skills/find-skills",
-    // Local skill
-    "my-local-skill": "file:./local-source#path:/skills/my-local-skill",
+    // Local skill directory
+    "my-local-skill": "link:./local-source/skills/my-local-skill",
     // Short form — uses repo root
     "create-ex": "https://github.com/therealXiaomanChu/ex-skill.git"
   }
 }
 ```
+
+When `selfSkill` is `true`, skills-package-manager also injects one repo-authored skill discovered under `skills/` or `.github/skills/` if exactly one is present.
 
 ### `skills-lock.yaml` — Lockfile
 
@@ -155,7 +158,8 @@ skills:
 | GitHub URL | `https://github.com/owner/repo` | `https://github.com/vercel-labs/skills` |
 | Git + path | `url.git#path:/skills/name` | `https://github.com/owner/repo.git#path:/skills/my-skill` |
 | Git + ref + path | `url.git#ref&path:/skills/name` | `https://github.com/owner/repo.git#main&path:/skills/my-skill` |
-| Local file | `file:./path#path:/skills/name` | `file:./local-source#path:/skills/my-skill` |
+| Local link | `link:./path/to/skill-dir` | `link:./local-source/skills/my-skill` |
+| Local tarball | `file:./skills-package.tgz#path:/skills/name` | `file:./skills-package.tgz#path:/skills/my-skill` |
 
 ## 🔌 pnpm Integration
 

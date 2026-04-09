@@ -1,6 +1,7 @@
 import { isLockInSync } from '../config/compareSkillsLock'
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
+import { expandSkillsManifest } from '../config/skillsManifest'
 import { syncSkillsLock } from '../config/syncSkillsLock'
 import type { InstallCommandOptions } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
@@ -17,9 +18,10 @@ export async function installCommand(options: InstallCommandOptions) {
       message: 'No skills.json found in the current directory. Run "spm init" to create one.',
     })
   }
+  const effectiveManifest = await expandSkillsManifest(options.cwd, manifest)
 
   const currentLock = await readSkillsLock(options.cwd)
-  const totalSkills = Object.keys(manifest.skills).length
+  const totalSkills = Object.keys(effectiveManifest.skills).length
   const reporter = createInstallProgressReporter()
   const onProgress = (event: Parameters<typeof reporter.onProgress>[0]) =>
     reporter.onProgress(event)
@@ -36,7 +38,7 @@ export async function installCommand(options: InstallCommandOptions) {
             'Lockfile is required in frozen mode but none was found. Run "spm install" first.',
         })
       }
-      if (!isLockInSync(manifest, currentLock)) {
+      if (!isLockInSync(effectiveManifest, currentLock)) {
         throw new ManifestError({
           code: ErrorCode.LOCKFILE_OUTDATED,
           filePath: `${options.cwd}/skills-lock.yaml`,
@@ -52,9 +54,9 @@ export async function installCommand(options: InstallCommandOptions) {
       }
 
       reporter.setPhase('fetching')
-      await fetchSkillsFromLock(options.cwd, manifest, currentLock, { onProgress })
+      await fetchSkillsFromLock(options.cwd, effectiveManifest, currentLock, { onProgress })
       reporter.setPhase('linking')
-      await linkSkillsFromLock(options.cwd, manifest, currentLock, { onProgress })
+      await linkSkillsFromLock(options.cwd, effectiveManifest, currentLock, { onProgress })
       reporter.setPhase('finalizing')
       reporter.complete()
 
@@ -64,12 +66,14 @@ export async function installCommand(options: InstallCommandOptions) {
     // Normal mode: sync lock with manifest (may trigger network requests)
     reporter.start(totalSkills)
     started = true
-    const lockfile = await syncSkillsLock(options.cwd, manifest, currentLock, { onProgress })
+    const lockfile = await syncSkillsLock(options.cwd, effectiveManifest, currentLock, {
+      onProgress,
+    })
 
     reporter.setPhase('fetching')
-    await fetchSkillsFromLock(options.cwd, manifest, lockfile, { onProgress })
+    await fetchSkillsFromLock(options.cwd, effectiveManifest, lockfile, { onProgress })
     reporter.setPhase('linking')
-    await linkSkillsFromLock(options.cwd, manifest, lockfile, { onProgress })
+    await linkSkillsFromLock(options.cwd, effectiveManifest, lockfile, { onProgress })
 
     // Write lockfile only after all operations succeed (atomicity)
     reporter.setPhase('finalizing')

@@ -16,11 +16,13 @@ describe('initCommand', () => {
     expect(result).toEqual({
       installDir: '.agents/skills',
       linkTargets: [],
+      selfSkill: false,
       skills: {},
     })
     expect(manifest).toEqual({
       installDir: '.agents/skills',
       linkTargets: [],
+      selfSkill: false,
       skills: {},
     })
     expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
@@ -46,6 +48,7 @@ describe('initCommand', () => {
     expect(result).toEqual({
       installDir: '.custom/skills',
       linkTargets: ['.claude/skills', '.continue/skills'],
+      selfSkill: false,
       skills: {},
     })
   })
@@ -120,11 +123,13 @@ describe('CLI', () => {
     expect(result).toEqual({
       installDir: '.agents/skills',
       linkTargets: [],
+      selfSkill: false,
       skills: {},
     })
     expect(manifest).toEqual({
       installDir: '.agents/skills',
       linkTargets: [],
+      selfSkill: false,
       skills: {},
     })
   })

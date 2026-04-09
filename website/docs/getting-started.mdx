@@ -43,6 +43,7 @@ The default `skills.json` created by `init --yes`:
 {
   "installDir": ".agents/skills",
   "linkTargets": [],
+  "selfSkill": false,
   "skills": {}
 }
 ```
@@ -51,6 +52,7 @@ This manifest defines:
 
 - `installDir`: where managed skills are materialized
 - `linkTargets`: which agent-specific directories receive links
+- `selfSkill`: whether to auto-install one repo-authored skill from `skills/` or `.github/skills/` when exactly one is present
 - `skills`: which skills should be installed (empty initially)
 
 ### Install your first skills

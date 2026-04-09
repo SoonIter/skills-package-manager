@@ -1,6 +1,7 @@
 import {
   existsSync,
   lstatSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -50,6 +51,54 @@ describe('installSkills', () => {
     expect(existsSync(installedSkill)).toBe(true)
     expect(lstatSync(linkedSkill).isSymbolicLink()).toBe(true)
     expect(readFileSync(installedSkill, 'utf8')).toContain('Hello skill')
+  })
+
+  it('does not install an auto-discovered self skill when selfSkill is omitted', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-self-skill-default-off-'))
+    mkdirSync(path.join(root, 'skills/repo-self-skill'), { recursive: true })
+    writeFileSync(
+      path.join(root, 'skills/repo-self-skill/SKILL.md'),
+      '---\nname: repo-self-skill\ndescription: Repo self skill\n---\n# Repo self skill\n',
+    )
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify({ installDir: '.agents/skills', linkTargets: [], skills: {} }, null, 2),
+    )
+
+    await installSkills(root)
+
+    const installedSkill = path.join(root, '.agents/skills/repo-self-skill/SKILL.md')
+    const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+
+    expect(existsSync(installedSkill)).toBe(false)
+    expect(lockfile.skills['repo-self-skill']).toBeUndefined()
+  })
+
+  it('installs an auto-discovered self skill when selfSkill is true', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-self-skill-enabled-'))
+    mkdirSync(path.join(root, 'skills/repo-self-skill'), { recursive: true })
+    writeFileSync(
+      path.join(root, 'skills/repo-self-skill/SKILL.md'),
+      '---\nname: repo-self-skill\ndescription: Repo self skill\n---\n# Repo self skill\n',
+    )
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        { installDir: '.agents/skills', linkTargets: [], selfSkill: true, skills: {} },
+        null,
+        2,
+      ),
+    )
+
+    await installSkills(root)
+
+    const installedSkill = path.join(root, '.agents/skills/repo-self-skill/SKILL.md')
+    const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+
+    expect(existsSync(installedSkill)).toBe(true)
+    expect(lockfile.skills['repo-self-skill'].specifier).toBe('link:./skills/repo-self-skill')
+    expect(lockfile.skills['repo-self-skill'].resolution.type).toBe('link')
+    expect(lockfile.skills['repo-self-skill'].resolution.path).toBe('skills/repo-self-skill')
   })
 
   it('installs a file skill from a tgz package', async () => {

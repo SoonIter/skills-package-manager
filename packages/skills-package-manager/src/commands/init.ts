@@ -38,6 +38,7 @@ function createDefaultManifest(): SkillsManifest {
   return {
     installDir: '.agents/skills',
     linkTargets: [],
+    selfSkill: false,
     skills: {},
   }
 }
@@ -54,6 +55,7 @@ export async function initCommand(
     ? createDefaultManifest()
     : {
         ...(await promptInit()),
+        selfSkill: false,
         skills: {},
       }
 

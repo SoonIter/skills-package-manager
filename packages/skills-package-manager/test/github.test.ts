@@ -2,7 +2,12 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
-import { discoverSkillsInDir, parseGitHubUrl, parseOwnerRepo } from '../src/github/listSkills'
+import {
+  discoverSelfSkillsInDir,
+  discoverSkillsInDir,
+  parseGitHubUrl,
+  parseOwnerRepo,
+} from '../src/github/listSkills'
 
 describe('parseOwnerRepo', () => {
   it('parses owner/repo format', () => {
@@ -117,5 +122,26 @@ describe('discoverSkillsInDir', () => {
     const skills = await discoverSkillsInDir(dir)
     expect(skills).toHaveLength(1)
     expect(skills[0].name).toBe('cool-skill')
+  })
+})
+
+describe('discoverSelfSkillsInDir', () => {
+  it('discovers repo-authored skills from skills/ and ignores root and generated dirs', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'skills-discover-self-'))
+    mkdirSync(path.join(dir, 'root-skill'), { recursive: true })
+    writeFileSync(path.join(dir, 'root-skill/SKILL.md'), '# Root skill\n')
+    mkdirSync(path.join(dir, '.agents/skills/generated-skill'), { recursive: true })
+    writeFileSync(path.join(dir, '.agents/skills/generated-skill/SKILL.md'), '# Generated skill\n')
+    mkdirSync(path.join(dir, 'skills/repo-self-skill'), { recursive: true })
+    writeFileSync(
+      path.join(dir, 'skills/repo-self-skill/SKILL.md'),
+      '---\nname: repo-self-skill\ndescription: Repo self skill\n---\n',
+    )
+
+    const skills = await discoverSelfSkillsInDir(dir)
+
+    expect(skills).toHaveLength(1)
+    expect(skills[0].name).toBe('repo-self-skill')
+    expect(skills[0].path).toBe('/skills/repo-self-skill')
   })
 })

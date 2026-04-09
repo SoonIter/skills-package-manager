@@ -9,6 +9,7 @@ export { updateCommand } from './commands/update'
 export { isLockInSync } from './config/compareSkillsLock'
 export { readSkillsLock } from './config/readSkillsLock'
 export { readSkillsManifest } from './config/readSkillsManifest'
+export { expandSkillsManifest, normalizeSkillsManifest } from './config/skillsManifest'
 // Config
 export { resolveLockEntry } from './config/syncSkillsLock'
 export type {
@@ -45,6 +46,7 @@ export {
 // GitHub
 export {
   cloneAndDiscover,
+  discoverSelfSkillsInDir,
   discoverSkillsInDir,
   listRepoSkills,
   parseGitHubUrl,

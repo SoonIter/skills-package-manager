@@ -3,6 +3,7 @@ import path from 'node:path'
 import { isLockInSync } from '../config/compareSkillsLock'
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
+import { expandSkillsManifest } from '../config/skillsManifest'
 import { syncSkillsLock } from '../config/syncSkillsLock'
 import type { InstallProgressListener, SkillsLock, SkillsManifest } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
@@ -138,13 +139,13 @@ export async function fetchSkillsFromLock(
     const settledTarballs = await Promise.allSettled(downloadedTarballs.values())
     const downloadedPaths = new Set(
       settledTarballs
-        .filter(
-          (result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled',
-        )
+        .filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled')
         .map((result) => result.value),
     )
 
-    await Promise.all([...downloadedPaths].map((tarballPath) => cleanupPackedNpmPackage(tarballPath)))
+    await Promise.all(
+      [...downloadedPaths].map((tarballPath) => cleanupPackedNpmPackage(tarballPath)),
+    )
   }
 
   return { status: 'fetched', fetched: Object.keys(lockfile.skills) } as const
@@ -179,6 +180,7 @@ export async function installSkills(
   if (!manifest) {
     return { status: 'skipped', reason: 'manifest-missing' } as const
   }
+  const effectiveManifest = await expandSkillsManifest(rootDir, manifest)
 
   const currentLock = await readSkillsLock(rootDir)
 
@@ -188,7 +190,7 @@ export async function installSkills(
     if (!currentLock) {
       throw new Error('Lockfile is required in frozen mode but none was found')
     }
-    if (!isLockInSync(manifest, currentLock)) {
+    if (!isLockInSync(effectiveManifest, currentLock)) {
       throw new Error(
         'Lockfile is out of sync with manifest. Run install without --frozen-lockfile to update.',
       )
@@ -198,13 +200,18 @@ export async function installSkills(
       options?.onProgress?.({ type: 'resolved', skillName })
     }
   } else {
-    lockfile = await syncSkillsLock(rootDir, manifest, currentLock, {
+    // Normal mode: sync lock with manifest (may trigger network requests)
+    lockfile = await syncSkillsLock(rootDir, effectiveManifest, currentLock, {
       onProgress: options?.onProgress,
     })
   }
 
-  await fetchSkillsFromLock(rootDir, manifest, lockfile, { onProgress: options?.onProgress })
-  await linkSkillsFromLock(rootDir, manifest, lockfile, { onProgress: options?.onProgress })
+  await fetchSkillsFromLock(rootDir, effectiveManifest, lockfile, {
+    onProgress: options?.onProgress,
+  })
+  await linkSkillsFromLock(rootDir, effectiveManifest, lockfile, {
+    onProgress: options?.onProgress,
+  })
 
   if (!options?.frozenLockfile) {
     await writeSkillsLock(rootDir, lockfile)

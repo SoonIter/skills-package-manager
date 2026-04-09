@@ -45,6 +45,7 @@ Init behavior:
 
 - `spm init` prompts for `installDir` and additional `linkTargets`
 - `spm init --yes` writes default values directly
+- The generated manifest sets `selfSkill` to `false`
 - Fails if `skills.json` already exists
 - Does not create `skills-lock.yaml`
 
@@ -67,6 +68,7 @@ Useful for:
 When you run `spm install`, the following happens:
 
 1. **Read manifest** — Load `skills.json` to get the list of skills to install
+   - If `selfSkill` is enabled and exactly one repo-authored skill exists under `skills/` or `.github/skills/`, expand the effective manifest with that local `link:` skill
 2. **Read lockfile** — Load `skills-lock.yaml` if it exists
 3. **Sync lockfile** — Resolve each skill in the manifest to produce the lockfile entries for this install
    - This step may involve git/network requests, even when a corresponding entry already exists in `skills-lock.yaml`
@@ -132,7 +134,7 @@ Update behavior:
 
 - Uses `skills.json` as the source of truth
 - Re-resolves git refs and npm package targets
-- Skips local `link:` skills
+- Skips local `link:` skills, including auto-discovered self skills
 - Fails immediately on unknown skill names
 - Writes back `skills-lock.yaml` only after fetch and link both succeed
 

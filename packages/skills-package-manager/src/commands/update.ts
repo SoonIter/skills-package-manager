@@ -1,5 +1,6 @@
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
+import { expandSkillsManifest } from '../config/skillsManifest'
 import { resolveLockEntry } from '../config/syncSkillsLock'
 import type { SkillsLock, UpdateCommandOptions, UpdateCommandResult } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
@@ -42,11 +43,12 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
       message: 'No skills.json found in the current directory. Run "spm init" to create one.',
     })
   }
+  const effectiveManifest = await expandSkillsManifest(options.cwd, manifest)
 
   const currentLock = await readSkillsLock(options.cwd)
-  const targetSkills = options.skills ?? Object.keys(manifest.skills)
+  const targetSkills = options.skills ?? Object.keys(effectiveManifest.skills)
   for (const skillName of targetSkills) {
-    if (!(skillName in manifest.skills)) {
+    if (!(skillName in effectiveManifest.skills)) {
       throw new SkillError({
         code: ErrorCode.SKILL_NOT_FOUND,
         skillName,
@@ -57,11 +59,11 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
 
   const result = createEmptyResult()
   const candidateLock = createBaseLock(options.cwd, currentLock)
-  candidateLock.installDir = manifest.installDir ?? '.agents/skills'
-  candidateLock.linkTargets = manifest.linkTargets ?? []
+  candidateLock.installDir = effectiveManifest.installDir ?? '.agents/skills'
+  candidateLock.linkTargets = effectiveManifest.linkTargets ?? []
 
   for (const skillName of targetSkills) {
-    const specifier = manifest.skills[skillName]
+    const specifier = effectiveManifest.skills[skillName]
 
     try {
       const normalized = normalizeSpecifier(specifier)
@@ -121,8 +123,8 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
     return result
   }
 
-  await fetchSkillsFromLock(options.cwd, manifest, candidateLock)
-  await linkSkillsFromLock(options.cwd, manifest, candidateLock)
+  await fetchSkillsFromLock(options.cwd, effectiveManifest, candidateLock)
+  await linkSkillsFromLock(options.cwd, effectiveManifest, candidateLock)
   await writeSkillsLock(options.cwd, candidateLock)
 
   result.status = result.updated.length > 0 ? 'updated' : 'skipped'

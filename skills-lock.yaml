@@ -19,3 +19,9 @@ skills:
       commit: 89bd10a842356073382b281509b4c8af7f9eb5a8
       path: /skills/rspress-custom-theme
     digest: sha256-6699a1a869dd0172a78147bacbb0e5ec775823201fb004ec8975673d0d6270b4
+  skills-package-manager-cli:
+    specifier: link:./skills/skills-package-manager-cli
+    resolution:
+      type: link
+      path: skills/skills-package-manager-cli
+    digest: sha256-66ff2d6cdcba7c8de61286dc43b504bd93f3c210bc84d59b08bc64881dc9d7cd

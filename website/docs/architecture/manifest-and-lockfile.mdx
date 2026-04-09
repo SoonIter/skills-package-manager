@@ -10,6 +10,7 @@ skills-package-manager uses two files to describe and lock the installed state o
 {
   "installDir": ".agents/skills",
   "linkTargets": [".claude/skills"],
+  "selfSkill": false,
   "skills": {
     "find-skills": "https://github.com/vercel-labs/skills.git#path:/skills/find-skills",
     "my-local-skill": "link:./local-source/skills/my-local-skill",
@@ -23,6 +24,7 @@ Field descriptions:
 
 - `installDir`: The directory where materialized skills are written.
 - `linkTargets`: A list of target directories where symbolic links should be created.
+- `selfSkill`: Whether to auto-inject one repo-authored skill from `skills/` or `.github/skills/` when exactly one is present. Defaults to `false`.
 - `skills`: A mapping from skill name to specifier.
 
 ## `skills-lock.yaml`
