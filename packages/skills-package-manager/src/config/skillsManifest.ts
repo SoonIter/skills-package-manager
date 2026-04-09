@@ -1,6 +1,7 @@
 import { accessSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { normalizeLinkSource } from '../specifiers/normalizeLinkSource'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import type { SkillsManifest } from './types'
 
@@ -24,7 +25,7 @@ function resolveBundledSelfSkillDir(): string {
 }
 
 export function getBundledSelfSkillSpecifier(): string {
-  return `link:${resolveBundledSelfSkillDir()}`
+  return normalizeLinkSource(`link:${resolveBundledSelfSkillDir()}`)
 }
 
 function hasEquivalentSkillSpecifier(manifest: SkillsManifest, specifier: string): boolean {
