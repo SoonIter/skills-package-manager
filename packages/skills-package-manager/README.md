@@ -86,7 +86,7 @@ spm install
 ```
 
 This resolves each skill from its specifier, materializes it into `installDir` (default `.agents/skills/`), and creates symlinks for each `linkTarget`.
-When `selfSkill` is `true`, `spm install` also expands the effective manifest with the bundled `skills-package-manager-cli` skill so users get guidance for `skills.json`, `skills-lock.yaml`, and the `spm` workflow.
+When `selfSkill` is `true`, `spm install` also installs the bundled `skills-package-manager-cli` skill so users get guidance for `skills.json`, `skills-lock.yaml`, and the `spm` workflow. This helper skill is not written to `skills-lock.yaml`.
 
 ### `spm update`
 

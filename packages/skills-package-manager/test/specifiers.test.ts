@@ -113,4 +113,23 @@ describe('normalizeSpecifier', () => {
       ),
     ).toBe(true)
   })
+
+  it('ignores selfSkill when checking whether a lockfile is in sync', () => {
+    expect(
+      isLockInSync(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          selfSkill: true,
+          skills: {},
+        },
+        {
+          lockfileVersion: '0.1',
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {},
+        },
+      ),
+    ).toBe(true)
+  })
 })

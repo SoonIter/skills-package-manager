@@ -128,7 +128,7 @@ Declares which skills to install and where to put them:
 }
 ```
 
-When `selfSkill` is `true`, skills-package-manager also injects its bundled `skills-package-manager-cli` skill so users get guidance for `skills.json`, `skills-lock.yaml`, and the `spm` workflow.
+When `selfSkill` is `true`, skills-package-manager also installs its bundled `skills-package-manager-cli` skill so users get guidance for `skills.json`, `skills-lock.yaml`, and the `spm` workflow. This helper skill is not written to `skills-lock.yaml`.
 
 ### `skills-lock.yaml` — Lockfile
 

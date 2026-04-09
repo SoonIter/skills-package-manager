@@ -5,7 +5,7 @@ import { normalizeLinkSource } from '../specifiers/normalizeLinkSource'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import type { SkillsManifest } from './types'
 
-const SELF_SKILL_NAME = 'skills-package-manager-cli'
+export const SELF_SKILL_NAME = 'skills-package-manager-cli'
 const SELF_SKILL_CANDIDATE_PATHS = [
   '../skills/skills-package-manager-cli',
   '../../skills/skills-package-manager-cli',
@@ -26,6 +26,10 @@ function resolveBundledSelfSkillDir(): string {
 
 export function getBundledSelfSkillSpecifier(): string {
   return normalizeLinkSource(`link:${resolveBundledSelfSkillDir()}`)
+}
+
+export function shouldInjectBundledSelfSkill(manifest: SkillsManifest): boolean {
+  return normalizeSkillsManifest(manifest).selfSkill === true
 }
 
 function hasEquivalentSkillSpecifier(manifest: SkillsManifest, specifier: string): boolean {

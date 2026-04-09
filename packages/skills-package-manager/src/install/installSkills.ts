@@ -3,8 +3,12 @@ import path from 'node:path'
 import { isLockInSync } from '../config/compareSkillsLock'
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
-import { expandSkillsManifest } from '../config/skillsManifest'
-import { syncSkillsLock } from '../config/syncSkillsLock'
+import {
+  getBundledSelfSkillSpecifier,
+  SELF_SKILL_NAME,
+  shouldInjectBundledSelfSkill,
+} from '../config/skillsManifest'
+import { resolveLockEntry, syncSkillsLock } from '../config/syncSkillsLock'
 import type { InstallProgressListener, SkillsLock, SkillsManifest } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
 import { cleanupPackedNpmPackage, downloadNpmPackageTarball } from '../npm/packPackage'
@@ -34,6 +38,26 @@ async function areManagedSkillsInstalled(
   }
 
   return true
+}
+
+export async function withBundledSelfSkillLock(
+  rootDir: string,
+  manifest: SkillsManifest,
+  lockfile: SkillsLock,
+): Promise<SkillsLock> {
+  if (!shouldInjectBundledSelfSkill(manifest) || lockfile.skills[SELF_SKILL_NAME]) {
+    return lockfile
+  }
+
+  const { entry } = await resolveLockEntry(rootDir, getBundledSelfSkillSpecifier(), SELF_SKILL_NAME)
+
+  return {
+    ...lockfile,
+    skills: {
+      ...lockfile.skills,
+      [SELF_SKILL_NAME]: entry,
+    },
+  }
 }
 
 export async function fetchSkillsFromLock(
@@ -180,7 +204,6 @@ export async function installSkills(
   if (!manifest) {
     return { status: 'skipped', reason: 'manifest-missing' } as const
   }
-  const effectiveManifest = await expandSkillsManifest(rootDir, manifest)
 
   const currentLock = await readSkillsLock(rootDir)
 
@@ -190,7 +213,7 @@ export async function installSkills(
     if (!currentLock) {
       throw new Error('Lockfile is required in frozen mode but none was found')
     }
-    if (!isLockInSync(effectiveManifest, currentLock)) {
+    if (!isLockInSync(manifest, currentLock)) {
       throw new Error(
         'Lockfile is out of sync with manifest. Run install without --frozen-lockfile to update.',
       )
@@ -201,15 +224,17 @@ export async function installSkills(
     }
   } else {
     // Normal mode: sync lock with manifest (may trigger network requests)
-    lockfile = await syncSkillsLock(rootDir, effectiveManifest, currentLock, {
+    lockfile = await syncSkillsLock(rootDir, manifest, currentLock, {
       onProgress: options?.onProgress,
     })
   }
 
-  await fetchSkillsFromLock(rootDir, effectiveManifest, lockfile, {
+  const runtimeLock = await withBundledSelfSkillLock(rootDir, manifest, lockfile)
+
+  await fetchSkillsFromLock(rootDir, manifest, runtimeLock, {
     onProgress: options?.onProgress,
   })
-  await linkSkillsFromLock(rootDir, effectiveManifest, lockfile, {
+  await linkSkillsFromLock(rootDir, manifest, runtimeLock, {
     onProgress: options?.onProgress,
   })
 
@@ -217,5 +242,5 @@ export async function installSkills(
     await writeSkillsLock(rootDir, lockfile)
   }
 
-  return { status: 'installed', installed: Object.keys(lockfile.skills) } as const
+  return { status: 'installed', installed: Object.keys(runtimeLock.skills) } as const
 }

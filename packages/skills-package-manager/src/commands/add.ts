@@ -3,7 +3,6 @@ import pc from 'picocolors'
 import { promptSkillSelection } from '../cli/prompt'
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
-import { expandSkillsManifest } from '../config/skillsManifest'
 import { syncSkillsLock } from '../config/syncSkillsLock'
 import type { AddCommandOptions, NormalizedSpecifier } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
@@ -59,8 +58,7 @@ async function addSingleSkill(
   await writeSkillsManifest(cwd, existingManifest)
 
   const existingLock = await readSkillsLock(cwd)
-  const effectiveManifest = await expandSkillsManifest(cwd, existingManifest)
-  const lockfile = await syncSkillsLock(cwd, effectiveManifest, existingLock)
+  const lockfile = await syncSkillsLock(cwd, existingManifest, existingLock)
   await writeSkillsLock(cwd, lockfile)
 
   return {
