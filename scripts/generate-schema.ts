@@ -3,13 +3,21 @@
  * Run with: pnpm tsx scripts/generate-schema.ts
  */
 import { writeFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { zodToJsonSchema } from 'zod-to-json-schema'
-import { skillsManifestSchema } from '../packages/skills-package-manager/src/config/schema.js'
+import { skillsManifestSchema } from '../packages/skills-package-manager/src/config/schema'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.join(__dirname, '..')
+
+// Use createRequire to import from the workspace package
+const requireFromPackage = createRequire(
+  new URL('../packages/skills-package-manager/package.json', import.meta.url),
+)
+const { zodToJsonSchema } = requireFromPackage('zod-to-json-schema') as {
+  zodToJsonSchema: typeof import('zod-to-json-schema').zodToJsonSchema
+}
 
 async function main() {
   const jsonSchema = zodToJsonSchema(skillsManifestSchema, {

@@ -26,7 +26,10 @@ export async function readSkillsManifest(rootDir: string): Promise<SkillsManifes
     const result = skillsManifestSchema.safeParse(parsedJson)
     if (!result.success) {
       const issues = result.error.issues
-        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+        .map((issue) => {
+          const pathStr = issue.path.length > 0 ? issue.path.join('.') : '(root)'
+          return `${pathStr}: ${issue.message}`
+        })
         .join('\n  - ')
       throw new ManifestError({
         code: ErrorCode.MANIFEST_VALIDATION_ERROR,

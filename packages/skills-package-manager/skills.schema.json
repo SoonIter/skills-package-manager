@@ -22,6 +22,10 @@
           "default": [],
           "description": "Directories where skill symlinks will be created"
         },
+        "selfSkill": {
+          "type": "boolean",
+          "description": "Whether this project is itself a skill"
+        },
         "skills": {
           "type": "object",
           "additionalProperties": {

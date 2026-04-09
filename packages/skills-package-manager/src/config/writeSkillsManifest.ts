@@ -1,9 +1,11 @@
 import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
+// @ts-expect-error
+import pkg from '../../package.json'
 import { convertNodeError } from '../errors'
 import type { SkillsManifest } from './types'
 
-const DEFAULT_SCHEMA_URL = 'https://unpkg.com/skills-package-manager@latest/skills.schema.json'
+const DEFAULT_SCHEMA_URL = `https://unpkg.com/skills-package-manager@${pkg.version}/skills.schema.json`
 
 export async function writeSkillsManifest(
   rootDir: string,

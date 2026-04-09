@@ -114,6 +114,7 @@ export class ManifestError extends SpmError {
       | ErrorCode.LOCKFILE_NOT_FOUND
       | ErrorCode.LOCKFILE_OUTDATED
       | ErrorCode.MANIFEST_EXISTS
+      | ErrorCode.MANIFEST_VALIDATION_ERROR
     filePath: string
     message?: string
     cause?: Error
@@ -123,6 +124,7 @@ export class ManifestError extends SpmError {
       [ErrorCode.LOCKFILE_NOT_FOUND]: `Lockfile not found: ${options.filePath}`,
       [ErrorCode.LOCKFILE_OUTDATED]: `Lockfile is out of date: ${options.filePath}`,
       [ErrorCode.MANIFEST_EXISTS]: `Manifest already exists: ${options.filePath}`,
+      [ErrorCode.MANIFEST_VALIDATION_ERROR]: `Invalid skills.json: ${options.filePath}`,
     }
     const message =
       options.message ?? defaultMessages[options.code] ?? `Manifest error: ${options.filePath}`

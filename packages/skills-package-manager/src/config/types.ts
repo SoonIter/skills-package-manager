@@ -2,10 +2,18 @@ import type { z } from 'zod'
 import type { skillsManifestSchema } from './schema'
 
 /**
- * Skills manifest type inferred from Zod schema
- * See schema.ts for the source of truth
+ * Skills manifest input type used for authoring/writing manifests.
+ * This preserves optionality for schema fields with defaults.
+ * See schema.ts for the source of truth.
  */
-export type SkillsManifest = z.infer<typeof skillsManifestSchema>
+export type SkillsManifest = z.input<typeof skillsManifestSchema>
+
+/**
+ * Skills manifest output type after schema parsing/default application.
+ * Use this for normalized manifests returned from reads/parsing.
+ * See schema.ts for the source of truth.
+ */
+export type NormalizedSkillsManifest = z.output<typeof skillsManifestSchema>
 
 export type NormalizedSpecifier = {
   type: 'git' | 'link' | 'file' | 'npm'

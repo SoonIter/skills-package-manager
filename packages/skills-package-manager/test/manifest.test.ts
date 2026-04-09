@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
 import { readSkillsManifest } from '../src/config/readSkillsManifest'
-import { expandSkillsManifest, getBundledSelfSkillSpecifier } from '../src/config/skillsManifest'
 import { skillsManifestSchema } from '../src/config/schema'
+import { expandSkillsManifest, getBundledSelfSkillSpecifier } from '../src/config/skillsManifest'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
 
 describe('manifest io', () => {
@@ -13,7 +13,7 @@ describe('manifest io', () => {
     await writeSkillsManifest(root, { skills: { hello: 'link:./skills/hello' } })
     const manifest = await readSkillsManifest(root)
     expect(manifest).toEqual({
-      $schema: 'https://unpkg.com/skills-package-manager@latest/skills.schema.json',
+      $schema: 'https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json',
       installDir: '.agents/skills',
       linkTargets: [],
       skills: { hello: 'link:./skills/hello' },
