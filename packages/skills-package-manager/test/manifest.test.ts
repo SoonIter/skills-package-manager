@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
 import { readSkillsManifest } from '../src/config/readSkillsManifest'
-import { expandSkillsManifest } from '../src/config/skillsManifest'
+import { expandSkillsManifest, getBundledSelfSkillSpecifier } from '../src/config/skillsManifest'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
 
 describe('manifest io', () => {
@@ -31,13 +31,8 @@ describe('manifest io', () => {
     expect(manifest?.selfSkill).toBe(false)
   })
 
-  it('expands a discovered repo self skill to a link specifier', async () => {
+  it('expands selfSkill to the bundled skills-package-manager-cli skill', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-manifest-expand-self-'))
-    mkdirSync(path.join(root, 'skills/repo-self-skill'), { recursive: true })
-    writeFileSync(
-      path.join(root, 'skills/repo-self-skill/SKILL.md'),
-      '---\nname: repo-self-skill\ndescription: Repo self skill\n---\n# Repo self skill\n',
-    )
     writeFileSync(
       path.join(root, 'skills.json'),
       JSON.stringify(
@@ -55,17 +50,12 @@ describe('manifest io', () => {
     const expanded = await expandSkillsManifest(root, manifest)
 
     expect(expanded.skills).toEqual({
-      'repo-self-skill': 'link:./skills/repo-self-skill',
+      'skills-package-manager-cli': getBundledSelfSkillSpecifier(),
     })
   })
 
-  it('does not expand a self skill when selfSkill is omitted', async () => {
+  it('does not expand the bundled self skill when selfSkill is omitted', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-manifest-omit-self-'))
-    mkdirSync(path.join(root, 'skills/repo-self-skill'), { recursive: true })
-    writeFileSync(
-      path.join(root, 'skills/repo-self-skill/SKILL.md'),
-      '---\nname: repo-self-skill\ndescription: Repo self skill\n---\n# Repo self skill\n',
-    )
     writeFileSync(
       path.join(root, 'skills.json'),
       JSON.stringify({ installDir: '.agents/skills', linkTargets: [], skills: {} }, null, 2),
@@ -81,13 +71,8 @@ describe('manifest io', () => {
     expect(expanded.skills).toEqual({})
   })
 
-  it('does not expand a self skill when selfSkill is false', async () => {
+  it('does not expand the bundled self skill when selfSkill is false', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-manifest-no-self-'))
-    mkdirSync(path.join(root, 'skills/repo-self-skill'), { recursive: true })
-    writeFileSync(
-      path.join(root, 'skills/repo-self-skill/SKILL.md'),
-      '---\nname: repo-self-skill\ndescription: Repo self skill\n---\n# Repo self skill\n',
-    )
     writeFileSync(
       path.join(root, 'skills.json'),
       JSON.stringify(

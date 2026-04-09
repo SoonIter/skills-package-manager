@@ -5,6 +5,7 @@ import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
 import YAML from 'yaml'
 import { addCommand } from '../src/commands/add'
+import { getBundledSelfSkillSpecifier } from '../src/config/skillsManifest'
 import { createSkillPackage, packDirectory, startMockNpmRegistry } from './helpers'
 
 describe('addCommand', () => {
@@ -28,13 +29,8 @@ describe('addCommand', () => {
     expect(lockfile.skills['hello-skill'].resolution.path).toBe('/skills/hello-skill')
   })
 
-  it('keeps the auto-injected self skill out of skills.json while locking it', async () => {
+  it('keeps the bundled self skill out of skills.json while locking it', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-self-skill-'))
-    mkdirSync(path.join(root, 'skills/repo-self-skill'), { recursive: true })
-    writeFileSync(
-      path.join(root, 'skills/repo-self-skill/SKILL.md'),
-      '---\nname: repo-self-skill\ndescription: Repo self skill\n---\n# Repo self skill\n',
-    )
     writeFileSync(
       path.join(root, 'skills.json'),
       JSON.stringify(
@@ -53,12 +49,13 @@ describe('addCommand', () => {
 
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
     const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+    const bundledSpecifier = getBundledSelfSkillSpecifier()
 
     expect(manifest.selfSkill).toBe(true)
     expect(manifest.skills['hello-skill']).toBe(`file:${tarballPath}#path:/skills/hello-skill`)
-    expect(manifest.skills['repo-self-skill']).toBeUndefined()
-    expect(lockfile.skills['repo-self-skill'].specifier).toBe('link:./skills/repo-self-skill')
-    expect(lockfile.skills['repo-self-skill'].resolution.type).toBe('link')
+    expect(manifest.skills['skills-package-manager-cli']).toBeUndefined()
+    expect(lockfile.skills['skills-package-manager-cli'].specifier).toBe(bundledSpecifier)
+    expect(lockfile.skills['skills-package-manager-cli'].resolution.type).toBe('link')
   })
 
   it('installs and links a link skill immediately after add', async () => {

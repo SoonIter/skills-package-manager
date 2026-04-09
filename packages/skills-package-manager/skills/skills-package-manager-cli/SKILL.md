@@ -1,6 +1,6 @@
 ---
 name: skills-package-manager-cli
-description: Maintain the skills-package-manager monorepo when work touches `skills.json`, `skills-lock.yaml`, the `spm` add/init/install/update flows, specifier parsing, manifest or lockfile behavior, local `link:` and `file:` handling, npm or git resolution, `packages/pnpm-plugin-skills`, or docs under `website/docs/`. Use when editing files in `packages/skills-package-manager`, `packages/pnpm-plugin-skills`, the root manifest/lock examples, or this repository's own self skill under `skills/`.
+description: Maintain the skills-package-manager monorepo when work touches `skills.json`, `skills-lock.yaml`, the `spm` add/init/install/update flows, specifier parsing, manifest or lockfile behavior, local `link:` and `file:` handling, npm or git resolution, `packages/pnpm-plugin-skills`, or docs under `website/docs/`. Use when editing files in `packages/skills-package-manager`, `packages/pnpm-plugin-skills`, the root manifest/lock examples, or this repository's own self skill under `packages/skills-package-manager/skills/`.
 ---
 
 # skills-package-manager Maintainer
@@ -23,8 +23,8 @@ Maintain the monorepo with an emphasis on manifest and lockfile correctness, ins
    - Distinguish local `link:` skills from packaged `file:` tarballs and `npm:` packages.
 
 4. Update the right examples when behavior changes.
-   - If defaults or manifest fields change, update the root [skills.json](/Users/appe/.codex/worktrees/aa77/skills-package-manager/skills.json) and [skills-lock.yaml](/Users/appe/.codex/worktrees/aa77/skills-package-manager/skills-lock.yaml) examples.
-   - Update matching docs in [website/docs/getting-started.mdx](/Users/appe/.codex/worktrees/aa77/skills-package-manager/website/docs/getting-started.mdx), [website/docs/_pnpm.mdx](/Users/appe/.codex/worktrees/aa77/skills-package-manager/website/docs/_pnpm.mdx), [website/docs/api/commands.mdx](/Users/appe/.codex/worktrees/aa77/skills-package-manager/website/docs/api/commands.mdx), and [website/docs/architecture/manifest-and-lockfile.mdx](/Users/appe/.codex/worktrees/aa77/skills-package-manager/website/docs/architecture/manifest-and-lockfile.mdx) when examples or behavior descriptions drift.
+   - If defaults or manifest fields change, update the root `skills.json` and `skills-lock.yaml` examples.
+   - Update matching docs in `website/docs/getting-started.mdx`, `website/docs/_pnpm.mdx`, `website/docs/api/commands.mdx`, and `website/docs/architecture/manifest-and-lockfile.mdx` when examples or behavior descriptions drift.
 
 5. Update tests with the code.
    - Add or update targeted tests for CLI behavior, manifest expansion, specifier parsing, install flow, update flow, and lockfile comparison.
@@ -32,9 +32,9 @@ Maintain the monorepo with an emphasis on manifest and lockfile correctness, ins
 
 ## Self Skill Rules
 
-- Treat [skills/skills-package-manager-cli](/Users/appe/.codex/worktrees/aa77/skills-package-manager/skills/skills-package-manager-cli) as the repository self skill.
+- Treat `packages/skills-package-manager/skills/skills-package-manager-cli` as the repository self skill.
 - Keep its `SKILL.md` and `agents/openai.yaml` aligned when changing its behavior or trigger wording.
-- When the repository supports automatic self-skill installation, ensure code, tests, root examples, and docs all describe the same discovery rules and defaults.
+- When the repository supports automatic self-skill installation, ensure code, tests, root examples, and docs all describe the same bundled-skill behavior and defaults.
 
 ## Validation Checklist
 

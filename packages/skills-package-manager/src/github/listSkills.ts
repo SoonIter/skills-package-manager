@@ -152,14 +152,6 @@ export async function discoverSkillsInDir(baseDir: string): Promise<SkillInfo[]>
 }
 
 /**
- * Discover repo-authored skills suitable for self-skill injection.
- * Excludes materialized/link directories such as .agents/skills and .claude/skills.
- */
-export async function discoverSelfSkillsInDir(baseDir: string): Promise<SkillInfo[]> {
-  return discoverSkillsInDirs(baseDir, ['skills', '.github/skills'], { includeRoot: false })
-}
-
-/**
  * List skills in a GitHub repo by cloning and scanning.
  * This avoids GitHub API rate limits.
  */

@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
 import YAML from 'yaml'
+import { getBundledSelfSkillSpecifier } from '../src/config/skillsManifest'
 import type { SkillsLock, SkillsManifest } from '../src/config/types'
 import { writeSkillsLock } from '../src/config/writeSkillsLock'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
@@ -53,13 +54,8 @@ describe('installSkills', () => {
     expect(readFileSync(installedSkill, 'utf8')).toContain('Hello skill')
   })
 
-  it('does not install an auto-discovered self skill when selfSkill is omitted', async () => {
+  it('does not install the bundled self skill when selfSkill is omitted', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-self-skill-default-off-'))
-    mkdirSync(path.join(root, 'skills/repo-self-skill'), { recursive: true })
-    writeFileSync(
-      path.join(root, 'skills/repo-self-skill/SKILL.md'),
-      '---\nname: repo-self-skill\ndescription: Repo self skill\n---\n# Repo self skill\n',
-    )
     writeFileSync(
       path.join(root, 'skills.json'),
       JSON.stringify({ installDir: '.agents/skills', linkTargets: [], skills: {} }, null, 2),
@@ -67,20 +63,15 @@ describe('installSkills', () => {
 
     await installSkills(root)
 
-    const installedSkill = path.join(root, '.agents/skills/repo-self-skill/SKILL.md')
+    const installedSkill = path.join(root, '.agents/skills/skills-package-manager-cli/SKILL.md')
     const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
 
     expect(existsSync(installedSkill)).toBe(false)
-    expect(lockfile.skills['repo-self-skill']).toBeUndefined()
+    expect(lockfile.skills['skills-package-manager-cli']).toBeUndefined()
   })
 
-  it('installs an auto-discovered self skill when selfSkill is true', async () => {
+  it('installs the bundled self skill when selfSkill is true', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-self-skill-enabled-'))
-    mkdirSync(path.join(root, 'skills/repo-self-skill'), { recursive: true })
-    writeFileSync(
-      path.join(root, 'skills/repo-self-skill/SKILL.md'),
-      '---\nname: repo-self-skill\ndescription: Repo self skill\n---\n# Repo self skill\n',
-    )
     writeFileSync(
       path.join(root, 'skills.json'),
       JSON.stringify(
@@ -92,13 +83,17 @@ describe('installSkills', () => {
 
     await installSkills(root)
 
-    const installedSkill = path.join(root, '.agents/skills/repo-self-skill/SKILL.md')
+    const installedSkill = path.join(root, '.agents/skills/skills-package-manager-cli/SKILL.md')
     const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+    const bundledSpecifier = getBundledSelfSkillSpecifier()
+    const bundledPath = bundledSpecifier.slice('link:'.length)
 
     expect(existsSync(installedSkill)).toBe(true)
-    expect(lockfile.skills['repo-self-skill'].specifier).toBe('link:./skills/repo-self-skill')
-    expect(lockfile.skills['repo-self-skill'].resolution.type).toBe('link')
-    expect(lockfile.skills['repo-self-skill'].resolution.path).toBe('skills/repo-self-skill')
+    expect(lockfile.skills['skills-package-manager-cli'].specifier).toBe(bundledSpecifier)
+    expect(lockfile.skills['skills-package-manager-cli'].resolution.type).toBe('link')
+    expect(lockfile.skills['skills-package-manager-cli'].resolution.path).toBe(
+      path.relative(root, bundledPath).split(path.sep).join('/'),
+    )
   })
 
   it('installs a file skill from a tgz package', async () => {

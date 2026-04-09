@@ -46,7 +46,6 @@ export {
 // GitHub
 export {
   cloneAndDiscover,
-  discoverSelfSkillsInDir,
   discoverSkillsInDir,
   listRepoSkills,
   parseGitHubUrl,

@@ -128,7 +128,7 @@ Declares which skills to install and where to put them:
 }
 ```
 
-When `selfSkill` is `true`, skills-package-manager also injects one repo-authored skill discovered under `skills/` or `.github/skills/` if exactly one is present.
+When `selfSkill` is `true`, skills-package-manager also injects its bundled `skills-package-manager-cli` skill so users get guidance for `skills.json`, `skills-lock.yaml`, and the `spm` workflow.
 
 ### `skills-lock.yaml` — Lockfile
 
