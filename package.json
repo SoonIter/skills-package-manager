@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "prepare": "simple-git-hooks && pnpm run build",
-    "build": "pnpm -r --filter=!website build",
+    "build": "pnpm run generate:schema && pnpm -r --filter=!website build",
     "build:website": "pnpm --filter website build",
     "generate:schema": "tsx scripts/generate-schema.ts",
     "bump": "bumpp -r --no-tag --no-push",

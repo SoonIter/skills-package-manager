@@ -3,6 +3,8 @@ log
 dist
 doc_build
 
+packages/skills-package-manager/skills.schema.json
+
 # agent
 .worktrees
 .agents/skills
