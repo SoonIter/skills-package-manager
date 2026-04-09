@@ -7,7 +7,7 @@
     "prepare": "simple-git-hooks && pnpm run build",
     "build": "pnpm run generate:schema && pnpm -r --filter=!website build",
     "build:website": "pnpm --filter website build",
-    "generate:schema": "tsx scripts/generate-schema.ts",
+    "generate:schema": "tsx packages/skills-package-manager/scripts/generate-schema.ts",
     "bump": "bumpp -r --no-tag --no-push",
     "test": "rstest run",
     "lint": "biome lint",
@@ -30,7 +30,6 @@
     "nano-staged": "^0.9.0",
     "path-serializer": "^0.6.0",
     "simple-git-hooks": "^2.11.1",
-    "tsx": "^4.21.0",
-    "zod-to-json-schema": "^3.25.0"
+    "tsx": "^4.21.0"
   }
 }
