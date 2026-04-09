@@ -14,12 +14,14 @@ describe('initCommand', () => {
 
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
     expect(result).toEqual({
+      $schema: 'https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json',
       installDir: '.agents/skills',
       linkTargets: [],
       selfSkill: false,
       skills: {},
     })
     expect(manifest).toEqual({
+      $schema: 'https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json',
       installDir: '.agents/skills',
       linkTargets: [],
       selfSkill: false,
@@ -46,6 +48,7 @@ describe('initCommand', () => {
     }))
 
     expect(result).toEqual({
+      $schema: 'https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json',
       installDir: '.custom/skills',
       linkTargets: ['.claude/skills', '.continue/skills'],
       selfSkill: false,
@@ -121,12 +124,14 @@ describe('CLI', () => {
 
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
     expect(result).toEqual({
+      $schema: 'https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json',
       installDir: '.agents/skills',
       linkTargets: [],
       selfSkill: false,
       skills: {},
     })
     expect(manifest).toEqual({
+      $schema: 'https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json',
       installDir: '.agents/skills',
       linkTargets: [],
       selfSkill: false,

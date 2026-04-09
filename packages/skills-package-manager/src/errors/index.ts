@@ -124,6 +124,9 @@ export function formatErrorForDisplay(error: unknown): string {
       if (error.code === ErrorCode.LOCKFILE_OUTDATED) {
         output += `\n\nThe lockfile is out of sync with skills.json.`
         output += `\nRun "spm install" to update the lockfile.`
+      } else if (error.code === ErrorCode.MANIFEST_VALIDATION_ERROR) {
+        output += `\n\nPlease fix the validation errors in "${error.filePath}".`
+        output += `\nRefer to the JSON Schema at: https://unpkg.com/skills-package-manager@latest/skills.schema.json`
       }
     }
 

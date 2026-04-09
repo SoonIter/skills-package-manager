@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/skillsManifest",
+  "definitions": {
+    "skillsManifest": {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string",
+          "description": "JSON Schema URL for editor autocompletion"
+        },
+        "installDir": {
+          "type": "string",
+          "default": ".agents/skills",
+          "description": "Directory where skills will be installed"
+        },
+        "linkTargets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Directories where skill symlinks will be created"
+        },
+        "selfSkill": {
+          "type": "boolean",
+          "description": "Whether this project is itself a skill"
+        },
+        "skills": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "description": "Map of skill names to their specifiers"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
