@@ -1,6 +1,6 @@
-configDependencies:
-  pnpm-plugin-skills: 0.3.0+sha512-grriFBSg98JI0lmNkuDg1a72JK+HVFlA5QRPjwN8dqH2me1Y+uapYq+uIJ3g8I3BlkdZ+SVJHyt4uknoKrUKwQ==
 
 packages:
   - website
   - packages/*
+configDependencies:
+  pnpm-plugin-skills: 0.4.0+sha512-LvNxqF5ZXRu4jI2dW59Hnba3BIWpjz9bVbOG3CYGVIvfCLs28HAOXH+HmOT/7fnDj8Le3+2QIRl1MUxqPp4Ojg==
