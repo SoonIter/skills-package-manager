@@ -81,6 +81,30 @@ async function scanForSkills(baseDir: string, subDir: string): Promise<SkillInfo
   return skills
 }
 
+async function discoverSkillsInDirs(
+  baseDir: string,
+  commonDirs: string[],
+  options?: { includeRoot?: boolean },
+): Promise<SkillInfo[]> {
+  if (options?.includeRoot ?? true) {
+    const rootSkills = await scanForSkills(baseDir, '')
+    if (rootSkills.length > 0) {
+      rootSkills.sort((a, b) => a.name.localeCompare(b.name))
+      return rootSkills
+    }
+  }
+
+  for (const dir of commonDirs) {
+    const skills = await scanForSkills(baseDir, dir)
+    if (skills.length > 0) {
+      skills.sort((a, b) => a.name.localeCompare(b.name))
+      return skills
+    }
+  }
+
+  return []
+}
+
 /**
  * Clone a git repo (shallow) into a temp dir, discover skills, then clean up.
  */
@@ -119,25 +143,12 @@ export async function cloneAndDiscover(
  * Checks root-level dirs first, then common subdirs (skills/, .agents/skills/, etc.)
  */
 export async function discoverSkillsInDir(baseDir: string): Promise<SkillInfo[]> {
-  // Scan root directory first
-  const rootSkills = await scanForSkills(baseDir, '')
-  if (rootSkills.length > 0) {
-    rootSkills.sort((a, b) => a.name.localeCompare(b.name))
-    return rootSkills
-  }
-
-  // Try common skill directories
-  const commonDirs = ['skills', '.agents/skills', '.claude/skills', '.github/skills']
-
-  for (const dir of commonDirs) {
-    const skills = await scanForSkills(baseDir, dir)
-    if (skills.length > 0) {
-      skills.sort((a, b) => a.name.localeCompare(b.name))
-      return skills
-    }
-  }
-
-  return []
+  return discoverSkillsInDirs(baseDir, [
+    'skills',
+    '.agents/skills',
+    '.claude/skills',
+    '.github/skills',
+  ])
 }
 
 /**

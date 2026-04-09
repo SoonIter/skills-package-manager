@@ -72,6 +72,7 @@ Default `skills.json` written by `spm init --yes`:
 {
   "installDir": ".agents/skills",
   "linkTargets": [],
+  "selfSkill": false,
   "skills": {}
 }
 ```
@@ -85,6 +86,7 @@ spm install
 ```
 
 This resolves each skill from its specifier, materializes it into `installDir` (default `.agents/skills/`), and creates symlinks for each `linkTarget`.
+When `selfSkill` is `true`, `spm install` also installs the bundled `skills-package-manager-cli` skill so users get guidance for `skills.json`, `skills-lock.yaml`, and the `spm` workflow. This helper skill is not written to `skills-lock.yaml`.
 
 ### `spm update`
 
@@ -99,7 +101,7 @@ Behavior:
 
 - Uses `skills.json` as the source of truth
 - Re-resolves git refs and npm package targets
-- Skips `link:` skills
+- Skips `link:` skills, including the bundled self skill
 - Fails immediately for unknown skill names
 - Writes `skills-lock.yaml` only after fetch and link succeed
 

@@ -1,6 +1,7 @@
 import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { convertNodeError } from '../errors'
+import { normalizeSkillsManifest } from './skillsManifest'
 import type { SkillsManifest } from './types'
 
 export async function writeSkillsManifest(
@@ -8,10 +9,13 @@ export async function writeSkillsManifest(
   manifest: SkillsManifest,
 ): Promise<void> {
   const filePath = path.join(rootDir, 'skills.json')
+  const normalized = normalizeSkillsManifest(manifest)
   const nextManifest = {
-    installDir: manifest.installDir ?? '.agents/skills',
-    linkTargets: manifest.linkTargets ?? [],
-    skills: manifest.skills,
+    ...(normalized.$schema ? { $schema: normalized.$schema } : {}),
+    installDir: normalized.installDir,
+    linkTargets: normalized.linkTargets,
+    selfSkill: normalized.selfSkill,
+    skills: normalized.skills,
   }
 
   try {

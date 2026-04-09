@@ -4,7 +4,11 @@ import { resolveLockEntry } from '../config/syncSkillsLock'
 import type { SkillsLock, UpdateCommandOptions, UpdateCommandResult } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
 import { ErrorCode, ManifestError, SkillError } from '../errors'
-import { fetchSkillsFromLock, linkSkillsFromLock } from '../install/installSkills'
+import {
+  fetchSkillsFromLock,
+  linkSkillsFromLock,
+  withBundledSelfSkillLock,
+} from '../install/installSkills'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 
 function createEmptyResult(): UpdateCommandResult {
@@ -121,8 +125,10 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
     return result
   }
 
-  await fetchSkillsFromLock(options.cwd, manifest, candidateLock)
-  await linkSkillsFromLock(options.cwd, manifest, candidateLock)
+  const runtimeLock = await withBundledSelfSkillLock(options.cwd, manifest, candidateLock)
+
+  await fetchSkillsFromLock(options.cwd, manifest, runtimeLock)
+  await linkSkillsFromLock(options.cwd, manifest, runtimeLock)
   await writeSkillsLock(options.cwd, candidateLock)
 
   result.status = result.updated.length > 0 ? 'updated' : 'skipped'

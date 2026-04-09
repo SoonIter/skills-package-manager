@@ -1,6 +1,7 @@
 import {
   existsSync,
   lstatSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -50,6 +51,68 @@ describe('installSkills', () => {
     expect(existsSync(installedSkill)).toBe(true)
     expect(lstatSync(linkedSkill).isSymbolicLink()).toBe(true)
     expect(readFileSync(installedSkill, 'utf8')).toContain('Hello skill')
+  })
+
+  it('does not install the bundled self skill when selfSkill is omitted', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-self-skill-default-off-'))
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify({ installDir: '.agents/skills', linkTargets: [], skills: {} }, null, 2),
+    )
+
+    await installSkills(root)
+
+    const installedSkill = path.join(root, '.agents/skills/skills-package-manager-cli/SKILL.md')
+    const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+
+    expect(existsSync(installedSkill)).toBe(false)
+    expect(lockfile.skills['skills-package-manager-cli']).toBeUndefined()
+  })
+
+  it('installs the bundled self skill when selfSkill is true', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-self-skill-enabled-'))
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        { installDir: '.agents/skills', linkTargets: [], selfSkill: true, skills: {} },
+        null,
+        2,
+      ),
+    )
+
+    await installSkills(root)
+
+    const installedSkill = path.join(root, '.agents/skills/skills-package-manager-cli/SKILL.md')
+    const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+
+    expect(existsSync(installedSkill)).toBe(true)
+    expect(lockfile.skills['skills-package-manager-cli']).toBeUndefined()
+  })
+
+  it('installs the bundled self skill in frozen mode without requiring a lock entry', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-self-skill-frozen-'))
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        { installDir: '.agents/skills', linkTargets: [], selfSkill: true, skills: {} },
+        null,
+        2,
+      ),
+    )
+    await writeSkillsLock(root, {
+      lockfileVersion: '0.1',
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {},
+    })
+
+    await installSkills(root, { frozenLockfile: true })
+
+    const installedSkill = path.join(root, '.agents/skills/skills-package-manager-cli/SKILL.md')
+    const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+
+    expect(existsSync(installedSkill)).toBe(true)
+    expect(lockfile.skills['skills-package-manager-cli']).toBeUndefined()
   })
 
   it('installs a file skill from a tgz package', async () => {

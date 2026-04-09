@@ -3,7 +3,12 @@ import path from 'node:path'
 import { isLockInSync } from '../config/compareSkillsLock'
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
-import { syncSkillsLock } from '../config/syncSkillsLock'
+import {
+  getBundledSelfSkillSpecifier,
+  SELF_SKILL_NAME,
+  shouldInjectBundledSelfSkill,
+} from '../config/skillsManifest'
+import { resolveLockEntry, syncSkillsLock } from '../config/syncSkillsLock'
 import type { InstallProgressListener, SkillsLock, SkillsManifest } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
 import { cleanupPackedNpmPackage, downloadNpmPackageTarball } from '../npm/packPackage'
@@ -33,6 +38,26 @@ async function areManagedSkillsInstalled(
   }
 
   return true
+}
+
+export async function withBundledSelfSkillLock(
+  rootDir: string,
+  manifest: SkillsManifest,
+  lockfile: SkillsLock,
+): Promise<SkillsLock> {
+  if (!shouldInjectBundledSelfSkill(manifest) || lockfile.skills[SELF_SKILL_NAME]) {
+    return lockfile
+  }
+
+  const { entry } = await resolveLockEntry(rootDir, getBundledSelfSkillSpecifier(), SELF_SKILL_NAME)
+
+  return {
+    ...lockfile,
+    skills: {
+      ...lockfile.skills,
+      [SELF_SKILL_NAME]: entry,
+    },
+  }
 }
 
 export async function fetchSkillsFromLock(
@@ -138,13 +163,13 @@ export async function fetchSkillsFromLock(
     const settledTarballs = await Promise.allSettled(downloadedTarballs.values())
     const downloadedPaths = new Set(
       settledTarballs
-        .filter(
-          (result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled',
-        )
+        .filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled')
         .map((result) => result.value),
     )
 
-    await Promise.all([...downloadedPaths].map((tarballPath) => cleanupPackedNpmPackage(tarballPath)))
+    await Promise.all(
+      [...downloadedPaths].map((tarballPath) => cleanupPackedNpmPackage(tarballPath)),
+    )
   }
 
   return { status: 'fetched', fetched: Object.keys(lockfile.skills) } as const
@@ -198,17 +223,24 @@ export async function installSkills(
       options?.onProgress?.({ type: 'resolved', skillName })
     }
   } else {
+    // Normal mode: sync lock with manifest (may trigger network requests)
     lockfile = await syncSkillsLock(rootDir, manifest, currentLock, {
       onProgress: options?.onProgress,
     })
   }
 
-  await fetchSkillsFromLock(rootDir, manifest, lockfile, { onProgress: options?.onProgress })
-  await linkSkillsFromLock(rootDir, manifest, lockfile, { onProgress: options?.onProgress })
+  const runtimeLock = await withBundledSelfSkillLock(rootDir, manifest, lockfile)
+
+  await fetchSkillsFromLock(rootDir, manifest, runtimeLock, {
+    onProgress: options?.onProgress,
+  })
+  await linkSkillsFromLock(rootDir, manifest, runtimeLock, {
+    onProgress: options?.onProgress,
+  })
 
   if (!options?.frozenLockfile) {
     await writeSkillsLock(rootDir, lockfile)
   }
 
-  return { status: 'installed', installed: Object.keys(lockfile.skills) } as const
+  return { status: 'installed', installed: Object.keys(runtimeLock.skills) } as const
 }

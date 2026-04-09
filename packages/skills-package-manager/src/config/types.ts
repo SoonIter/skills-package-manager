@@ -2,6 +2,7 @@ export type SkillsManifest = {
   $schema?: string
   installDir?: string
   linkTargets?: string[]
+  selfSkill?: boolean
   skills: Record<string, string>
 }
 

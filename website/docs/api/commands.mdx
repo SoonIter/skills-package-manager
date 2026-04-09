@@ -10,11 +10,12 @@ Initialize a new `skills.json` manifest.
 
 - `spm init`: interactive initialization for `installDir` and additional `linkTargets`
 - `spm init --yes`: non-interactive initialization with defaults
+- `selfSkill` defaults to `false` in the generated manifest
 - Fails if `skills.json` already exists
 
 ## `spm install`
 
-Install all skills defined in `skills.json`, and synchronize `skills-lock.yaml`, `installDir`, and `linkTargets`.
+Install all skills defined in `skills.json`, synchronize `skills-lock.yaml`, `installDir`, and `linkTargets`, and also install the bundled `skills-package-manager-cli` self skill when `selfSkill` is enabled. The helper skill is not written to `skills-lock.yaml`.
 
 ### Options
 
