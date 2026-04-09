@@ -22,7 +22,7 @@ spm init [--yes]
 Add skills to your project.
 
 ```bash
-# Interactive — clone repo, discover skills, select via multiselect prompt
+# Interactive — inspect repo, discover skills, select via multiselect prompt
 spm add owner/repo
 spm add https://github.com/owner/repo
 
@@ -42,11 +42,11 @@ After `spm add`, the newly added skills are resolved, materialized into `install
 
 When given `owner/repo` or a GitHub URL:
 
-1. Shallow-clones the repository into a temp directory
+1. Reuses or creates a cached git mirror under the user cache directory
 2. Scans for `SKILL.md` files (checks root, then `skills/`, `.agents/skills/`, etc.)
 3. Presents an interactive multiselect prompt (powered by [@clack/prompts](https://github.com/bombshell-dev/clack))
 4. Writes selected skills to `skills.json` and resolves `skills-lock.yaml`
-5. Cleans up the temp directory
+5. Cleans up the temporary worktree used for discovery
 
 ### `spm init`
 
@@ -86,6 +86,8 @@ spm install
 
 This resolves each skill from its specifier, materializes it into `installDir` (default `.agents/skills/`), and creates symlinks for each `linkTarget`.
 
+Remote git repositories, npm metadata, and npm tarballs are cached globally for reuse across commands and projects. Set `SPM_CACHE_DIR` to override the default cache location.
+
 ### `spm update`
 
 Refresh resolvable skills declared in `skills.json` without changing the manifest:
@@ -118,7 +120,7 @@ await addCommand({
 // Install all skills from skills.json
 await installCommand({ cwd: process.cwd() })
 
-// List skills in a GitHub repo (clone + scan)
+// List skills in a GitHub repo (cached mirror + scan)
 const skills = await listRepoSkills('vercel-labs', 'skills')
 // => [{ name: 'find-skills', description: '...', path: '/skills/find-skills' }]
 ```
@@ -140,10 +142,10 @@ link: link:<path-to-skill-dir>
 
 ### Resolution Types
 
-- **`git`** — Clones the repo, resolves commit hash, copies skill files
+- **`git`** — Reuses a cached mirror, resolves a commit hash, and copies skill files from a temporary worktree
 - **`link`** — Reads from a local directory and copies the selected skill
 - **`file`** — Extracts a local `tgz` package and copies the selected skill
-- **`npm`** — Resolves a package from the configured npm registry, locks the tarball URL/version/integrity, and installs from the downloaded tarball
+- **`npm`** — Resolves a package from the configured npm registry, caches metadata and tarballs globally, and installs from the cached tarball
 
 `npm:` reads `registry` and scoped `@scope:registry` values from `.npmrc`. Matching `:_authToken`, `:_auth`, or `username` + `:_password` entries are also used for private registry requests.
 
@@ -155,7 +157,8 @@ src/
 ├── cli/           # CLI runner and interactive prompts
 ├── commands/      # add, install command implementations
 ├── config/        # skills.json / skills-lock.yaml read/write
-├── github/        # Git clone + skill discovery (listSkills)
+├── cache/         # Global cache directories, locks, and git mirror helpers
+├── github/        # Cached git discovery (listSkills)
 ├── install/       # Skill materialization, linking, pruning
 ├── specifiers/    # Specifier parsing and normalization
 └── utils/         # Hashing, filesystem helpers
@@ -172,4 +175,3 @@ pnpm build    # Builds with Rslib (ESM output + DTS)
 ```bash
 pnpm test     # Runs tests with Rstest
 ```
-``

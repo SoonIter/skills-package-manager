@@ -1,8 +1,15 @@
 import { createHash } from 'node:crypto'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { homedir, tmpdir } from 'node:os'
+import { readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import path from 'node:path'
 import semver from 'semver'
+import {
+  createCacheTempDir,
+  getCacheKeyPath,
+  getCachePaths,
+  readJsonCacheFile,
+  withCacheLock,
+} from '../cache'
 
 export type ResolvedNpmPackage = {
   name: string
@@ -25,6 +32,12 @@ type RegistryPackageMetadata = {
       }
     }
   >
+}
+
+type CachedRegistryMetadata = {
+  etag?: string
+  lastModified?: string
+  body: RegistryPackageMetadata
 }
 
 type NpmConfig = {
@@ -254,16 +267,7 @@ async function resolveNpmPackageUncached(
   const config = await loadNpmConfig(cwd)
   const { packageName, requestedVersion } = parseRegistryPackageSpecifier(specifier)
   const registry = resolveRegistryConfig(config, packageName)
-  const metadataUrl = new URL(encodeURIComponent(packageName), registry)
-  const response = await fetch(metadataUrl, {
-    headers: createRequestHeaders(config, metadataUrl.toString()),
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch npm metadata for ${packageName}: ${response.status}`)
-  }
-
-  const metadata = (await response.json()) as RegistryPackageMetadata
+  const metadata = await fetchCachedRegistryMetadata(packageName, registry, config)
   const version = resolveVersionFromMetadata(metadata, requestedVersion)
   const manifest = metadata.versions?.[version]
   const tarballUrl = manifest?.dist?.tarball
@@ -323,41 +327,129 @@ function verifyIntegrity(buffer: Buffer, integrity: string): boolean {
   return false
 }
 
+async function fetchCachedRegistryMetadata(
+  packageName: string,
+  registry: string,
+  config: NpmConfig,
+): Promise<RegistryPackageMetadata> {
+  const metadataUrl = new URL(encodeURIComponent(packageName), registry)
+  const cache = await getCachePaths()
+  const cachePath = getCacheKeyPath(cache.npmMetadataDir, `${registry}\0${packageName}`, '.json')
+
+  return withCacheLock(`npm-metadata:${registry}:${packageName}`, async () => {
+    const cachedMetadata = await readJsonCacheFile<CachedRegistryMetadata>(cachePath)
+    const requestHeaders = new Headers(createRequestHeaders(config, metadataUrl.toString()) ?? {})
+
+    if (cachedMetadata?.etag) {
+      requestHeaders.set('if-none-match', cachedMetadata.etag)
+    }
+    if (cachedMetadata?.lastModified) {
+      requestHeaders.set('if-modified-since', cachedMetadata.lastModified)
+    }
+
+    let response = await fetch(metadataUrl, { headers: requestHeaders })
+    if (response.status === 304 && cachedMetadata?.body) {
+      return cachedMetadata.body
+    }
+
+    if (response.status === 304) {
+      response = await fetch(metadataUrl, {
+        headers: createRequestHeaders(config, metadataUrl.toString()),
+      })
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch npm metadata for ${packageName}: ${response.status}`)
+    }
+
+    const metadata = (await response.json()) as RegistryPackageMetadata
+    await writeFile(
+      cachePath,
+      `${JSON.stringify(
+        {
+          etag: response.headers.get('etag') ?? undefined,
+          lastModified: response.headers.get('last-modified') ?? undefined,
+          body: metadata,
+        } satisfies CachedRegistryMetadata,
+        null,
+        2,
+      )}\n`,
+      'utf8',
+    )
+    return metadata
+  })
+}
+
+async function readCachedTarball(
+  tarballPath: string,
+  expectedIntegrity?: string,
+): Promise<string | null> {
+  try {
+    if (!expectedIntegrity) {
+      await readFile(tarballPath)
+      return tarballPath
+    }
+
+    const tarballBuffer = await readFile(tarballPath)
+    if (verifyIntegrity(tarballBuffer, expectedIntegrity)) {
+      return tarballPath
+    }
+  } catch {
+    return null
+  }
+
+  await rm(tarballPath, { force: true }).catch(() => {})
+  return null
+}
+
 export async function downloadNpmPackageTarball(
   cwd: string,
   tarballUrl: string,
   expectedIntegrity?: string,
 ): Promise<string> {
-  const downloadRoot = await mkdtemp(path.join(tmpdir(), 'skills-pm-npm-download-'))
+  const config = await loadNpmConfig(cwd)
+  const cache = await getCachePaths()
+  const cacheKey = expectedIntegrity ? `integrity:${expectedIntegrity}` : `url:${tarballUrl}`
+  const tarballPath = getCacheKeyPath(cache.tarballsDir, cacheKey, '.tgz')
+  const cachedTarball = await readCachedTarball(tarballPath, expectedIntegrity)
+  if (cachedTarball) {
+    return cachedTarball
+  }
 
-  try {
-    const config = await loadNpmConfig(cwd)
-    const response = await fetch(tarballUrl, {
-      headers: createRequestHeaders(config, tarballUrl),
-    })
-    if (!response.ok) {
-      throw new Error(`Failed to download npm tarball: ${response.status}`)
+  return withCacheLock(`npm-tarball:${cacheKey}`, async () => {
+    const lockedTarball = await readCachedTarball(tarballPath, expectedIntegrity)
+    if (lockedTarball) {
+      return lockedTarball
     }
 
-    const tarballBuffer = Buffer.from(await response.arrayBuffer())
-    if (expectedIntegrity && !verifyIntegrity(tarballBuffer, expectedIntegrity)) {
-      throw new Error(`Integrity check failed for npm tarball ${tarballUrl}`)
-    }
-
-    const tarballPath = path.join(
-      downloadRoot,
+    const stagingRoot = await createCacheTempDir('skills-pm-npm-download-')
+    const stagingTarballPath = path.join(
+      stagingRoot,
       path.basename(new URL(tarballUrl).pathname) || 'package.tgz',
     )
-    await writeFile(tarballPath, tarballBuffer)
-    return tarballPath
-  } catch (error) {
-    await rm(downloadRoot, { recursive: true, force: true }).catch(() => {})
-    throw new Error(`Failed to download npm tarball ${tarballUrl}: ${(error as Error).message}`, {
-      cause: error as Error,
-    })
-  }
-}
 
-export async function cleanupPackedNpmPackage(tarballPath: string): Promise<void> {
-  await rm(path.dirname(tarballPath), { recursive: true, force: true }).catch(() => {})
+    try {
+      const response = await fetch(tarballUrl, {
+        headers: createRequestHeaders(config, tarballUrl),
+      })
+      if (!response.ok) {
+        throw new Error(`Failed to download npm tarball: ${response.status}`)
+      }
+
+      const tarballBuffer = Buffer.from(await response.arrayBuffer())
+      if (expectedIntegrity && !verifyIntegrity(tarballBuffer, expectedIntegrity)) {
+        throw new Error(`Integrity check failed for npm tarball ${tarballUrl}`)
+      }
+
+      await writeFile(stagingTarballPath, tarballBuffer)
+      await rename(stagingTarballPath, tarballPath)
+      return tarballPath
+    } catch (error) {
+      throw new Error(`Failed to download npm tarball ${tarballUrl}: ${(error as Error).message}`, {
+        cause: error as Error,
+      })
+    } finally {
+      await rm(stagingRoot, { recursive: true, force: true }).catch(() => {})
+    }
+  })
 }

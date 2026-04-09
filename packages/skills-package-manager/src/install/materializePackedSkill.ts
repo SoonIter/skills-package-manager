@@ -1,7 +1,7 @@
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm } from 'node:fs/promises'
 import path from 'node:path'
 import { x } from 'tar'
+import { createCacheTempDir } from '../cache'
 import { materializeLocalSkill } from './materializeLocalSkill'
 
 export async function materializePackedSkill(
@@ -11,7 +11,7 @@ export async function materializePackedSkill(
   sourcePath: string,
   installDir: string,
 ) {
-  const extractRoot = await mkdtemp(path.join(tmpdir(), 'skills-pm-packed-skill-'))
+  const extractRoot = await createCacheTempDir('skills-pm-packed-skill-')
 
   try {
     await mkdir(path.join(extractRoot, 'package'), { recursive: true })

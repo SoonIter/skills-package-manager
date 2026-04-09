@@ -1,6 +1,6 @@
 # How it works
 
-The installation flow of skills-package-manager can be understood as three stages: resolve, materialize, and link.
+The installation flow of skills-package-manager can be understood as three stages: resolve, materialize, and link. Remote git mirrors, npm metadata, and npm tarballs are cached in a user-level cache directory so repeated installs can reuse previously fetched data.
 
 ## 1. Resolve specifiers
 
@@ -28,6 +28,10 @@ These results are written to the lockfile for reuse and auditing.
 ## 3. Materialize into installDir
 
 The installer copies skill files into a managed directory under `installDir`, ensuring the agent can reliably read the installed skill content.
+
+- Git sources are checked out from a cached mirror into a temporary worktree
+- npm sources are extracted from cached tarballs using temporary staging directories
+- The cache location can be overridden with `SPM_CACHE_DIR`
 
 ## 4. Link to target directories
 

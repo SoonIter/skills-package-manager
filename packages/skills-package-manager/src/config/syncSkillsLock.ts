@@ -1,8 +1,5 @@
-import { execFile } from 'node:child_process'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { promisify } from 'node:util'
+import { resolveGitCommitFromMirror } from '../cache/git'
 import type { NormalizedSpecifier } from '../config/types'
 import { ErrorCode, GitError, ParseError } from '../errors'
 import { resolveNpmPackage } from '../npm/packPackage'
@@ -10,67 +7,28 @@ import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { sha256, sha256Directory, sha256File } from '../utils/hash'
 import type { InstallProgressListener, SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
 
-const execFileAsync = promisify(execFile)
-
 function toPortableRelativePath(from: string, to: string): string {
   const relativePath = path.relative(from, to) || '.'
   return path.sep === '/' ? relativePath : relativePath.split(path.sep).join('/')
 }
 
-async function resolveGitCommitByLsRemote(url: string, target: string): Promise<string | null> {
-  try {
-    const { stdout } = await execFileAsync('git', ['ls-remote', url, target, `${target}^{}`])
-    const lines = stdout
-      .trim()
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-
-    const peeledLine = lines.find((line) => line.endsWith('^{}'))
-    const resolvedLine = peeledLine ?? lines[0]
-    return resolvedLine?.split('\t')[0]?.trim() || null
-  } catch {
-    return null
-  }
-}
-
-async function resolveGitCommitByClone(url: string, target: string): Promise<string | null> {
-  const checkoutRoot = await mkdtemp(path.join(tmpdir(), 'skills-pm-git-ref-'))
-
-  try {
-    await execFileAsync('git', ['clone', '--bare', '--quiet', url, checkoutRoot])
-    const { stdout } = await execFileAsync('git', ['rev-parse', '--verify', `${target}^{commit}`], {
-      cwd: checkoutRoot,
-    })
-    return stdout.trim().split('\n')[0]?.trim() || null
-  } catch {
-    return null
-  } finally {
-    await rm(checkoutRoot, { recursive: true, force: true }).catch(() => {})
-  }
-}
-
 async function resolveGitCommit(url: string, ref: string | null): Promise<string> {
-  const target = ref ?? 'HEAD'
-  const commit = await resolveGitCommitByLsRemote(url, target)
+  try {
+    return await resolveGitCommitFromMirror(url, ref)
+  } catch (error) {
+    if (error instanceof GitError) {
+      throw error
+    }
 
-  if (commit) {
-    return commit
+    throw new GitError({
+      code: ErrorCode.GIT_REF_NOT_FOUND,
+      operation: 'resolve-ref',
+      repoUrl: url,
+      ref: ref ?? 'HEAD',
+      message: `Unable to resolve git ref "${ref ?? 'HEAD'}" for ${url}`,
+      cause: error as Error,
+    })
   }
-
-  const clonedCommit = await resolveGitCommitByClone(url, target)
-
-  if (clonedCommit) {
-    return clonedCommit
-  }
-
-  throw new GitError({
-    code: ErrorCode.GIT_REF_NOT_FOUND,
-    operation: 'resolve-ref',
-    repoUrl: url,
-    ref: target,
-    message: `Unable to resolve git ref "${target}" for ${url}`,
-  })
 }
 
 export async function resolveLockEntry(

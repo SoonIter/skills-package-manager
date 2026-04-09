@@ -47,7 +47,10 @@ export function packDirectory(packageRoot: string): string {
   return tarballPath
 }
 
-export async function startMockNpmRegistry(packageRoot: string, options?: { authToken?: string }) {
+export async function startMockNpmRegistry(
+  packageRoot: string,
+  options?: { authToken?: string; etag?: string; lastModified?: string },
+) {
   const manifest = JSON.parse(readFileSync(path.join(packageRoot, 'package.json'), 'utf8')) as {
     name: string
     version: string
@@ -57,6 +60,10 @@ export async function startMockNpmRegistry(packageRoot: string, options?: { auth
   const integrity = `sha512-${createHash('sha512').update(tarballBuffer).digest('base64')}`
   const tarballFileName = path.basename(tarballPath)
   let registryPort = 0
+  let metadataRequests = 0
+  let metadata200Responses = 0
+  let metadata304Responses = 0
+  let tarballRequests = 0
 
   const server = createServer((req, res) => {
     if (options?.authToken && req.headers.authorization !== `Bearer ${options.authToken}`) {
@@ -69,7 +76,22 @@ export async function startMockNpmRegistry(packageRoot: string, options?: { auth
     const decodedPath = decodeURIComponent(requestPath.slice(1))
 
     if (decodedPath === manifest.name) {
+      metadataRequests += 1
+      if (options?.etag && req.headers['if-none-match'] === options.etag) {
+        metadata304Responses += 1
+        res.statusCode = 304
+        res.end()
+        return
+      }
+
+      metadata200Responses += 1
       res.setHeader('content-type', 'application/json')
+      if (options?.etag) {
+        res.setHeader('etag', options.etag)
+      }
+      if (options?.lastModified) {
+        res.setHeader('last-modified', options.lastModified)
+      }
       res.end(
         JSON.stringify({
           'dist-tags': { latest: manifest.version },
@@ -89,6 +111,7 @@ export async function startMockNpmRegistry(packageRoot: string, options?: { auth
     }
 
     if (requestPath === `/tarballs/${tarballFileName}`) {
+      tarballRequests += 1
       res.setHeader('content-type', 'application/octet-stream')
       res.end(tarballBuffer)
       return
@@ -114,6 +137,12 @@ export async function startMockNpmRegistry(packageRoot: string, options?: { auth
     authTokenConfigLine: options?.authToken
       ? `//127.0.0.1:${registryPort}/:_authToken=${options.authToken}`
       : null,
+    getRequestCounts: () => ({
+      metadataRequests,
+      metadata200Responses,
+      metadata304Responses,
+      tarballRequests,
+    }),
     close: async () => {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

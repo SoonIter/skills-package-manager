@@ -23,7 +23,7 @@ spm add npm:@scope/skills-package#path:/skills/my-skill
 
 Behavior overview:
 
-1. Perform a shallow clone of the GitHub repository
+1. Reuse or create a cached git mirror for the target repository
 2. Scan `SKILL.md` files and discover candidate skills
 3. Select interactively or target a specific skill with `--skill`
 4. Write to `skills.json`
@@ -70,10 +70,13 @@ When you run `spm install`, the following happens:
 2. **Read lockfile** — Load `skills-lock.yaml` if it exists
 3. **Sync lockfile** — Resolve each skill in the manifest to produce the lockfile entries for this install
    - This step may involve git/network requests, even when a corresponding entry already exists in `skills-lock.yaml`
+   - Cached git mirrors, npm metadata, and npm tarballs are reused across commands and projects
 4. **Prune** — Remove skills that are no longer in the manifest
-5. **Fetch** — Download/copy skills to `installDir`
+5. **Fetch** — Materialize skills to `installDir` from local paths, cached git worktrees, or cached tarballs
 6. **Link** — Create symlinks in `linkTargets`
 7. **Write lockfile** — Save updated `skills-lock.yaml`
+
+Set `SPM_CACHE_DIR` to override the default global cache location.
 
 ### `--frozen-lockfile`
 

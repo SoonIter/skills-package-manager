@@ -1,11 +1,7 @@
-import { execFile } from 'node:child_process'
-import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readdir, readFile, stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import { promisify } from 'node:util'
+import { createGitWorktree } from '../cache/git'
 import type { SkillInfo } from './types'
-
-const execFileAsync = promisify(execFile)
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '__pycache__'])
 
@@ -88,28 +84,13 @@ export async function cloneAndDiscover(
   gitUrl: string,
   ref?: string,
 ): Promise<{ skills: SkillInfo[]; cleanup: () => Promise<void> }> {
-  const tempDir = await mkdtemp(join(tmpdir(), 'skills-pm-discover-'))
+  const { worktreePath, cleanup } = await createGitWorktree(gitUrl, ref ?? null)
 
   try {
-    const cloneArgs = ref
-      ? ['clone', '--depth', '1', '--branch', ref, gitUrl, tempDir]
-      : ['clone', '--depth', '1', gitUrl, tempDir]
-
-    await execFileAsync('git', cloneArgs, {
-      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
-      timeout: 60_000,
-    })
-
-    const skills = await discoverSkillsInDir(tempDir)
-
-    return {
-      skills,
-      cleanup: async () => {
-        await rm(tempDir, { recursive: true, force: true }).catch(() => {})
-      },
-    }
+    const skills = await discoverSkillsInDir(worktreePath)
+    return { skills, cleanup }
   } catch (error) {
-    await rm(tempDir, { recursive: true, force: true }).catch(() => {})
+    await cleanup()
     throw error
   }
 }
