@@ -34,8 +34,11 @@ async function assertManifestMissing(cwd: string): Promise<void> {
   }
 }
 
+const DEFAULT_SCHEMA_URL = 'https://unpkg.com/skills-package-manager@latest/skills.schema.json'
+
 function createDefaultManifest(): SkillsManifest {
   return {
+    $schema: DEFAULT_SCHEMA_URL,
     installDir: '.agents/skills',
     linkTargets: [],
     selfSkill: false,
@@ -51,15 +54,16 @@ export async function initCommand(
 ): Promise<SkillsManifest> {
   await assertManifestMissing(options.cwd)
 
-  const manifest = options.yes
+  const baseManifest = options.yes
     ? createDefaultManifest()
     : {
+        $schema: DEFAULT_SCHEMA_URL,
         ...(await promptInit()),
         selfSkill: false,
         skills: {},
       }
 
-  await writeSkillsManifest(options.cwd, manifest)
+  await writeSkillsManifest(options.cwd, baseManifest)
 
-  return manifest
+  return baseManifest
 }

@@ -19,7 +19,8 @@
   "files": [
     "bin",
     "dist",
-    "skills"
+    "skills",
+    "skills.schema.json"
   ],
   "dependencies": {
     "@clack/prompts": "^1.1.0",
@@ -27,7 +28,9 @@
     "picocolors": "^1.1.1",
     "semver": "^7.7.2",
     "tar": "^7.4.3",
-    "yaml": "^2.8.1"
+    "yaml": "^2.8.1",
+    "zod": "^3.25.0",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@rslib/core": "^0.20.0",

@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { convertNodeError, ErrorCode, ParseError } from '../errors'
-import { normalizeSkillsManifest } from './skillsManifest'
+import { convertNodeError, ErrorCode, ManifestError, ParseError } from '../errors'
+import { skillsManifestSchema } from './schema'
 import type { SkillsManifest } from './types'
 
 export async function readSkillsManifest(rootDir: string): Promise<SkillsManifest | null> {
@@ -9,9 +9,9 @@ export async function readSkillsManifest(rootDir: string): Promise<SkillsManifes
 
   try {
     const raw = await readFile(filePath, 'utf8')
+    let parsedJson: unknown
     try {
-      const json = JSON.parse(raw) as Partial<SkillsManifest>
-      return normalizeSkillsManifest(json)
+      parsedJson = JSON.parse(raw)
     } catch (parseError) {
       throw new ParseError({
         code: ErrorCode.JSON_PARSE_ERROR,
@@ -21,11 +21,26 @@ export async function readSkillsManifest(rootDir: string): Promise<SkillsManifes
         cause: parseError as Error,
       })
     }
+
+    // Validate using Zod schema
+    const result = skillsManifestSchema.safeParse(parsedJson)
+    if (!result.success) {
+      const issues = result.error.issues
+        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+        .join('\n  - ')
+      throw new ManifestError({
+        code: ErrorCode.MANIFEST_VALIDATION_ERROR,
+        filePath,
+        message: `Invalid skills.json:\n  - ${issues}`,
+      })
+    }
+
+    return result.data
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       return null
     }
-    if (error instanceof ParseError) {
+    if (error instanceof ParseError || error instanceof ManifestError) {
       throw error
     }
     throw convertNodeError(error as NodeJS.ErrnoException, { operation: 'read', path: filePath })
