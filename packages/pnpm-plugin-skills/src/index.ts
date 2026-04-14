@@ -2,7 +2,7 @@ import { installCommand } from 'skills-package-manager'
 
 type PluginSettings = {
   pnpmPlugin?: {
-    removePnpmFileCheckSum?: boolean
+    removePnpmfileChecksum?: boolean
   }
 }
 
@@ -22,7 +22,7 @@ export function afterAllResolved(
   lockfile: Record<string, unknown>,
   context: { config?: PluginSettings } = {},
 ) {
-  if (context.config?.pnpmPlugin?.removePnpmFileCheckSum !== true) {
+  if (context.config?.pnpmPlugin?.removePnpmfileChecksum !== true) {
     return lockfile
   }
 

@@ -78,7 +78,7 @@ describe('afterAllResolved', () => {
     const result = afterAllResolved(lockfile, {
       config: {
         pnpmPlugin: {
-          removePnpmFileCheckSum: true,
+          removePnpmfileChecksum: true,
         },
       },
     })
