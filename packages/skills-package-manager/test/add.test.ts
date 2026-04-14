@@ -212,7 +212,9 @@ describe('addCommand', () => {
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
     const installedSkill = path.join(root, '.agents/skills/hello-skill/SKILL.md')
 
-    expect(manifest.skills['hello-skill']).toBe(`link:${localSkillPath}`)
+    expect(manifest.skills['hello-skill']).toBe(
+      `link:${localSkillPath.replace(/\\/g, '/').replace(/\/+$/, '')}`,
+    )
     expect(existsSync(installedSkill)).toBe(true)
   })
 
