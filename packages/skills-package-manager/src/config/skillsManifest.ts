@@ -49,6 +49,7 @@ export function normalizeSkillsManifest(manifest: Partial<SkillsManifest>): Skil
     installDir: manifest.installDir ?? '.agents/skills',
     linkTargets: manifest.linkTargets ?? [],
     selfSkill: manifest.selfSkill ?? false,
+    pnpmPlugin: manifest.pnpmPlugin,
     skills: manifest.skills ?? {},
   }
 }

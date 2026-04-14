@@ -16,6 +16,17 @@ export const skillsManifestSchema = z
       .default([])
       .describe('Directories where skill symlinks will be created'),
     selfSkill: z.boolean().optional().describe('Whether this project is itself a skill'),
+    pnpmPlugin: z
+      .object({
+        removePnpmfileChecksum: z
+          .boolean()
+          .optional()
+          .describe(
+            'Temporarily remove pnpmfileChecksum from pnpm lockfiles in pnpm-plugin-skills afterAllResolved',
+          ),
+      })
+      .optional()
+      .describe('pnpm-plugin-skills specific compatibility settings'),
     skills: z
       .record(z.string(), z.string())
       .default({})

@@ -1,4 +1,4 @@
 // pnpm v11
-import { preResolution } from './dist/index.mjs'
+import { afterAllResolved, preResolution } from './dist/index.mjs'
 
-export const hooks = { preResolution }
+export const hooks = { afterAllResolved, preResolution }

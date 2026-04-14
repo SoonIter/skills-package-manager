@@ -65,3 +65,50 @@ describe('preResolution', () => {
     expect(existsSync(path.join(root, '.claude/skills/hello-skill'))).toBe(true)
   })
 })
+
+describe('afterAllResolved', () => {
+  it('removes pnpmfileChecksum when enabled in skills.json', async () => {
+    const { afterAllResolved } = await import('../src/index')
+    const root = mkdtempSync(path.join(tmpdir(), 'pnpm-plugin-skills-config-'))
+
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          pnpmPlugin: {
+            removePnpmfileChecksum: true,
+          },
+          skills: {},
+        },
+        null,
+        2,
+      ),
+    )
+
+    const lockfile = {
+      lockfileVersion: '9.0',
+      pnpmfileChecksum: 'checksum-to-remove',
+    }
+
+    const result = afterAllResolved(lockfile, { lockfileDir: root })
+
+    expect(result).toBe(lockfile)
+    expect(result).not.toHaveProperty('pnpmfileChecksum')
+  })
+
+  it('keeps pnpmfileChecksum by default', async () => {
+    const { afterAllResolved } = await import('../src/index')
+
+    const lockfile = {
+      lockfileVersion: '9.0',
+      pnpmfileChecksum: 'checksum-to-keep',
+    }
+
+    const result = afterAllResolved(lockfile, {})
+
+    expect(result).toBe(lockfile)
+    expect(result).toHaveProperty('pnpmfileChecksum', 'checksum-to-keep')
+  })
+})
