@@ -35,6 +35,11 @@ npx skills-package-manager add https://github.com/rstackjs/agent-skills
 
 # Non-interactive — add a specific skill by name
 npx skills-package-manager add vercel-labs/skills --skill find-skills
+npx skills-package-manager add vercel-labs/skills@find-skills
+
+# Direct repo subpath or local path
+npx skills-package-manager add https://github.com/tool-belt/skills/tree/main/guides/design/landing-page-design
+npx skills-package-manager add ./my-skills
 ```
 
 Example `skills.json`:
@@ -54,7 +59,7 @@ This manifest defines:
 
 - `installDir`: where managed skills are materialized
 - `linkTargets`: which agent-specific directories receive links
-- `selfSkill`: whether to auto-install the bundled `skills-package-manager-cli` skill for help with `skills.json`, `skills-lock.yaml`, and `spm`. This helper skill is not written to `skills-lock.yaml`. Defaults to `false`
+- `selfSkill`: whether to auto-install the bundled `skills-package-manager-cli` skill for help with `skills.json`, `skills-lock.yaml`, and `npx skills-package-manager` commands. This helper skill is not written to `skills-lock.yaml`. Defaults to `false`
 - `skills`: which skills should be installed
 
 ### Run pnpm as usual

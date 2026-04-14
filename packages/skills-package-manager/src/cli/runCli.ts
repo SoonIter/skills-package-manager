@@ -46,15 +46,36 @@ export async function runCli(argv: string[], context: InternalRunCliContext = {}
 
   cli
     .command('add [...positionals]')
+    .option('-a, --agent <name>', 'Target agent')
+    .option('-g, --global', 'Install into the global skills workspace')
     .option('--skill <name>', 'Select a skill')
-    .action(async (positionals: string[] = [], options: { skill?: string }) => {
-      const specifier = positionals[0]
-      if (!specifier) {
-        throw new Error('Missing required specifier')
-      }
+    .option('-y, --yes', 'Skip prompts and select defaults')
+    .action(
+      async (
+        positionals: string[] = [],
+        options: { agent?: string[] | string; global?: boolean; skill?: string; yes?: boolean },
+      ) => {
+        const specifier = positionals[0]
+        if (!specifier) {
+          throw new Error('Missing required specifier')
+        }
 
-      return handlers.addCommand({ cwd, specifier, skill: options.skill })
-    })
+        const agent = Array.isArray(options.agent)
+          ? options.agent
+          : options.agent
+            ? [options.agent]
+            : undefined
+
+        return handlers.addCommand({
+          cwd,
+          specifier,
+          skill: options.skill,
+          global: options.global,
+          yes: options.yes,
+          agent,
+        })
+      },
+    )
 
   cli
     .command('install [...args]')

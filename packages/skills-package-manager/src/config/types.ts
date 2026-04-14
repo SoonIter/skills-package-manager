@@ -58,6 +58,9 @@ export type AddCommandOptions = {
   cwd: string
   specifier: string
   skill?: string
+  global?: boolean
+  yes?: boolean
+  agent?: string[]
 }
 
 export type UpdateCommandOptions = {

@@ -1,42 +1,59 @@
-# spm
+# skills-package-manager
 
 Core library and CLI for managing agent skills.
 
 ## CLI Usage
 
+For one-off usage, `npx skills-package-manager add ...` is the low-friction migration path for teams already familiar with `npx skills add ...`.
+
 ```bash
-spm --help
-spm --version
-spm add <specifier> [--skill <name>]
-spm install
-spm update [skill...]
-spm init [--yes]
+npx skills-package-manager --help
+npx skills-package-manager --version
+npx skills-package-manager add <specifier> [--skill <name>]
+npx skills-package-manager install
+npx skills-package-manager update [skill...]
+npx skills-package-manager init [--yes]
 ```
 
-- `spm` with no command shows top-level help
-- `spm --help` prints top-level help
-- `spm --version` prints the package version
+- `npx skills-package-manager` with no command shows top-level help
+- `npx skills-package-manager --help` prints top-level help
+- `npx skills-package-manager --version` prints the package version
 
-### `spm add`
+### `npx skills-package-manager add`
 
 Add skills to your project.
 
+For teams already familiar with `npx skills add ...`, the headline migration message is:
+
 ```bash
-# Interactive — clone repo, discover skills, select via multiselect prompt
-spm add owner/repo
-spm add https://github.com/owner/repo
-
-# Non-interactive — add a specific skill by name
-spm add owner/repo --skill find-skills
-
-# Direct specifier — skip discovery
-spm add https://github.com/owner/repo.git#path:/skills/my-skill
-spm add link:./local-source/skills/my-skill
-spm add file:./skills-package.tgz#path:/skills/my-skill
-spm add npm:@scope/skills-package#path:/skills/my-skill
+npx skills add owner/repo
+# becomes
+npx skills-package-manager add owner/repo
 ```
 
-After `spm add`, the newly added skills are resolved, materialized into `installDir`, and linked to each configured `linkTarget` immediately.
+```bash
+# Interactive — clone repo, discover skills, select via multiselect prompt
+npx skills-package-manager add owner/repo
+npx skills-package-manager add https://github.com/owner/repo
+
+# Non-interactive — add a specific skill by name
+npx skills-package-manager add owner/repo --skill find-skills
+npx skills-package-manager add owner/repo@find-skills
+npx skills-package-manager add owner/repo#main@find-skills
+
+# Direct repo subpath
+npx skills-package-manager add owner/repo/skills/my-skill
+npx skills-package-manager add https://github.com/owner/repo/tree/main/skills/my-skill
+
+# Direct specifier — skip discovery
+npx skills-package-manager add https://github.com/owner/repo.git#path:/skills/my-skill
+npx skills-package-manager add link:./local-source/skills/my-skill
+npx skills-package-manager add ./local-source
+npx skills-package-manager add file:./skills-package.tgz#path:/skills/my-skill
+npx skills-package-manager add npm:@scope/skills-package#path:/skills/my-skill
+```
+
+After `npx skills-package-manager add`, the newly added skills are resolved, materialized into `installDir`, and linked to each configured `linkTarget` immediately.
 
 #### How it works
 
@@ -48,25 +65,25 @@ When given `owner/repo` or a GitHub URL:
 4. Writes selected skills to `skills.json` and resolves `skills-lock.yaml`
 5. Cleans up the temp directory
 
-### `spm init`
+### `npx skills-package-manager init`
 
 Create a new `skills.json` manifest in the current directory.
 
 ```bash
 # Interactive — prompt for installDir and linkTargets
-spm init
+npx skills-package-manager init
 
 # Non-interactive — write the default manifest immediately
-spm init --yes
+npx skills-package-manager init --yes
 ```
 
 Behavior:
 
-- `spm init` prompts for `installDir` and `linkTargets`, then writes `skills.json`
-- `spm init --yes` skips prompts and writes the default manifest
+- `npx skills-package-manager init` prompts for `installDir` and `linkTargets`, then writes `skills.json`
+- `npx skills-package-manager init --yes` skips prompts and writes the default manifest
 - If `skills.json` already exists, the command fails and does not overwrite it
 
-Default `skills.json` written by `spm init --yes`:
+Default `skills.json` written by `npx skills-package-manager init --yes`:
 
 ```json
 {
@@ -77,24 +94,24 @@ Default `skills.json` written by `spm init --yes`:
 }
 ```
 
-### `spm install`
+### `npx skills-package-manager install`
 
 Install all skills declared in `skills.json`:
 
 ```bash
-spm install
+npx skills-package-manager install
 ```
 
 This resolves each skill from its specifier, materializes it into `installDir` (default `.agents/skills/`), and creates symlinks for each `linkTarget`.
-When `selfSkill` is `true`, `spm install` also installs the bundled `skills-package-manager-cli` skill so users get guidance for `skills.json`, `skills-lock.yaml`, and the `spm` workflow. This helper skill is not written to `skills-lock.yaml`.
+When `selfSkill` is `true`, `npx skills-package-manager install` also installs the bundled `skills-package-manager-cli` skill so users get guidance for `skills.json`, `skills-lock.yaml`, and `npx skills-package-manager` commands. This helper skill is not written to `skills-lock.yaml`.
 
-### `spm update`
+### `npx skills-package-manager update`
 
 Refresh resolvable skills declared in `skills.json` without changing the manifest:
 
 ```bash
-spm update
-spm update find-skills rspress-custom-theme
+npx skills-package-manager update
+npx skills-package-manager update find-skills rspress-custom-theme
 ```
 
 Behavior:
@@ -153,7 +170,7 @@ link: link:<path-to-skill-dir>
 
 ```
 src/
-├── bin/           # CLI entry points (spm, skills)
+├── bin/           # CLI entry points
 ├── cli/           # CLI runner and interactive prompts
 ├── commands/      # add, install command implementations
 ├── config/        # skills.json / skills-lock.yaml read/write

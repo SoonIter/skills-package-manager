@@ -1,6 +1,10 @@
 import { lstat, readdir, readFile, rm } from 'node:fs/promises'
 import path from 'node:path'
 
+function resolveTargetPath(rootDir: string, targetPath: string): string {
+  return path.isAbsolute(targetPath) ? targetPath : path.join(rootDir, targetPath)
+}
+
 async function isManagedSkillDir(dirPath: string): Promise<boolean> {
   try {
     const marker = JSON.parse(await readFile(path.join(dirPath, '.skills-pm.json'), 'utf8'))
@@ -38,7 +42,7 @@ export async function pruneManagedSkills(
       await rm(skillDir, { recursive: true, force: true })
 
       for (const linkTarget of linkTargets) {
-        const linkPath = path.join(rootDir, linkTarget, entry)
+        const linkPath = path.join(resolveTargetPath(rootDir, linkTarget), entry)
         try {
           const stat = await lstat(linkPath)
           if (stat.isSymbolicLink() || stat.isDirectory() || stat.isFile()) {

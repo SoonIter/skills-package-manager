@@ -1,24 +1,31 @@
 # CLI commands
 
-The `spm` CLI covers the four main actions of skill management: add, init, install, and update.
+The documented CLI workflow centers on `npx skills-package-manager` for the four main actions of skill management: add, init, install, and update.
 
-## `spm add`
+## `npx skills-package-manager add`
 
 Add a skill to your project.
 
 ```bash
 # Interactive discovery and selection
-spm add owner/repo
-spm add https://github.com/owner/repo
+npx skills-package-manager add owner/repo
+npx skills-package-manager add https://github.com/owner/repo
 
 # Non-interactively add a specific skill
-spm add owner/repo --skill find-skills
+npx skills-package-manager add owner/repo --skill find-skills
+npx skills-package-manager add owner/repo@find-skills
+npx skills-package-manager add owner/repo#main@find-skills
+
+# Direct repo subpath or local path
+npx skills-package-manager add owner/repo/skills/my-skill
+npx skills-package-manager add https://github.com/owner/repo/tree/main/skills/my-skill
+npx skills-package-manager add ./local-source
 
 # Use a full specifier directly
-spm add https://github.com/owner/repo.git#path:/skills/my-skill
-spm add link:./local-source/skills/my-skill
-spm add file:./skills-package.tgz#path:/skills/my-skill
-spm add npm:@scope/skills-package#path:/skills/my-skill
+npx skills-package-manager add https://github.com/owner/repo.git#path:/skills/my-skill
+npx skills-package-manager add link:./local-source/skills/my-skill
+npx skills-package-manager add file:./skills-package.tgz#path:/skills/my-skill
+npx skills-package-manager add npm:@scope/skills-package#path:/skills/my-skill
 ```
 
 Behavior overview:
@@ -29,32 +36,32 @@ Behavior overview:
 4. Write to `skills.json`
 5. Immediately install and link the new skill
 
-## `spm init`
+## `npx skills-package-manager init`
 
 Initialize `skills.json` in the current project.
 
 ```bash
 # Interactive
-spm init
+npx skills-package-manager init
 
 # Non-interactive defaults
-spm init --yes
+npx skills-package-manager init --yes
 ```
 
 Init behavior:
 
-- `spm init` prompts for `installDir` and additional `linkTargets`
-- `spm init --yes` writes default values directly
+- `npx skills-package-manager init` prompts for `installDir` and additional `linkTargets`
+- `npx skills-package-manager init --yes` writes default values directly
 - The generated manifest sets `selfSkill` to `false`
 - Fails if `skills.json` already exists
 - Does not create `skills-lock.yaml`
 
-## `spm install`
+## `npx skills-package-manager install`
 
 Install all skills declared in `skills.json`.
 
 ```bash
-spm install
+npx skills-package-manager install
 ```
 
 Useful for:
@@ -65,7 +72,7 @@ Useful for:
 
 ### Install Process
 
-When you run `spm install`, the following happens:
+When you run `npx skills-package-manager install`, the following happens:
 
 1. **Read manifest** — Load `skills.json` to get the list of skills to install
    - If `selfSkill` is enabled, install the bundled `skills-package-manager-cli` helper skill for this run without writing it to `skills-lock.yaml`
@@ -82,7 +89,7 @@ When you run `spm install`, the following happens:
 Prevent lockfile modifications and fail if it's out of sync.
 
 ```bash
-spm install --frozen-lockfile
+npx skills-package-manager install --frozen-lockfile
 ```
 
 **When to use:**
@@ -104,8 +111,8 @@ spm install --frozen-lockfile
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| "Lockfile is required in frozen mode" | No `skills-lock.yaml` exists | Run `spm install` without flag first |
-| "Lockfile is out of sync" | Manifest specifiers don't match lockfile | Run `spm install` without flag to update lockfile |
+| "Lockfile is required in frozen mode" | No `skills-lock.yaml` exists | Run `npx skills-package-manager install` without flag first |
+| "Lockfile is out of sync" | Manifest specifiers don't match lockfile | Run `npx skills-package-manager install` without flag to update lockfile |
 
 ### Troubleshooting
 
@@ -118,16 +125,16 @@ This means the specifiers in `skills.json` don't match what's in `skills-lock.ya
 
 Solutions:
 
-- Run `spm install` without `--frozen-lockfile` to update the lockfile
+- Run `npx skills-package-manager install` without `--frozen-lockfile` to update the lockfile
 - Or revert your manifest changes to match the lockfile
 
-## `spm update`
+## `npx skills-package-manager update`
 
 Refresh already-declared resolvable skills.
 
 ```bash
-spm update
-spm update find-skills rspress-custom-theme
+npx skills-package-manager update
+npx skills-package-manager update find-skills rspress-custom-theme
 ```
 
 Update behavior:
@@ -142,7 +149,7 @@ Update behavior:
 
 | Command | Typical scenario |
 | --- | --- |
-| `spm add` | Introduce a new skill for the first time |
-| `spm init` | Create the initial `skills.json` manifest |
-| `spm install` | Restore all skills from the manifest |
-| `spm update` | Refresh versions of resolvable git or npm skills |
+| `npx skills-package-manager add` | Introduce a new skill for the first time |
+| `npx skills-package-manager init` | Create the initial `skills.json` manifest |
+| `npx skills-package-manager install` | Restore all skills from the manifest |
+| `npx skills-package-manager update` | Refresh versions of resolvable git or npm skills |

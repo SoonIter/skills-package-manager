@@ -19,7 +19,7 @@ Use this skill for repositories that already use `skills-package-manager`, or wh
 ## What `selfSkill` Means
 
 - `selfSkill: true` adds the bundled `skills-package-manager-cli` skill during install.
-- It is meant to help users who see `skills.json`, `skills-lock.yaml`, and `spm` commands but do not yet know how they fit together.
+- It is meant to help users who see `skills.json`, `skills-lock.yaml`, and `npx skills-package-manager` commands but do not yet know how they fit together.
 - The bundled skill is injected automatically. It should not be added manually under `skills` unless there is a very specific reason.
 
 ## Command Guide
