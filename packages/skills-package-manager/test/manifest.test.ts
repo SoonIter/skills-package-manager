@@ -7,7 +7,8 @@ import { skillsManifestSchema } from '../src/config/schema'
 import { expandSkillsManifest, getBundledSelfSkillSpecifier } from '../src/config/skillsManifest'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
 
-const DEFAULT_SCHEMA_URL = 'https://unpkg.com/skills-package-manager@0.5.0/skills.schema.json'
+const pkg = JSON.parse(readFileSync(path.resolve(__dirname, '..', 'package.json'), 'utf8'))
+const DEFAULT_SCHEMA_URL = `https://unpkg.com/skills-package-manager@${pkg.version}/skills.schema.json`
 
 describe('manifest io', () => {
   it('writes default manifest shape', async () => {
@@ -18,7 +19,6 @@ describe('manifest io', () => {
       $schema: DEFAULT_SCHEMA_URL,
       installDir: '.agents/skills',
       linkTargets: [],
-      pnpmPlugin: undefined,
       skills: { hello: 'link:./skills/hello' },
     })
   })
