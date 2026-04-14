@@ -1,14 +1,32 @@
-# Introduction
+---
+pageType: home
 
-![logo](/logo-light.svg)
+hero:
+  name: skills-package-manager
+  text: Package manager for agent skills
+  tagline: Manage, install, and link SKILL.md-based agent skills with ease.
+  image:
+    src: /logo-light.svg
+    alt: skills-package-manager logo
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /getting-started
+    - theme: alt
+      text: Introduction
+      link: /introduction
 
-skills-package-manager is a package manager for agent skills. It manages, installs, updates, and links skill directories based on `SKILL.md`.
-
-It currently provides these core parts:
-
-- `skills-package-manager`: the core library and the `spm` CLI.
-- `pnpm-plugin-skills`: a pnpm plugin that automatically synchronizes skills during `pnpm install`.
-
-## What's next?
-
-If you want to start configuring your project right away, continue to [Getting Started](/getting-started).
+features:
+  - title: Easy Management
+    details: Install, update, and link skills using simple CLI commands.
+    icon: 📦
+  - title: pnpm Integration
+    details: Automatically sync skills during pnpm install with the dedicated plugin.
+    icon: 🔌
+  - title: Lockfile Support
+    details: Resolve and lock skill versions for reproducible environments.
+    icon: 🔒
+  - title: Multiple Protocols
+    details: Supports npm packages, git repositories, and local link targets out of the box.
+    icon: 🌐
+---
