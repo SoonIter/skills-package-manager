@@ -45,9 +45,6 @@ export function afterAllResolved(
     return lockfile
   }
 
-  if ('pnpmfileChecksum' in lockfile) {
-    delete lockfile.pnpmfileChecksum
-  }
-
+  delete lockfile.pnpmfileChecksum
   return lockfile
 }
