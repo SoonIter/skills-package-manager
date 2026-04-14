@@ -1,13 +1,14 @@
 import { useFrontmatter } from '@rspress/core/runtime'
+import type { ReactNode } from 'react'
 import { HomePage } from '../../components/HomePage'
 
 export interface HomeLayoutProps {
-  beforeHero?: React.ReactNode
-  afterHero?: React.ReactNode
-  beforeFeatures?: React.ReactNode
-  afterFeatures?: React.ReactNode
-  beforeHeroActions?: React.ReactNode
-  afterHeroActions?: React.ReactNode
+  beforeHero?: ReactNode
+  afterHero?: ReactNode
+  beforeFeatures?: ReactNode
+  afterFeatures?: ReactNode
+  beforeHeroActions?: ReactNode
+  afterHeroActions?: ReactNode
 }
 
 function HomeLayoutMarkdown() {
@@ -59,9 +60,5 @@ export function HomeLayout(_props: HomeLayoutProps) {
     return <HomeLayoutMarkdown />
   }
 
-  return (
-    <>
-      <HomePage />
-    </>
-  )
+  return <HomePage />
 }

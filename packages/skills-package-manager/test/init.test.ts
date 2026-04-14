@@ -6,6 +6,8 @@ import { promptInitManifestOptions } from '../src/cli/prompt'
 import { runCli } from '../src/cli/runCli'
 import { initCommand } from '../src/commands/init'
 
+const DEFAULT_SCHEMA_URL = 'https://unpkg.com/skills-package-manager@0.5.0/skills.schema.json'
+
 describe('initCommand', () => {
   it('writes default manifest when yes is true', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-init-yes-'))
@@ -14,14 +16,14 @@ describe('initCommand', () => {
 
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
     expect(result).toEqual({
-      $schema: 'https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json',
+      $schema: DEFAULT_SCHEMA_URL,
       installDir: '.agents/skills',
       linkTargets: [],
       selfSkill: false,
       skills: {},
     })
     expect(manifest).toEqual({
-      $schema: 'https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json',
+      $schema: DEFAULT_SCHEMA_URL,
       installDir: '.agents/skills',
       linkTargets: [],
       selfSkill: false,
@@ -48,7 +50,7 @@ describe('initCommand', () => {
     }))
 
     expect(result).toEqual({
-      $schema: 'https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json',
+      $schema: DEFAULT_SCHEMA_URL,
       installDir: '.custom/skills',
       linkTargets: ['.claude/skills', '.continue/skills'],
       selfSkill: false,
@@ -124,14 +126,14 @@ describe('CLI', () => {
 
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
     expect(result).toEqual({
-      $schema: 'https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json',
+      $schema: DEFAULT_SCHEMA_URL,
       installDir: '.agents/skills',
       linkTargets: [],
       selfSkill: false,
       skills: {},
     })
     expect(manifest).toEqual({
-      $schema: 'https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json',
+      $schema: DEFAULT_SCHEMA_URL,
       installDir: '.agents/skills',
       linkTargets: [],
       selfSkill: false,

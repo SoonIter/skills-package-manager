@@ -7,13 +7,15 @@ import { skillsManifestSchema } from '../src/config/schema'
 import { expandSkillsManifest, getBundledSelfSkillSpecifier } from '../src/config/skillsManifest'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
 
+const DEFAULT_SCHEMA_URL = 'https://unpkg.com/skills-package-manager@0.5.0/skills.schema.json'
+
 describe('manifest io', () => {
   it('writes default manifest shape', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-'))
     await writeSkillsManifest(root, { skills: { hello: 'link:./skills/hello' } })
     const manifest = await readSkillsManifest(root)
     expect(manifest).toEqual({
-      $schema: 'https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json',
+      $schema: DEFAULT_SCHEMA_URL,
       installDir: '.agents/skills',
       linkTargets: [],
       skills: { hello: 'link:./skills/hello' },

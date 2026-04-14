@@ -2,7 +2,11 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
-import { preResolution } from '../src/index'
+
+const skillsPackageManagerDistPath = path.join(
+  __dirname,
+  '../../skills-package-manager/dist/index.js',
+)
 
 const repoRoot = path.resolve(__dirname, '../../..')
 describe('preResolution', () => {
@@ -43,6 +47,10 @@ describe('preResolution', () => {
         '    digest: test-digest',
       ].join('\n'),
     )
+
+    const { preResolution } = existsSync(skillsPackageManagerDistPath)
+      ? await import('../src/index')
+      : await import('../../skills-package-manager/src/index')
 
     const result = await preResolution({
       lockfileDir: root,
