@@ -1,8 +1,8 @@
 [
   {
     "text": "Guide",
-    "link": "/",
-    "activeMatch": "(/getting-started|/$|^/index)"
+    "link": "/introduction/",
+    "activeMatch": "(/introduction|/getting-started)"
   },
   {
     "text": "API",

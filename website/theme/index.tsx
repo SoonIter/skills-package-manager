@@ -1,7 +1,7 @@
 import './index.css'
 
 import { Head } from '@rspress/core/runtime'
-import { Layout as OriginalLayout } from '@rspress/core/theme-original'
+import { Link, Layout as OriginalLayout } from '@rspress/core/theme-original'
 
 function SiteFooter() {
   return (
@@ -15,8 +15,8 @@ function SiteFooter() {
           </p>
         </div>
         <div className="spm-footer__links">
-          <a href="/guide/start/introduction">Documentation</a>
-          <a href="/guide/start/getting-started">Quick Start</a>
+          <Link href="/introduction">Documentation</Link>
+          <Link href="/getting-started">Quick Start</Link>
           <a href="https://github.com/SoonIter/skills-pm">GitHub</a>
         </div>
       </div>
@@ -36,3 +36,5 @@ export function Layout() {
 }
 
 export * from '@rspress/core/theme-original'
+export { HomePage } from './components/HomePage'
+export { HomeLayout } from './layout/HomeLayout'
