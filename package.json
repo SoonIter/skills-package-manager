@@ -1,7 +1,7 @@
 {
   "name": "skills-package-manager-workspace",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "prepare": "simple-git-hooks && pnpm run build",

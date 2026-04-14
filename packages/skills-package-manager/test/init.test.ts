@@ -6,7 +6,8 @@ import { promptInitManifestOptions } from '../src/cli/prompt'
 import { runCli } from '../src/cli/runCli'
 import { initCommand } from '../src/commands/init'
 
-const DEFAULT_SCHEMA_URL = 'https://unpkg.com/skills-package-manager@0.5.0/skills.schema.json'
+const pkg = JSON.parse(readFileSync(path.resolve(__dirname, '..', 'package.json'), 'utf8'))
+const DEFAULT_SCHEMA_URL = `https://unpkg.com/skills-package-manager@${pkg.version}/skills.schema.json`
 
 describe('initCommand', () => {
   it('writes default manifest when yes is true', async () => {
