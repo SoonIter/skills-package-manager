@@ -65,3 +65,39 @@ describe('preResolution', () => {
     expect(existsSync(path.join(root, '.claude/skills/hello-skill'))).toBe(true)
   })
 })
+
+describe('afterAllResolved', () => {
+  it('removes pnpmfileChecksum when temporary compatibility flag is enabled', async () => {
+    const { afterAllResolved } = await import('../src/index')
+
+    const lockfile = {
+      lockfileVersion: '9.0',
+      pnpmfileChecksum: 'checksum-to-remove',
+    }
+
+    const result = afterAllResolved(lockfile, {
+      config: {
+        pnpmPlugin: {
+          removePnpmFileCheckSum: true,
+        },
+      },
+    })
+
+    expect(result).toBe(lockfile)
+    expect(result).not.toHaveProperty('pnpmfileChecksum')
+  })
+
+  it('keeps pnpmfileChecksum by default', async () => {
+    const { afterAllResolved } = await import('../src/index')
+
+    const lockfile = {
+      lockfileVersion: '9.0',
+      pnpmfileChecksum: 'checksum-to-keep',
+    }
+
+    const result = afterAllResolved(lockfile, {})
+
+    expect(result).toBe(lockfile)
+    expect(result).toHaveProperty('pnpmfileChecksum', 'checksum-to-keep')
+  })
+})

@@ -1,8 +1,9 @@
 // pnpm v10
-const { preResolution } = require('./dist/index.js')
+const { afterAllResolved, preResolution } = require('./dist/index.js')
 
 module.exports = {
   hooks: {
+    afterAllResolved,
     preResolution,
   },
 }
