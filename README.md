@@ -173,9 +173,9 @@ This automatically adds it to `configDependencies` in `pnpm-workspace.yaml`.
 
 ## 📚 Documentation
 
-- 📖 [Getting Started Guide](https://skills-package-manager.dev/getting-started)
-- 📘 [API Reference](https://skills-package-manager.dev/api/)
-- 🏗️ [Architecture](https://skills-package-manager.dev/architecture/how-it-works)
+- 📖 [Getting Started Guide](https://skills-package-manager.site/getting-started)
+- 📘 [API Reference](https://skills-package-manager.site/api/)
+- 🏗️ [Architecture](https://skills-package-manager.site/architecture/how-it-works)
 
 ## 🛠️ Development
 

@@ -2,6 +2,7 @@
   padding: 0 24px 48px;
 }
 
+/* Hero */
 .spm-home__hero {
   max-width: 1280px;
   margin: 0 auto;
@@ -96,63 +97,117 @@
   }
 }
 
-/* Protocols */
-.spm-home__protocols {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 24px 0 32px;
+/* Section headers */
+.spm-home__section-header {
+  text-align: center;
+  margin-bottom: 32px;
 }
 
-.spm-home__protocols-inner {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.spm-home__section-title {
+  margin: 0 0 8px;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--rp-c-text-1);
+}
+
+.spm-home__section-subtitle {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--rp-c-text-2);
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.5;
+}
+
+/* Quick start bars */
+.spm-home__quickstart {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 0;
+}
+
+.spm-home__quickstart-list {
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
-@media (max-width: 768px) {
-  .spm-home__protocols-inner {
-    grid-template-columns: 1fr;
-  }
-}
-
-.spm-home__protocol {
+.spm-home__quick-bar {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   padding: 16px 20px;
   border-radius: 16px;
   border: 1px solid var(--rp-c-divider-light);
+  background: var(--rp-c-bg-mute, #111827);
+}
+
+@media (max-width: 640px) {
+  .spm-home__quick-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.spm-home__quick-bar-code {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.spm-home__quick-bar-code pre {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--rp-c-text-1);
+}
+
+.spm-home__quick-bar-code code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+/* for Agent button */
+.spm-home__agent-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  appearance: none;
+  border: 1px solid var(--rp-c-divider-light);
   background: var(--rp-c-bg-soft);
-}
-
-.spm-home__protocol-badge {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  background: var(--rp-c-brand-dimm, rgba(45, 212, 191, 0.18));
-  color: var(--rp-c-brand);
-  white-space: nowrap;
-}
-
-.spm-home__protocol-text {
-  font-size: 0.9rem;
   color: var(--rp-c-text-2);
-  line-height: 1.4;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.spm-home__agent-btn:hover {
+  border-color: var(--rp-c-brand);
+  color: var(--rp-c-brand);
+  background: var(--rp-c-bg-mute);
+}
+
+.spm-home__agent-btn-check {
+  font-size: 0.9rem;
+  line-height: 1;
 }
 
 /* Features */
 .spm-home__features {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 32px 0;
+  padding: 48px 0 32px;
 }
 
 .spm-home__features-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 
@@ -182,8 +237,21 @@
 }
 
 .spm-home__feature-icon {
-  font-size: 2rem;
-  margin-bottom: 12px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(45,212,191,0.15) 0%, rgba(99,102,241,0.12) 100%);
+  color: var(--rp-c-brand);
+  margin-bottom: 16px;
+}
+
+.spm-home__icon-svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.6;
 }
 
 .spm-home__feature-title {
@@ -198,38 +266,6 @@
   font-size: 0.95rem;
   color: var(--rp-c-text-2);
   line-height: 1.5;
-}
-
-/* Code section */
-.spm-home__code {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 32px 0;
-}
-
-.spm-home__code-inner {
-  padding: 32px;
-  border-radius: 24px;
-  border: 1px solid var(--rp-c-divider-light);
-  background: var(--rp-c-bg-soft);
-}
-
-.spm-home__code-title {
-  margin: 0 0 20px;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--rp-c-text-1);
-}
-
-.spm-home__code-block {
-  margin: 0;
-  padding: 20px 24px;
-  border-radius: 16px;
-  background: var(--rp-c-bg-mute, #111827);
-  color: var(--rp-c-text-1);
-  font-size: 0.95rem;
-  line-height: 1.7;
-  overflow-x: auto;
 }
 
 /* CTA */
