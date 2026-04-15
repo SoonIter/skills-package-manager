@@ -67,7 +67,7 @@ describe('preResolution', () => {
 })
 
 describe('afterAllResolved', () => {
-  it('removes pnpmfileChecksum when enabled in skills.json', async () => {
+  it('removes pnpmfileChecksum when enabled in the current workspace', async () => {
     const { afterAllResolved } = await import('../src/index')
     const root = mkdtempSync(path.join(tmpdir(), 'pnpm-plugin-skills-config-'))
 
@@ -92,13 +92,21 @@ describe('afterAllResolved', () => {
       pnpmfileChecksum: 'checksum-to-remove',
     }
 
-    const result = afterAllResolved(lockfile, { lockfileDir: root })
+    const previousCwd = process.cwd()
+    process.chdir(root)
+
+    let result: typeof lockfile
+    try {
+      result = afterAllResolved(lockfile, { log: () => undefined })
+    } finally {
+      process.chdir(previousCwd)
+    }
 
     expect(result).toBe(lockfile)
     expect(result).not.toHaveProperty('pnpmfileChecksum')
   })
 
-  it('falls back to the nearest skills.json when pnpm does not pass lockfileDir', async () => {
+  it('falls back to the nearest skills.json when pnpm only passes hook context', async () => {
     const { afterAllResolved } = await import('../src/index')
     const root = mkdtempSync(path.join(tmpdir(), 'pnpm-plugin-skills-cwd-'))
     const nestedDir = path.join(root, 'packages/docs')
@@ -129,7 +137,7 @@ describe('afterAllResolved', () => {
         pnpmfileChecksum: 'checksum-to-remove',
       }
 
-      const result = afterAllResolved(lockfile, {})
+      const result = afterAllResolved(lockfile, { log: () => undefined })
 
       expect(result).toBe(lockfile)
       expect(result).not.toHaveProperty('pnpmfileChecksum')
@@ -146,7 +154,7 @@ describe('afterAllResolved', () => {
       pnpmfileChecksum: 'checksum-to-keep',
     }
 
-    const result = afterAllResolved(lockfile, {})
+    const result = afterAllResolved(lockfile, { log: () => undefined })
 
     expect(result).toBe(lockfile)
     expect(result).toHaveProperty('pnpmfileChecksum', 'checksum-to-keep')

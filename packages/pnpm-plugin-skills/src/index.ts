@@ -46,9 +46,9 @@ export async function preResolution(
 
 export function afterAllResolved(
   lockfile: Record<string, unknown>,
-  context: { lockfileDir?: string } = {},
+  _context: { log?: (message: string) => void } = {},
 ) {
-  const manifestRoot = context.lockfileDir ?? findManifestRoot(process.cwd())
+  const manifestRoot = findManifestRoot(process.cwd())
   if (!manifestRoot) {
     return lockfile
   }
