@@ -1,6 +1,6 @@
 import { useFrontmatter } from '@rspress/core/runtime'
 import { Button } from '@rspress/core/theme-original'
-import { useState } from 'react'
+import React, { type ReactNode, useState } from 'react'
 import './index.css'
 
 interface HomeAction {
@@ -45,16 +45,11 @@ interface HomeFrontmatter {
   concepts?: HomeConcept[]
 }
 
-function Icon({
-  children,
-  viewBox = '0 0 24 24',
-}: {
-  children: React.ReactNode
-  viewBox?: string
-}) {
+function Icon({ children, viewBox = '0 0 24 24' }: { children: ReactNode; viewBox?: string }) {
   return (
     <svg
-      aria-label="Icon"
+      aria-hidden="true"
+      focusable="false"
       width="28"
       height="28"
       viewBox={viewBox}
@@ -153,12 +148,53 @@ function getConceptIcon(icon: string) {
 
 function CopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false)
-  const handleCopy = () => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
+
+  const fallbackCopyText = (value: string) => {
+    const textarea = document.createElement('textarea')
+    textarea.value = value
+    textarea.setAttribute('readonly', '')
+    textarea.style.position = 'absolute'
+    textarea.style.left = '-9999px'
+    document.body.appendChild(textarea)
+    textarea.select()
+
+    let succeeded = false
+    try {
+      succeeded = document.execCommand('copy')
+    } catch (err) {
+      console.error('Fallback copy failed', err)
+    } finally {
+      document.body.removeChild(textarea)
+    }
+
+    return succeeded
   }
+
+  const handleCopy = async () => {
+    try {
+      let succeeded = false
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+        succeeded = true
+      } else {
+        succeeded = fallbackCopyText(text)
+      }
+
+      if (succeeded) {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }
+    } catch (err) {
+      if (fallbackCopyText(text)) {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } else {
+        console.error('Failed to copy text: ', err)
+      }
+    }
+  }
+
   return (
     <button
       className="spm-copy-btn"

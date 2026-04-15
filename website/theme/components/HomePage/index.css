@@ -436,3 +436,12 @@
     align-self: flex-start;
   }
 }
+
+.spm-hero-action-btn,
+.spm-cta-btn {
+  /* Inherit Button styles from Rspress theme */
+}
+
+.spm-copy-btn-text {
+  /* Placeholder for potential future styling of the copy button label */
+}
