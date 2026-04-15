@@ -3,8 +3,8 @@ pageType: home
 
 hero:
   name: skills-package-manager
-  text: Package manager for agent skills
-  tagline: Manage, install, and link SKILL.md-based agent skills with ease.
+  text: The Next-Gen Package Manager for Agent Skills
+  tagline: Seamlessly manage, install, and link AI agent skills with lockfile-driven reproducibility and multi-protocol support.
   image:
     src: /logo-light.svg
     alt: skills-package-manager logo
@@ -17,26 +17,38 @@ hero:
       link: /introduction
 
 features:
-  - title: Reproducible Installs with `skills-lock.yaml`
-    details: Say goodbye to committing skill source files. `skills-package-manager` generates a `skills-lock.yaml` file that precisely records each skill's version and origin. This ensures that every team member, and your CI/CD pipeline, gets the exact same skill set every time.
-  - title: Any Source, Any Skill
-    details: Pull skills from anywhere. Link to local skills for development (`link:`), grab versioned packages from npm (`npm:`), pull directly from Git repositories (`git:`), or even extract from a `.tgz` archive. The choice is yours.
-  - title: Drop-in for `npx skills`
-    details: Upgrading is as simple as changing a command. `skills-package-manager` is designed to be a fully compatible, more powerful replacement for `npx skills`. You can start using it in your project today without changing your workflow.
-  - title: First-Class pnpm Support
-    details: For the pnpm enthusiasts! The optional `pnpm-plugin-skills` hooks directly into `pnpm install`. Your skills are automatically installed, updated, and linked whenever you manage your Node.js packages.
-  - title: Truly Open Source
-    details: "`skills-package-manager` is completely open source, client-side, and respects your privacy. There's no telemetry, no user tracking, and no dependency on a specific registry or backend service."
-  - title: Manage Multiple Agents with Ease
-    details: Stop duplicating skill files for different AI agents. Install your skills once, and `skills-package-manager` can create symbolic links to multiple agent-specific directories like `.claude/skills` or `.cursor/skills`.
+  - title: Reproducible Installs with skills-lock.yaml
+    details: Stop committing heavy skill files! `skills-lock.yaml` handles version control automatically. Keep your git history clean while ensuring everyone on your team uses the exact same skills. Update effortlessly with `npx skills-package-manager update`.
+    icon: lock
+  - title: Multi-Protocol in skills.json
+    details: Flexibly declare your dependencies. Whether it's a local `link:`, an `npm:` package, a `git:` repository, or even a specific sub-folder inside a `.tgz` archive, `skills-package-manager` handles it natively.
+    icon: globe
+  - title: Drop-in for npx skills
+    details: "Fully compatible with your existing workflows. Transitioning is as simple as swapping the command: change `npx skills add` to `npx skills-package-manager add` and instantly unlock powerful new capabilities."
+    icon: swap
+  - title: First-Class pnpm Integration
+    details: Built with `pnpm` lovers in mind. Use `pnpm-plugin-skills` to hook directly into your dependency resolution lifecycle, keeping your AI agent skills perfectly synced with your Node packages.
+    icon: plug
+  - title: Open Source & Privacy First
+    details: 100% open-source, purely client-side, and completely neutral. Enjoy a high-performance tool with absolutely no telemetry, tracking, or mandatory registries.
+    icon: shield
+  - title: Multi-Agent Native
+    details: Stop duplicating skill folders for different tools. Install your skills once and automatically link them into `.claude/skills`, `.cursor/skills`, or any custom agent directory simultaneously.
+    icon: multi
 
 quickStarts:
-  - label: 'CLI'
-    command: "npx skills-package-manager init --yes
-npx skills-package-manager add vercel-labs/skills
-npx skills-package-manager install"
-    agentText: 'Please use spm to initialize this project, add the skill "vercel-labs/skills", and install all skills.'
-  - label: 'pnpm'
+  - label: 'CLI Setup'
+    command: "npx skills-package-manager init --yes\nnpx skills-package-manager add &lt;skill-name&gt;\nnpx skills-package-manager install"
+    agentText: 'Use skills-package-manager to initialize and install skills for this project.'
+  - label: 'pnpm Plugin'
     command: 'pnpm add pnpm-plugin-skills --config'
-    agentText: 'Please add pnpm-plugin-skills as a pnpm config dependency so skills sync automatically on install.'
+    agentText: 'Add pnpm-plugin-skills as a pnpm config dependency to automatically sync skills on install.'
+
+concepts:
+  - title: 'skills.json: The Manifest'
+    details: 'The single source of truth for your required skills across any protocol.'
+    icon: 'manifest'
+  - title: 'skills-lock.yaml: The Lockfile'
+    details: 'Locks dependencies to ensure deterministic, reproducible installations every time.'
+    icon: 'lockfile'
 ---

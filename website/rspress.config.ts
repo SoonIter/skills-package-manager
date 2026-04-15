@@ -1,8 +1,8 @@
 import * as path from 'node:path'
 import { defineConfig } from '@rspress/core'
+import pluginFileTree from 'rspress-plugin-file-tree'
 import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans'
 import pluginMermaid from 'rspress-plugin-mermaid'
-import pluginFileTree from 'rspress-plugin-file-tree'
 
 export default defineConfig({
   root: path.join(__dirname, 'docs'),

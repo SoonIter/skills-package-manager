@@ -1,5 +1,5 @@
 import { useFrontmatter } from '@rspress/core/runtime'
-import { Button, Link } from '@rspress/core/theme-original'
+import { Button } from '@rspress/core/theme-original'
 import { useState } from 'react'
 import './index.css'
 
@@ -23,6 +23,7 @@ interface HomeHero {
 interface HomeFeature {
   title: string
   details: string
+  icon?: string
 }
 
 interface HomeQuickStart {
@@ -31,119 +32,126 @@ interface HomeQuickStart {
   agentText: string
 }
 
+interface HomeConcept {
+  title: string
+  details: string
+  icon: string
+}
+
 interface HomeFrontmatter {
   hero?: HomeHero
   features?: HomeFeature[]
   quickStarts?: HomeQuickStart[]
+  concepts?: HomeConcept[]
 }
 
-const DEFAULT_FEATURES: HomeFeature[] = [
-  {
-    title: 'Lockfile-driven version control',
-    details:
-      'skills-lock.yaml locks every skill resolution. No need to commit skill files to git. Run npx skills-package-manager update to refresh all skills in one shot.',
-  },
-  {
-    title: 'Any source you need',
-    details:
-      'Supports link, npm, git, file, and even sub-folders inside a .tgz tarball. Mix local development and remote packages freely.',
-  },
-  {
-    title: 'Drop-in replacement for npx skills',
-    details:
-      'Already used to npx skills? Just swap the command name: npx skills add becomes npx skills-package-manager add.',
-  },
-  {
-    title: 'Built for pnpm users',
-    details:
-      'pnpm-plugin-skills hooks into pnpm install so your skills sync automatically with your dependencies.',
-  },
-  {
-    title: 'Open source & privacy-first',
-    details:
-      'Pure client-side tooling. No registry lock-in, no cloud services, and zero telemetry or tracking.',
-  },
-  {
-    title: 'Multi-agent ready',
-    details:
-      'Install skills once, then link them into .claude/skills, .cursor/skills, or any agent-specific directory you define.',
-  },
-]
-
-const DEFAULT_QUICK_STARTS: HomeQuickStart[] = [
-  {
-    label: 'CLI',
-    command: `npx skills-package-manager init --yes
-npx skills-package-manager add vercel-labs/skills
-npx skills-package-manager install`,
-    agentText:
-      'Please use spm to initialize this project, add the skill "vercel-labs/skills", and install all skills.',
-  },
-  {
-    label: 'pnpm',
-    command: 'pnpm add pnpm-plugin-skills --config',
-    agentText:
-      'Please add pnpm-plugin-skills as a pnpm config dependency so skills sync automatically on install.',
-  },
-]
-
-function Icon({ children }: { children: React.ReactNode }) {
+function Icon({
+  children,
+  viewBox = '0 0 24 24',
+}: {
+  children: React.ReactNode
+  viewBox?: string
+}) {
   return (
     <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
+      aria-label="Icon"
+      width="28"
+      height="28"
+      viewBox={viewBox}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="spm-home__icon-svg"
+      className="spm-icon-svg"
     >
       {children}
     </svg>
   )
 }
 
-const FEATURE_ICONS = [
-  // Lock
-  <Icon key="lock">
-    <rect x="5" y="11" width="14" height="10" rx="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </Icon>,
-  // Globe
-  <Icon key="globe">
-    <circle cx="12" cy="12" r="9" />
-    <ellipse cx="12" cy="12" rx="3.5" ry="9" />
-    <path d="M3 12h18" />
-  </Icon>,
-  // Swap
-  <Icon key="swap">
-    <path d="M4 9h10" />
-    <path d="M9 5l4 4-4 4" />
-    <path d="M20 15H10" />
-    <path d="M15 11l4 4-4 4" />
-  </Icon>,
-  // Plug
-  <Icon key="plug">
-    <path d="M12 2v8" />
-    <path d="M8 2v4" />
-    <path d="M16 2v4" />
-    <path d="M6 10h12v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4v-5Z" />
-  </Icon>,
-  // Shield
-  <Icon key="shield">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
-  </Icon>,
-  // Multi-agent (two overlapping squares / layers)
-  <Icon key="multi">
-    <path d="M16 3h3a2 2 0 0 1 2 2v3" />
-    <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
-    <rect x="4" y="8" width="12" height="10" rx="2" />
-  </Icon>,
-]
+function getFeatureIcon(name?: string) {
+  switch (name) {
+    case 'lock':
+      return (
+        <Icon>
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </Icon>
+      )
+    case 'globe':
+      return (
+        <Icon>
+          <circle cx="12" cy="12" r="9" />
+          <ellipse cx="12" cy="12" rx="3.5" ry="9" />
+          <path d="M3 12h18" />
+        </Icon>
+      )
+    case 'swap':
+      return (
+        <Icon>
+          <path d="M4 9h10" />
+          <path d="M9 5l4 4-4 4" />
+          <path d="M20 15H10" />
+          <path d="M15 11l4 4-4 4" />
+        </Icon>
+      )
+    case 'plug':
+      return (
+        <Icon>
+          <path d="M12 2v8" />
+          <path d="M8 2v4" />
+          <path d="M16 2v4" />
+          <path d="M6 10h12v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4v-5Z" />
+        </Icon>
+      )
+    case 'shield':
+      return (
+        <Icon>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+        </Icon>
+      )
+    case 'multi':
+      return (
+        <Icon>
+          <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+          <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+          <rect x="4" y="8" width="12" height="10" rx="2" />
+        </Icon>
+      )
+    default:
+      return (
+        <Icon>
+          <circle cx="12" cy="12" r="9" />
+        </Icon>
+      )
+  }
+}
 
-function ForAgentButton({ text }: { text: string }) {
+function getConceptIcon(icon: string) {
+  if (icon === 'manifest') {
+    return (
+      <Icon>
+        <path d="M4 6h16" />
+        <path d="M4 12h16" />
+        <path d="M4 18h16" />
+      </Icon>
+    )
+  }
+  if (icon === 'lockfile') {
+    return (
+      <Icon>
+        <path d="M15 3H9a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z" />
+        <path d="M9 3v18" />
+        <path d="m10 9-1 1 1 1" />
+        <path d="m14 13-1 1 1 1" />
+      </Icon>
+    )
+  }
+  return null
+}
+
+function CopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false)
   const handleCopy = () => {
     navigator.clipboard.writeText(text).then(() => {
@@ -152,8 +160,17 @@ function ForAgentButton({ text }: { text: string }) {
     })
   }
   return (
-    <button className="spm-home__agent-btn" onClick={handleCopy}>
-      <span className="spm-home__agent-btn-check">{copied ? 'Copied' : 'for Agent'}</span>
+    <button
+      className="spm-copy-btn"
+      onClick={handleCopy}
+      type="button"
+      aria-label="Copy to clipboard"
+    >
+      {copied ? (
+        <span className="spm-copy-btn-text">Copied!</span>
+      ) : (
+        <span className="spm-copy-btn-text">{label}</span>
+      )}
     </button>
   )
 }
@@ -165,98 +182,131 @@ function getActionTheme(theme?: HomeAction['theme']) {
 export function HomePage() {
   const { frontmatter } = useFrontmatter() as { frontmatter?: HomeFrontmatter }
   const hero = frontmatter?.hero
-  const features = frontmatter?.features ?? DEFAULT_FEATURES
-  const quickStarts = frontmatter?.quickStarts ?? DEFAULT_QUICK_STARTS
+  const features = frontmatter?.features ?? []
+  const quickStarts = frontmatter?.quickStarts ?? []
+  const concepts = frontmatter?.concepts ?? []
   const heroActions = hero?.actions ?? []
   const heroImage = hero?.image
 
   return (
-    <div className="spm-home">
-      <section className="spm-home__hero">
-        <div className="spm-home__hero-content">
-          <h1 className="spm-home__title">
-            <span className="spm-home__title-brand">{hero?.name ?? 'skills-package-manager'}</span>
-          </h1>
-          <p className="spm-home__subtitle">{hero?.text ?? 'Package manager for agent skills'}</p>
-          <p className="spm-home__tagline">
-            {hero?.tagline ?? 'Manage, install, and link SKILL.md-based agent skills with ease.'}
-          </p>
-          <div className="spm-home__actions">
-            {heroActions.map((action) => (
-              <Button
-                key={`${action.text}-${action.link}`}
-                type="a"
-                href={action.link}
-                theme={getActionTheme(action.theme)}
-                className="spm-home__action"
-              >
-                {action.text}
-              </Button>
+    <div className="spm-home-wrapper">
+      <div className="spm-hero-section">
+        <div className="spm-hero-container">
+          <div className="spm-hero-content">
+            <div className="spm-hero-badge">v1.0 Ready</div>
+            <h1 className="spm-hero-title">
+              <span className="spm-hero-title-brand">{hero?.name ?? 'skills-package-manager'}</span>
+            </h1>
+            <p className="spm-hero-subtitle">{hero?.text}</p>
+            <p className="spm-hero-tagline">{hero?.tagline}</p>
+            <div className="spm-hero-actions">
+              {heroActions.map((action) => (
+                <Button
+                  key={`${action.text}-${action.link}`}
+                  type="a"
+                  href={action.link}
+                  theme={getActionTheme(action.theme)}
+                  className="spm-hero-action-btn"
+                >
+                  {action.text}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <div className="spm-hero-visual">
+            <div className="spm-hero-image-wrapper">
+              <img
+                src={heroImage?.src ?? '/logo-light.svg'}
+                alt={heroImage?.alt ?? 'skills-package-manager logo'}
+                className="spm-hero-img"
+              />
+              <div className="spm-hero-glow"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="spm-quickstart-section">
+        <div className="spm-container">
+          <div className="spm-section-header">
+            <h2>Get Started Instantly</h2>
+            <p>Choose your workflow and copy the command to your terminal or your AI agent.</p>
+          </div>
+          <div className="spm-quickstart-cards">
+            {quickStarts.map((item) => (
+              <div key={item.label} className="spm-quickstart-card">
+                <div className="spm-quickstart-card-header">
+                  <h3 className="spm-quickstart-label">{item.label}</h3>
+                  <div className="spm-quickstart-actions">
+                    <CopyButton text={item.agentText} label="Copy for Agent" />
+                  </div>
+                </div>
+                <div className="spm-quickstart-code-wrapper">
+                  <pre className="spm-quickstart-code">
+                    <code>{item.command}</code>
+                  </pre>
+                  <CopyButton text={item.command} label="Copy Code" />
+                </div>
+              </div>
             ))}
           </div>
         </div>
-        <div className="spm-home__hero-image">
-          <img
-            src={heroImage?.src ?? '/logo-light.svg'}
-            alt={heroImage?.alt ?? 'skills-package-manager logo'}
-            width={280}
-            height={280}
-          />
-        </div>
-      </section>
+      </div>
 
-      <section className="spm-home__quickstart">
-        <div className="spm-home__section-header">
-          <h2 className="spm-home__section-title">Get started in seconds</h2>
-          <p className="spm-home__section-subtitle">
-            Copy the command for yourself, or click the left button to copy a prompt for your AI agent.
-          </p>
-        </div>
-        <div className="spm-home__quickstart-list">
-          {quickStarts.map((item) => (
-            <div key={item.label} className="spm-home__quick-bar">
-              <ForAgentButton text={item.agentText} />
-              <div className="spm-home__quick-bar-code">
-                <pre>
-                  <code>{item.command}</code>
-                </pre>
+      <div className="spm-features-section">
+        <div className="spm-container">
+          <div className="spm-section-header">
+            <h2>Why skills-package-manager?</h2>
+            <p>
+              Designed specifically to handle the complexities of managing AI agent skills
+              seamlessly.
+            </p>
+          </div>
+          <div className="spm-features-grid">
+            {features.map((f, _i) => (
+              <div key={f.title} className="spm-feature-card">
+                <div className="spm-feature-icon-wrapper">{getFeatureIcon(f.icon)}</div>
+                <h3 className="spm-feature-title">{f.title}</h3>
+                <p className="spm-feature-desc">{f.details}</p>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="spm-home__features">
-        <div className="spm-home__section-header">
-          <h2 className="spm-home__section-title">Why skills-package-manager?</h2>
-          <p className="spm-home__section-subtitle">
-            A lightweight, open-source package manager designed for AI agent skills.
-          </p>
-        </div>
-        <div className="spm-home__features-grid">
-          {features.map((f, i) => (
-            <div key={f.title} className="spm-home__feature">
-              <div className="spm-home__feature-icon">{FEATURE_ICONS[i]}</div>
-              <h3 className="spm-home__feature-title">{f.title}</h3>
-              <p className="spm-home__feature-desc">{f.details}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="spm-home__cta">
-        <div className="spm-home__cta-inner">
-          <h2 className="spm-home__cta-title">Ready to manage your skills?</h2>
-          <div className="spm-home__cta-actions">
-            <Button type="a" href="/getting-started" theme="brand" className="spm-home__action">
-              Read the Guide
-            </Button>
-            <Link href="https://github.com/SoonIter/skills-pm" className="spm-home__cta-link">
-              View on GitHub
-            </Link>
+            ))}
           </div>
         </div>
-      </section>
+      </div>
+
+      <div className="spm-concepts-section">
+        <div className="spm-container">
+          <div className="spm-section-header">
+            <h2>Core Concepts</h2>
+            <p>Two simple files power your entire workflow.</p>
+          </div>
+          <div className="spm-concepts-grid">
+            {concepts.map((c) => (
+              <div key={c.title} className="spm-concept-card">
+                <div className="spm-concept-icon-wrapper">{getConceptIcon(c.icon)}</div>
+                <div className="spm-concept-content">
+                  <h3 className="spm-concept-title">{c.title}</h3>
+                  <p className="spm-concept-desc">{c.details}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="spm-cta-section">
+        <div className="spm-container">
+          <div className="spm-cta-box">
+            <h2 className="spm-cta-title">Ready to take control of your agent skills?</h2>
+            <p className="spm-cta-desc">Start building robust, reproducible AI workflows today.</p>
+            <div className="spm-cta-actions">
+              <Button type="a" href="/getting-started" theme="brand" className="spm-cta-btn">
+                Read the Documentation
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
