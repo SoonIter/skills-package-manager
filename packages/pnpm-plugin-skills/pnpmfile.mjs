@@ -5,7 +5,7 @@ export const hooks = {
   afterAllResolved: (lockfile, context) => {
     return afterAllResolved(lockfile, context)
   },
-  preResolution: (manifest, context) => {
-    return preResolution(manifest, context)
+  preResolution: (options) => {
+    return preResolution(options)
   },
 }
