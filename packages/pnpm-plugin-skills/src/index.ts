@@ -3,20 +3,20 @@ import path from 'node:path'
 import { installCommand, type SkillsManifest } from 'skills-package-manager'
 
 function findManifestRoot(startDir: string): string | null {
-  let currentDir = path.resolve(startDir)
+  const resolvedStartDir = path.resolve(startDir)
+  const rootDir = path.parse(resolvedStartDir).root
 
-  while (true) {
+  for (
+    let currentDir = resolvedStartDir;
+    currentDir !== rootDir;
+    currentDir = path.dirname(currentDir)
+  ) {
     if (existsSync(path.join(currentDir, 'skills.json'))) {
       return currentDir
     }
-
-    const parentDir = path.dirname(currentDir)
-    if (parentDir === currentDir) {
-      return null
-    }
-
-    currentDir = parentDir
   }
+
+  return existsSync(path.join(rootDir, 'skills.json')) ? rootDir : null
 }
 
 function readPluginManifest(rootDir: string): SkillsManifest | null {
@@ -46,10 +46,9 @@ export async function preResolution(
 
 export function afterAllResolved(
   lockfile: Record<string, unknown>,
-  context: { lockfileDir?: string; workspaceDir?: string } = {},
+  context: { lockfileDir?: string } = {},
 ) {
-  const manifestRoot =
-    context.lockfileDir ?? context.workspaceDir ?? findManifestRoot(process.cwd())
+  const manifestRoot = context.lockfileDir ?? findManifestRoot(process.cwd())
   if (!manifestRoot) {
     return lockfile
   }
