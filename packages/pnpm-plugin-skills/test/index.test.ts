@@ -98,6 +98,46 @@ describe('afterAllResolved', () => {
     expect(result).not.toHaveProperty('pnpmfileChecksum')
   })
 
+  it('falls back to the nearest skills.json when pnpm does not pass lockfileDir', async () => {
+    const { afterAllResolved } = await import('../src/index')
+    const root = mkdtempSync(path.join(tmpdir(), 'pnpm-plugin-skills-cwd-'))
+    const nestedDir = path.join(root, 'packages/docs')
+
+    mkdirSync(nestedDir, { recursive: true })
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          pnpmPlugin: {
+            removePnpmfileChecksum: true,
+          },
+          skills: {},
+        },
+        null,
+        2,
+      ),
+    )
+
+    const previousCwd = process.cwd()
+    process.chdir(nestedDir)
+
+    try {
+      const lockfile = {
+        lockfileVersion: '9.0',
+        pnpmfileChecksum: 'checksum-to-remove',
+      }
+
+      const result = afterAllResolved(lockfile, {})
+
+      expect(result).toBe(lockfile)
+      expect(result).not.toHaveProperty('pnpmfileChecksum')
+    } finally {
+      process.chdir(previousCwd)
+    }
+  })
+
   it('keeps pnpmfileChecksum by default', async () => {
     const { afterAllResolved } = await import('../src/index')
 
