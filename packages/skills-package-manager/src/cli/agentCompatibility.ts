@@ -282,7 +282,7 @@ export function getCompatibleAddAgent(name: string): CompatibleAgentTarget | nul
 
 export function resolveCompatibleAddAgentTargets(
   agentNames: string[] | undefined,
-  options: { global: boolean },
+  options: { global: boolean; installDir?: string },
 ): { invalidAgents: string[]; linkTargets: string[] } {
   if (!agentNames || agentNames.length === 0) {
     return { invalidAgents: [], linkTargets: [] }
@@ -300,7 +300,7 @@ export function resolveCompatibleAddAgentTargets(
     }
 
     const nextTarget = options.global ? target.globalPath() : target.projectPath
-    if (nextTarget === '.agents/skills') {
+    if (nextTarget === '.agents/skills' && options.installDir === '.agents/skills') {
       continue
     }
 

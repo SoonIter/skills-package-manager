@@ -61,14 +61,16 @@ describe('parseAddSourceSpecifier', () => {
     })
   })
 
-  it('parses GitHub tree URLs', () => {
+  it('parses GitHub tree URLs with an explicit slash-containing ref', () => {
     expect(
-      parseAddSourceSpecifier('https://github.com/owner/repo/tree/main/skills/my-skill'),
+      parseAddSourceSpecifier(
+        'https://github.com/owner/repo/tree/feature/skills/skills/my-skill#feature/skills',
+      ),
     ).toEqual({
       type: 'repo',
       cloneUrl: 'https://github.com/owner/repo.git',
       displaySource: 'owner/repo',
-      ref: 'main',
+      ref: 'feature/skills',
       subpath: 'skills/my-skill',
     })
   })
@@ -81,16 +83,30 @@ describe('parseAddSourceSpecifier', () => {
     })
   })
 
-  it('parses GitLab tree URLs', () => {
+  it('rejects ambiguous GitHub tree URLs without an explicit ref', () => {
+    expect(() =>
+      parseAddSourceSpecifier('https://github.com/owner/repo/tree/main/skills/my-skill'),
+    ).toThrow('Ambiguous GitHub tree URL')
+  })
+
+  it('parses GitLab tree URLs with an explicit slash-containing ref', () => {
     expect(
-      parseAddSourceSpecifier('https://gitlab.com/group/subgroup/repo/-/tree/main/skills/my-skill'),
+      parseAddSourceSpecifier(
+        'https://gitlab.com/group/subgroup/repo/-/tree/feature/skills/skills/my-skill#feature/skills',
+      ),
     ).toEqual({
       type: 'repo',
       cloneUrl: 'https://gitlab.com/group/subgroup/repo.git',
       displaySource: 'group/subgroup/repo',
-      ref: 'main',
+      ref: 'feature/skills',
       subpath: 'skills/my-skill',
     })
+  })
+
+  it('rejects ambiguous GitLab tree URLs without an explicit ref', () => {
+    expect(() =>
+      parseAddSourceSpecifier('https://gitlab.com/group/subgroup/repo/-/tree/main/skills/my-skill'),
+    ).toThrow('Ambiguous GitLab tree URL')
   })
 
   it('parses generic git URLs with refs', () => {
@@ -313,6 +329,36 @@ describe('addCommand', () => {
     expect(manifest.linkTargets).toEqual(['.claude/skills', '.continue/skills'])
     expect(lstatSync(path.join(root, '.claude/skills/hello-skill')).isSymbolicLink()).toBe(true)
     expect(lstatSync(path.join(root, '.continue/skills/hello-skill')).isSymbolicLink()).toBe(true)
+  })
+
+  it('keeps .agents/skills as a link target when the manifest installs elsewhere', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-agents-custom-install-dir-'))
+    const localSkillPath = path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')
+
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: 'custom/skills',
+          linkTargets: [],
+          skills: {},
+        },
+        null,
+        2,
+      ),
+    )
+
+    await addCommand({
+      cwd: root,
+      specifier: localSkillPath,
+      agent: ['cursor'],
+    })
+
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+    expect(manifest.installDir).toBe('custom/skills')
+    expect(manifest.linkTargets).toEqual(['.agents/skills'])
+    expect(existsSync(path.join(root, 'custom/skills/hello-skill/SKILL.md'))).toBe(true)
+    expect(lstatSync(path.join(root, '.agents/skills/hello-skill')).isSymbolicLink()).toBe(true)
   })
 
   it('adds global agent link targets when -g is specified', async () => {

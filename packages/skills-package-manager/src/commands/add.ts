@@ -21,10 +21,6 @@ import { installSkills } from '../install/installSkills'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { ensureDir } from '../utils/fs'
 
-function _isProtocolSpecifier(specifier: string): boolean {
-  return /^[a-z]+:/.test(specifier)
-}
-
 type ParsedAddSource =
   | {
       type: 'repo'
@@ -102,73 +98,84 @@ function formatSourceWithRef(source: string, ref?: string): string {
   return ref ? `${source}#${ref}` : source
 }
 
-function parseGitHubTreeSource(input: string, ref?: string): ParsedAddSource | null {
-  const treeWithPathMatch = input.match(
-    /^https?:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?\/tree\/([^/]+)\/(.+)\/?$/,
-  )
+function parseTreeUrlSuffix(
+  provider: 'GitHub' | 'GitLab',
+  input: string,
+  treeSuffix: string,
+  ref?: string,
+): { ref: string; subpath?: string } {
+  const normalizedTreeSuffix = treeSuffix.replace(/\/+$/, '')
 
-  if (treeWithPathMatch) {
-    const [, owner, repo, treeRef, subpath] = treeWithPathMatch
-    const cleanRepo = repo.replace(/\.git$/, '')
-    return {
-      type: 'repo',
-      cloneUrl: `https://github.com/${owner}/${cleanRepo}.git`,
-      displaySource: `${owner}/${cleanRepo}`,
-      ref: ref ?? treeRef,
-      subpath: sanitizeSourceSubpath(subpath),
+  if (ref) {
+    if (normalizedTreeSuffix === ref) {
+      return { ref }
     }
+
+    if (normalizedTreeSuffix.startsWith(`${ref}/`)) {
+      return {
+        ref,
+        subpath: sanitizeSourceSubpath(normalizedTreeSuffix.slice(ref.length + 1)),
+      }
+    }
+
+    throw new ParseError({
+      code: ErrorCode.INVALID_SPECIFIER,
+      message: `${provider} tree URL does not match explicit ref "${ref}": ${input}`,
+      content: input,
+    })
   }
 
+  if (normalizedTreeSuffix.includes('/')) {
+    throw new ParseError({
+      code: ErrorCode.INVALID_SPECIFIER,
+      message:
+        provider === 'GitHub'
+          ? `Ambiguous GitHub tree URL: ${input}. If the ref contains "/", specify it explicitly with "#<ref>" instead.`
+          : `Ambiguous GitLab tree URL: ${input}. GitLab refs can contain slashes, so provide the ref explicitly via #<ref>.`,
+      content: input,
+    })
+  }
+
+  return { ref: normalizedTreeSuffix }
+}
+
+function parseGitHubTreeSource(input: string, ref?: string): ParsedAddSource | null {
   const treeMatch = input.match(
-    /^https?:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?\/tree\/([^/]+)\/?$/,
+    /^https?:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?\/tree\/(.+?)\/?$/,
   )
 
   if (!treeMatch) {
     return null
   }
 
-  const [, owner, repo, treeRef] = treeMatch
+  const [, owner, repo, treeSuffix] = treeMatch
   const cleanRepo = repo.replace(/\.git$/, '')
+  const parsedTree = parseTreeUrlSuffix('GitHub', input, treeSuffix, ref)
   return {
     type: 'repo',
     cloneUrl: `https://github.com/${owner}/${cleanRepo}.git`,
     displaySource: `${owner}/${cleanRepo}`,
-    ref: ref ?? treeRef,
+    ref: parsedTree.ref,
+    ...(parsedTree.subpath ? { subpath: parsedTree.subpath } : {}),
   }
 }
 
 function parseGitLabSource(input: string, ref?: string): ParsedAddSource | null {
-  const treeWithPathMatch = input.match(/^(https?):\/\/([^/]+)\/(.+?)\/-\/tree\/([^/]+)\/(.+)\/?$/)
-
-  if (treeWithPathMatch) {
-    const [, protocol, hostname, repoPath, treeRef, subpath] = treeWithPathMatch
-    if (hostname === 'github.com') {
-      return null
-    }
-
-    const cleanRepoPath = repoPath.replace(/\.git$/, '')
-    return {
-      type: 'repo',
-      cloneUrl: `${protocol}://${hostname}/${cleanRepoPath}.git`,
-      displaySource: cleanRepoPath,
-      ref: ref ?? treeRef,
-      subpath: sanitizeSourceSubpath(subpath),
-    }
-  }
-
-  const treeMatch = input.match(/^(https?):\/\/([^/]+)\/(.+?)\/-\/tree\/([^/]+)\/?$/)
+  const treeMatch = input.match(/^(https?):\/\/([^/]+)\/(.+?)\/-\/tree\/(.+?)\/?$/)
   if (treeMatch) {
-    const [, protocol, hostname, repoPath, treeRef] = treeMatch
+    const [, protocol, hostname, repoPath, treeSuffix] = treeMatch
     if (hostname === 'github.com') {
       return null
     }
 
     const cleanRepoPath = repoPath.replace(/\.git$/, '')
+    const parsedTree = parseTreeUrlSuffix('GitLab', input, treeSuffix, ref)
     return {
       type: 'repo',
       cloneUrl: `${protocol}://${hostname}/${cleanRepoPath}.git`,
       displaySource: cleanRepoPath,
-      ref: ref ?? treeRef,
+      ref: parsedTree.ref,
+      ...(parsedTree.subpath ? { subpath: parsedTree.subpath } : {}),
     }
   }
 
@@ -498,11 +505,13 @@ async function resolveAddManifestContext(options: AddCommandOptions): Promise<{
 }> {
   const targetCwd = options.global ? getSkillsPackageManagerHome() : options.cwd
   const existingManifest = await readSkillsManifest(targetCwd)
+  const installDir = existingManifest?.installDir ?? '.agents/skills'
   const requestedAgents = normalizeStringArray(options.agent)
 
   if (requestedAgents) {
     const resolvedTargets = resolveCompatibleAddAgentTargets(requestedAgents, {
       global: options.global === true,
+      installDir,
     })
 
     if (resolvedTargets.invalidAgents.length > 0) {
@@ -515,7 +524,7 @@ async function resolveAddManifestContext(options: AddCommandOptions): Promise<{
 
     return {
       cwd: targetCwd,
-      installDir: existingManifest?.installDir ?? '.agents/skills',
+      installDir,
       linkTargets: mergeUnique(existingManifest?.linkTargets, resolvedTargets.linkTargets),
     }
   }
@@ -534,7 +543,7 @@ async function resolveAddManifestContext(options: AddCommandOptions): Promise<{
 
   return {
     cwd: targetCwd,
-    installDir: existingManifest?.installDir ?? '.agents/skills',
+    installDir,
     linkTargets: existingManifest?.linkTargets ?? [],
   }
 }

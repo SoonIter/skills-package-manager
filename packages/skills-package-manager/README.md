@@ -43,7 +43,7 @@ npx skills-package-manager add owner/repo#main@find-skills
 
 # Direct repo subpath
 npx skills-package-manager add owner/repo/skills/my-skill
-npx skills-package-manager add https://github.com/owner/repo/tree/main/skills/my-skill
+npx skills-package-manager add https://github.com/owner/repo/tree/main/skills/my-skill#main
 
 # Direct specifier — skip discovery
 npx skills-package-manager add https://github.com/owner/repo.git#path:/skills/my-skill
