@@ -23,31 +23,6 @@ describe('manifest io', () => {
     })
   })
 
-  it('reads pnpmPlugin config from skills.json', async () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-manifest-pnpm-plugin-'))
-    writeFileSync(
-      path.join(root, 'skills.json'),
-      JSON.stringify(
-        {
-          installDir: '.agents/skills',
-          linkTargets: [],
-          pnpmPlugin: {
-            removePnpmfileChecksum: true,
-          },
-          skills: {},
-        },
-        null,
-        2,
-      ),
-    )
-
-    const manifest = await readSkillsManifest(root)
-
-    expect(manifest?.pnpmPlugin).toEqual({
-      removePnpmfileChecksum: true,
-    })
-  })
-
   it('defaults selfSkill to undefined when omitted from skills.json', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-manifest-default-self-'))
     writeFileSync(
@@ -130,9 +105,6 @@ describe('manifest validation', () => {
       installDir: '.custom/skills',
       linkTargets: ['.claude/skills'],
       selfSkill: true,
-      pnpmPlugin: {
-        removePnpmfileChecksum: true,
-      },
       skills: { test: 'link:./test' },
     }
 
@@ -152,7 +124,6 @@ describe('manifest validation', () => {
       expect(result.data.installDir).toBe('.agents/skills')
       expect(result.data.linkTargets).toEqual([])
       expect(result.data.selfSkill).toBeUndefined()
-      expect(result.data.pnpmPlugin).toBeUndefined()
       expect(result.data.skills).toEqual({})
     }
   })
