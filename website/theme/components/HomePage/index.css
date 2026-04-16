@@ -117,8 +117,8 @@
 .spm-hero-visual__stack {
   position: relative;
   width: 100%;
-  max-width: 500px;
-  height: 400px;
+  max-width: 520px;
+  height: 520px;
 }
 
 .spm-hero-glow {
@@ -137,14 +137,34 @@
 
 /* Window Styles (Terminal & Config) */
 .spm-hero-window {
-  width: 100%;
-  position: absolute;
+  width: 90%;
   background: #1e1e1e;
   border-radius: 12px;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
-  border: 1px solid #333;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  animation: breathe 8s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { 
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), 0 0 0 rgba(var(--rp-c-brand-rgb), 0);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  50% { 
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 15px rgba(var(--rp-c-brand-rgb), 0.15);
+    border-color: rgba(var(--rp-c-brand-rgb), 0.3);
+  }
+}
+
+.spm-hero-window:hover {
+  transform: translateY(-5px) scale(1.02) !important;
+  z-index: 10 !important;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5), 0 0 25px rgba(var(--rp-c-brand-rgb), 0.25);
+  border-color: rgba(var(--rp-c-brand-rgb), 0.5);
+  opacity: 1 !important;
 }
 
 .spm-hero-window__header {
@@ -178,13 +198,13 @@
 
 .spm-hero-window__body {
   padding: 20px;
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.5;
   color: #eee;
 }
 
 .spm-hero-window__line {
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   white-space: pre-wrap;
 }
 
@@ -192,16 +212,14 @@
 .spm-config {
   top: 0;
   left: 0;
-  z-index: 1;
-  transform: translateX(-40px) scale(0.95);
-  opacity: 0.8;
+  z-index: 2;
 }
 
 .spm-terminal {
   bottom: 0;
   right: 0;
-  z-index: 2;
-  transform: translateY(20px);
+  z-index: 1;
+  opacity: 0.9;
 }
 
 /* Terminal Highlights */
@@ -231,12 +249,12 @@
 
 .spm-config__line {
   display: flex;
-  gap: 16px;
+  gap: 12px;
 }
 
 .spm-config__line-num {
   flex-shrink: 0;
-  width: 20px;
+  width: 18px;
   color: #555;
   text-align: right;
   user-select: none;
@@ -531,7 +549,10 @@
   }
   .spm-hero-visual {
     width: 100%;
-    height: 450px;
+    height: 550px;
+  }
+  .spm-hero-visual__stack {
+    height: 520px;
   }
   .spm-features-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -543,12 +564,14 @@
     font-size: 3.5rem;
   }
   .spm-hero-visual {
-    height: 400px;
+    height: 500px;
   }
   .spm-config {
-    transform: translateX(0) scale(0.9);
+    width: 100%;
+    transform: translateX(0) scale(0.95);
   }
   .spm-terminal {
+    width: 100%;
     transform: translateY(40px) scale(0.95);
   }
   .spm-features-grid,

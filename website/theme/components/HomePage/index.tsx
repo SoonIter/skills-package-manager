@@ -1,6 +1,6 @@
 import { useFrontmatter } from '@rspress/core/runtime'
 import { Button } from '@rspress/core/theme-original'
-import { Fragment, type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import './index.css'
 
 interface HomeAction {
@@ -298,22 +298,20 @@ function Terminal() {
 function ConfigViewer() {
   const code = [
     { line: 1, text: '{' },
-    { line: 2, text: '  "linkTargets": [' },
-    { line: 3, text: '    ".claude/skills",' },
-    { line: 4, text: '    ".cursor/skills"' },
-    { line: 5, text: '  ],' },
+    { line: 2, text: '  "$schema": "https://unpkg.com/...",' },
+    { line: 3, text: '  "installDir": ".agents/skills",' },
+    { line: 4, text: '  "linkTargets": [".claude/skills"],' },
+    { line: 5, text: '  "selfSkill": false,' },
     { line: 6, text: '  "skills": {' },
-    { line: 7, text: '    "git-skill": "git:https://github.com/..." ,' },
-    { line: 8, text: '    "npm-skill": "npm:@scope/package@1.0.0",' },
-    { line: 9, text: '    "link-skill": "link:./local-folder",' },
-    { line: 10, text: '    "file-skill": "file:./archive.tgz"' },
-    { line: 11, text: '  }' },
-    { line: 12, text: '}' },
+    { line: 7, text: '    "pr-creator": "https://github.com/...",' },
+    { line: 8, text: '    "rspress-theme": "https://github.com/...",' },
+    { line: 9, text: '    "spm-cli": "link:./packages/spm-cli"' },
+    { line: 10, text: '  }' },
+    { line: 11, text: '}' },
   ]
 
   const highlightLine = (text: string) => {
     const parts: ReactNode[] = []
-    const current = text
 
     // Simple JSON highlighting regex-based splitter
     const regex = /("[^"]+")(:?)|([{}[\],])/g
@@ -418,8 +416,8 @@ export function HomePage() {
           </div>
           <div className="spm-hero-visual">
             <div className="spm-hero-visual__stack">
-              <ConfigViewer />
               <Terminal />
+              <ConfigViewer />
             </div>
             <div className="spm-hero-glow" />
           </div>
