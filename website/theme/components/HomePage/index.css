@@ -778,22 +778,36 @@
 
 /* Responsive */
 @media (max-width: 1024px) {
+  .spm-hero-section {
+    padding: 80px 0 60px;
+  }
   .spm-hero-container {
     flex-direction: column;
     text-align: center;
+  }
+  .spm-hero-content {
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
   .spm-hero-actions {
     justify-content: center;
   }
   .spm-hero-visual {
     width: 100%;
-    margin-top: 64px;
-    height: 550px;
+    margin-top: 48px;
+    height: auto;
+    min-height: auto;
   }
   .spm-3d-container {
-    transform: rotateY(0) rotateX(0);
-    max-width: 500px;
-    height: 500px;
+    transform: none !important;
+    max-width: 100%;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    perspective: none;
   }
   .spm-hero-visual:hover .spm-3d-container {
     transform: none;
@@ -802,13 +816,14 @@
   .spm-terminal-window {
     width: 100%;
     position: relative;
-    animation: none;
+    animation: none !important;
     transform: none !important;
     opacity: 1 !important;
     filter: none !important;
-  }
-  .spm-terminal-window {
-    margin-top: -60px;
+    top: auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
   }
   .spm-quickstart-cards {
     grid-template-columns: 1fr;
@@ -819,16 +834,29 @@
 }
 
 @media (max-width: 768px) {
+  .spm-hero-section {
+    padding: 60px 0 40px;
+  }
+  .spm-hero-visual {
+    display: none; /* Hide 3D windows on mobile to reduce clutter as requested */
+  }
   .spm-hero-title {
-    font-size: 3rem;
+    font-size: 2.75rem;
+  }
+  .spm-hero-subtitle {
+    font-size: 1.5rem;
   }
   .spm-cta-title {
-    font-size: 2.5rem;
+    font-size: 2.25rem;
   }
   .spm-quickstart-card-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
     gap: 16px;
+  }
+  .spm-quickstart-icon {
+    margin-right: 0;
   }
   .spm-quickstart-footer {
     flex-direction: column;
@@ -836,5 +864,15 @@
   .spm-features-grid,
   .spm-concepts-grid {
     grid-template-columns: 1fr;
+  }
+  .spm-feature-card,
+  .spm-concept-card {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .spm-concept-card {
+    flex-direction: column;
   }
 }
