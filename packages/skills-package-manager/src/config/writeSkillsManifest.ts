@@ -24,10 +24,6 @@ export async function writeSkillsManifest(
     nextManifest.selfSkill = manifest.selfSkill
   }
 
-  if (manifest.pnpmPlugin !== undefined) {
-    nextManifest.pnpmPlugin = manifest.pnpmPlugin
-  }
-
   try {
     await writeFile(filePath, `${JSON.stringify(nextManifest, null, 2)}\n`, 'utf8')
   } catch (error) {

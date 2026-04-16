@@ -24,16 +24,11 @@ Then add the following to the workspace root:
 {
   "installDir": ".agents/skills",
   "linkTargets": [".claude/skills"],
-  "pnpmPlugin": {
-    "removePnpmfileChecksum": true
-  },
   "skills": {
     "my-skill": "https://github.com/owner/repo.git#path:/skills/my-skill"
   }
 }
 ```
-
-`pnpmPlugin.removePnpmfileChecksum` is a temporary compatibility option for `pnpm-plugin-skills`. When enabled, the plugin removes `pnpmfileChecksum` from `pnpm-lock.yaml` in `afterAllResolved` to work around tools that run `pnpm install --ignore-pnpmfile`.
 
 ## Suitable team scenarios
 

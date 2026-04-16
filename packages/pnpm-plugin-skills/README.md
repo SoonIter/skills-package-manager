@@ -26,16 +26,11 @@ Then create a `skills.json` in your project root:
 {
   "installDir": ".agents/skills",
   "linkTargets": [".claude/skills"],
-  "pnpmPlugin": {
-    "removePnpmfileChecksum": true
-  },
   "skills": {
     "my-skill": "https://github.com/owner/repo.git#path:/skills/my-skill"
   }
 }
 ```
-
-`pnpmPlugin.removePnpmfileChecksum` is a temporary compatibility switch for repositories that need `pnpm-plugin-skills` to remove `pnpmfileChecksum` from `pnpm-lock.yaml` in `afterAllResolved`.
 
 Now `pnpm install` will automatically install your skills.
 
