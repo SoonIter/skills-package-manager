@@ -629,13 +629,53 @@
 }
 
 /* CTA */
+.spm-cta-section {
+  padding: 120px 0 80px;
+}
+
 .spm-cta-box {
-  padding: 100px 60px;
+  background: linear-gradient(135deg, rgba(var(--rp-c-brand-rgb), 0.08) 0%, rgba(var(--rp-c-brand-rgb), 0.2) 100%);
+  border: 1px solid rgba(var(--rp-c-brand-rgb), 0.2);
   border-radius: 48px;
+  padding: 100px 60px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.spm-cta-box::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60%;
+  height: 100%;
+  background: radial-gradient(circle at top right, var(--rp-c-brand) 0%, transparent 70%);
+  opacity: 0.15;
+  pointer-events: none;
 }
 
 .spm-cta-title {
+  margin: 0 0 20px;
   font-size: 3.5rem;
+  font-weight: 800;
+  color: var(--rp-c-text-1);
+  letter-spacing: -0.02em;
+}
+
+.spm-cta-desc {
+  margin: 0 0 40px;
+  font-size: 1.4rem;
+  color: var(--rp-c-text-2);
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.spm-cta-actions {
+  display: flex;
+  justify-content: center;
 }
 
 /* Global Button Fixes for PR comments */
