@@ -497,15 +497,15 @@ export function HomePage() {
               <div key={item.label} className="spm-quickstart-card">
                 <div className="spm-quickstart-card-header">
                   <h3 className="spm-quickstart-label">{item.label}</h3>
-                  <div className="spm-quickstart-actions">
-                    <CopyButton text={item.agentText} label="Copy for Agent" isAi />
-                  </div>
                 </div>
                 <div className="spm-quickstart-code-wrapper">
                   <pre className="spm-quickstart-code">
                     <code>{item.command}</code>
                   </pre>
+                </div>
+                <div className="spm-quickstart-footer">
                   <CopyButton text={item.command} label="Copy Code" />
+                  <CopyButton text={item.agentText} label="Copy for Agent" isAi />
                 </div>
               </div>
             ))}
