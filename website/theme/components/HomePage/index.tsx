@@ -229,13 +229,13 @@ function Terminal() {
         <span className="t-success">✔</span> Resolving skills.json...
       </span>,
       <span key="3">
-        <span className="t-success">✔</span> Downloading vercel-labs/skills@1.2.0
+        <span className="t-success">✔</span> Downloading pr-creator...
       </span>,
       <span key="4">
-        <span className="t-success">✔</span> Linking .claude/skills/vercel-labs
+        <span className="t-success">✔</span> Linking .claude/skills/pr-creator
       </span>,
       <span key="5">
-        <span className="t-success">✔</span> Linking .cursor/skills/vercel-labs
+        <span className="t-success">✔</span> Linking .cursor/skills/pr-creator
       </span>,
       <span key="6">
         <span className="t-success">✔</span> Updating skills-lock.yaml
@@ -274,7 +274,7 @@ function Terminal() {
   }, [])
 
   return (
-    <div className="spm-hero-window spm-terminal">
+    <div className="spm-hero-window spm-terminal-window">
       <div className="spm-hero-window__header">
         <div className="spm-hero-window__dots">
           <span className="t-dot t-dot--red" />
@@ -298,40 +298,27 @@ function Terminal() {
 function ConfigViewer() {
   const code = [
     { line: 1, text: '{' },
-    {
-      line: 2,
-      text: '  "$schema": "https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json",',
-    },
+    { line: 2, text: '  "$schema": "https://unpkg.com/...",' },
     { line: 3, text: '  "installDir": ".agents/skills",' },
     { line: 4, text: '  "linkTargets": [".claude/skills"],' },
-    { line: 5, text: '  "selfSkill": false,' },
-    { line: 6, text: '  "skills": {' },
-    {
-      line: 7,
-      text: '    "pr-creator": "https://github.com/rstackjs/agent-skills.git#89bd10a842356073382b281509b4c8af7f9eb5a8&path:/skills/pr-creator",',
-    },
-    {
-      line: 8,
-      text: '    "rspress-custom-theme": "https://github.com/rstackjs/agent-skills.git#89bd10a842356073382b281509b4c8af7f9eb5a8&path:/skills/rspress-custom-theme",',
-    },
-    {
-      line: 9,
-      text: '    "skills-package-manager-cli": "link:./packages/skills-package-manager/skills/skills-package-manager-cli"',
-    },
-    { line: 10, text: '  }' },
-    { line: 11, text: '}' },
+    { line: 5, text: '  "skills": {' },
+    { line: 6, text: '    "pr-creator": "https://github.com/...",' },
+    { line: 7, text: '    "rspress-theme": "https://github.com/...",' },
+    { line: 8, text: '    "spm-cli": "link:./packages/spm-cli"' },
+    { line: 9, text: '  }' },
+    { line: 10, text: '}' },
   ]
 
   const highlightLine = (text: string) => {
     const parts: ReactNode[] = []
-
-    // Simple JSON highlighting regex-based splitter
     const regex = /("[^"]+")(:?)|([{}[\],])/g
     let lastIndex = 0
     let match: RegExpExecArray | null = null
 
-    // biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
-    while ((match = regex.exec(text)) !== null) {
+    while (true) {
+      match = regex.exec(text)
+      if (match === null) break
+
       if (match.index > lastIndex) {
         parts.push(text.substring(lastIndex, match.index))
       }
@@ -363,7 +350,7 @@ function ConfigViewer() {
   }
 
   return (
-    <div className="spm-hero-window spm-config">
+    <div className="spm-hero-window spm-config-window">
       <div className="spm-hero-window__header">
         <div className="spm-hero-window__dots">
           <span className="t-dot t-dot--red" />
@@ -371,6 +358,9 @@ function ConfigViewer() {
           <span className="t-dot t-dot--green" />
         </div>
         <div className="spm-hero-window__title">skills.json</div>
+        <div className="spm-hero-window__tabs">
+          <div className="t-tab t-tab--active">skills.json</div>
+        </div>
       </div>
       <div className="spm-hero-window__body">
         <pre className="spm-config__code">
@@ -378,7 +368,7 @@ function ConfigViewer() {
             {code.map((item) => (
               <div key={item.line} className="spm-config__line">
                 <span className="spm-config__line-num">{item.line}</span>
-                <span>{highlightLine(item.text)}</span>
+                <span className="spm-config__line-content">{highlightLine(item.text)}</span>
               </div>
             ))}
           </code>
@@ -427,11 +417,11 @@ export function HomePage() {
             </div>
           </div>
           <div className="spm-hero-visual">
-            <div className="spm-hero-visual__stack">
-              <Terminal />
+            <div className="spm-3d-container">
               <ConfigViewer />
+              <Terminal />
             </div>
-            <div className="spm-hero-glow" />
+            <div className="spm-neon-pulse" />
           </div>
         </div>
       </div>
@@ -473,7 +463,7 @@ export function HomePage() {
             </p>
           </div>
           <div className="spm-features-grid">
-            {features.map((f, _i) => (
+            {features.map((f) => (
               <div key={f.title} className="spm-feature-card">
                 <div className="spm-feature-icon-wrapper">{getFeatureIcon(f.icon)}</div>
                 <h3 className="spm-feature-title">{f.title}</h3>
