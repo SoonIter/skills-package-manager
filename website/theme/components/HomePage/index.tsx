@@ -452,6 +452,9 @@ export function HomePage() {
       <div className="spm-hero-section">
         <div className="spm-hero-container">
           <div className="spm-hero-content">
+            <div className="spm-hero-logo">
+              <img src="/logo-light.svg" alt="logo" />
+            </div>
             <h1 className="spm-hero-title">
               <span className="spm-hero-title-brand">{hero?.name ?? 'skills-package-manager'}</span>
             </h1>

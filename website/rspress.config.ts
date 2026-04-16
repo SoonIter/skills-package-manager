@@ -7,7 +7,7 @@ import pluginMermaid from 'rspress-plugin-mermaid'
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title: 'skills-package-manager | The Next-Gen Agent Skill Manager',
-  logoText: 'SPM',
+  logoText: 'skills-package-manager',
   description:
     'Manage, install, and link SKILL.md-based AI agent skills with lockfile-driven reproducibility and multi-protocol support.',
   logo: {
