@@ -43,6 +43,9 @@ quickStarts:
   - label: 'pnpm Plugin'
     command: 'pnpm add pnpm-plugin-skills --config'
     agentText: 'Add pnpm-plugin-skills as a pnpm config dependency to automatically sync skills on install.'
+  - label: 'npm / yarn / bun'
+    command: "npm install -D skills-package-manager\n# In package.json:\n# \"prepare\": \"skills-package-manager install\""
+    agentText: 'Install skills-package-manager as a dev dependency and add the prepare script for automatic sync.'
 
 concepts:
   - title: 'skills.json: The Manifest'
