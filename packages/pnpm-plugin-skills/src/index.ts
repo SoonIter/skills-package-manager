@@ -1,6 +1,23 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { installCommand, type SkillsManifest } from 'skills-package-manager'
+
+function findManifestRoot(startDir: string): string | null {
+  const resolvedStartDir = path.resolve(startDir)
+  const rootDir = path.parse(resolvedStartDir).root
+
+  for (
+    let currentDir = resolvedStartDir;
+    currentDir !== rootDir;
+    currentDir = path.dirname(currentDir)
+  ) {
+    if (existsSync(path.join(currentDir, 'skills.json'))) {
+      return currentDir
+    }
+  }
+
+  return existsSync(path.join(rootDir, 'skills.json')) ? rootDir : null
+}
 
 function readPluginManifest(rootDir: string): SkillsManifest | null {
   const filePath = path.join(rootDir, 'skills.json')
@@ -29,9 +46,9 @@ export async function preResolution(
 
 export function afterAllResolved(
   lockfile: Record<string, unknown>,
-  context: { lockfileDir?: string; workspaceDir?: string } = {},
+  _context: { log?: (message: string) => void } = {},
 ) {
-  const manifestRoot = context.lockfileDir ?? context.workspaceDir
+  const manifestRoot = findManifestRoot(process.cwd())
   if (!manifestRoot) {
     return lockfile
   }
