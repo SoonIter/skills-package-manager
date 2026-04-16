@@ -286,9 +286,9 @@
   }
 }
 
-/* Hover Interaction Strategy - Reduced movement to prevent jitter */
+/* Hover Interaction Strategy - Removed scale to prevent magnification jitter */
 .spm-config-window:hover {
-  transform: translateZ(140px) translateY(-10px) rotateY(4deg) !important;
+  transform: translateZ(100px) translateY(-5px) rotateY(4deg) !important;
   z-index: 100;
   opacity: 1;
   box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6), 0 0 30px rgba(var(--rp-c-brand-rgb), 0.25);
@@ -296,24 +296,24 @@
 }
 
 .spm-terminal-window:hover {
-  transform: translateZ(140px) translateY(-10px) rotateY(4deg) !important;
+  transform: translateZ(100px) translateY(-5px) rotateY(4deg) !important;
   z-index: 100;
   opacity: 1;
   box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6), 0 0 30px rgba(var(--rp-c-brand-rgb), 0.25);
   border-color: rgba(var(--rp-c-brand-rgb), 0.5);
 }
 
-/* Dim sibling when hovering */
+/* Dim sibling when hovering - removed scale */
 .spm-3d-container:has(.spm-config-window:hover) .spm-terminal-window {
   opacity: 0.25;
   filter: blur(6px);
-  transform: translateZ(-80px) scale(0.92);
+  transform: translateZ(-60px);
 }
 
 .spm-3d-container:has(.spm-terminal-window:hover) .spm-config-window {
   opacity: 0.25;
   filter: blur(6px);
-  transform: translateZ(-80px) scale(0.92);
+  transform: translateZ(-60px);
 }
 
 /* Syntax Highlighting (Premium) */
@@ -641,12 +641,13 @@
 /* Global Button Fixes for PR comments */
 .spm-hero-action-btn,
 .spm-cta-btn {
-  transition: transform 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .spm-hero-action-btn:hover,
 .spm-cta-btn:hover {
-  transform: scale(1.05);
+  border-color: var(--rp-c-brand-light);
+  box-shadow: 0 5px 15px rgba(var(--rp-c-brand-rgb), 0.2);
 }
 
 .spm-copy-btn-text {
