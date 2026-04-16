@@ -1,6 +1,6 @@
 import { useFrontmatter } from '@rspress/core/runtime'
 import { Button } from '@rspress/core/theme-original'
-import { type ReactNode, useEffect, useState } from 'react'
+import { Fragment, type ReactNode, useEffect, useState } from 'react'
 import './index.css'
 
 interface HomeAction {
@@ -274,22 +274,105 @@ function Terminal() {
   }, [])
 
   return (
-    <div className="spm-terminal">
-      <div className="spm-terminal__header">
-        <div className="spm-terminal__dots">
+    <div className="spm-hero-window spm-terminal">
+      <div className="spm-hero-window__header">
+        <div className="spm-hero-window__dots">
           <span className="t-dot t-dot--red" />
           <span className="t-dot t-dot--yellow" />
           <span className="t-dot t-dot--green" />
         </div>
-        <div className="spm-terminal__title">bash</div>
+        <div className="spm-hero-window__title">bash</div>
       </div>
-      <div className="spm-terminal__body">
+      <div className="spm-hero-window__body">
         {lines.map((line) => (
-          <div key={line.id} className="spm-terminal__line">
+          <div key={line.id} className="spm-hero-window__line">
             {line.content}
           </div>
         ))}
-        <span className="spm-terminal__cursor" />
+        <span className="spm-hero-window__cursor" />
+      </div>
+    </div>
+  )
+}
+
+function ConfigViewer() {
+  const code = [
+    { line: 1, text: '{' },
+    { line: 2, text: '  "linkTargets": [' },
+    { line: 3, text: '    ".claude/skills",' },
+    { line: 4, text: '    ".cursor/skills"' },
+    { line: 5, text: '  ],' },
+    { line: 6, text: '  "skills": {' },
+    { line: 7, text: '    "git-skill": "git:https://github.com/..." ,' },
+    { line: 8, text: '    "npm-skill": "npm:@scope/package@1.0.0",' },
+    { line: 9, text: '    "link-skill": "link:./local-folder",' },
+    { line: 10, text: '    "file-skill": "file:./archive.tgz"' },
+    { line: 11, text: '  }' },
+    { line: 12, text: '}' },
+  ]
+
+  const highlightLine = (text: string) => {
+    const parts: ReactNode[] = []
+    const current = text
+
+    // Simple JSON highlighting regex-based splitter
+    const regex = /("[^"]+")(:?)|([{}[\],])/g
+    let lastIndex = 0
+    let match: RegExpExecArray | null = null
+
+    // biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index))
+      }
+
+      if (match[1]) {
+        const isKey = match[2] === ':'
+        parts.push(
+          <span key={match.index} className={isKey ? 'c-key' : 'c-val'}>
+            {match[1]}
+          </span>,
+        )
+        if (isKey) parts.push(':')
+      } else if (match[3]) {
+        parts.push(
+          <span key={match.index} className="c-punc">
+            {match[3]}
+          </span>,
+        )
+      }
+
+      lastIndex = regex.lastIndex
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex))
+    }
+
+    return parts
+  }
+
+  return (
+    <div className="spm-hero-window spm-config">
+      <div className="spm-hero-window__header">
+        <div className="spm-hero-window__dots">
+          <span className="t-dot t-dot--red" />
+          <span className="t-dot t-dot--yellow" />
+          <span className="t-dot t-dot--green" />
+        </div>
+        <div className="spm-hero-window__title">skills.json</div>
+      </div>
+      <div className="spm-hero-window__body">
+        <pre className="spm-config__code">
+          <code>
+            {code.map((item) => (
+              <div key={item.line} className="spm-config__line">
+                <span className="spm-config__line-num">{item.line}</span>
+                <span>{highlightLine(item.text)}</span>
+              </div>
+            ))}
+          </code>
+        </pre>
       </div>
     </div>
   )
@@ -314,7 +397,6 @@ export function HomePage() {
       <div className="spm-hero-section">
         <div className="spm-hero-container">
           <div className="spm-hero-content">
-            <div className="spm-hero-badge">v1.0 Ready</div>
             <h1 className="spm-hero-title">
               <span className="spm-hero-title-brand">{hero?.name ?? 'skills-package-manager'}</span>
             </h1>
@@ -335,7 +417,10 @@ export function HomePage() {
             </div>
           </div>
           <div className="spm-hero-visual">
-            <Terminal />
+            <div className="spm-hero-visual__stack">
+              <ConfigViewer />
+              <Terminal />
+            </div>
             <div className="spm-hero-glow" />
           </div>
         </div>

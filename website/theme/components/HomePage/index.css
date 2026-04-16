@@ -73,18 +73,6 @@
   max-width: 600px;
 }
 
-.spm-hero-badge {
-  display: inline-block;
-  padding: 6px 16px;
-  border-radius: 9999px;
-  background: rgba(var(--rp-c-brand-rgb), 0.1);
-  color: var(--rp-c-brand);
-  font-weight: 600;
-  font-size: 0.875rem;
-  margin-bottom: 24px;
-  border: 1px solid rgba(var(--rp-c-brand-rgb), 0.2);
-}
-
 .spm-hero-title {
   font-size: 4.5rem;
   font-weight: 800;
@@ -126,6 +114,13 @@
   position: relative;
 }
 
+.spm-hero-visual__stack {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  height: 400px;
+}
+
 .spm-hero-glow {
   position: absolute;
   top: 50%;
@@ -140,10 +135,10 @@
   pointer-events: none;
 }
 
-/* Terminal Styles */
-.spm-terminal {
+/* Window Styles (Terminal & Config) */
+.spm-hero-window {
   width: 100%;
-  max-width: 500px;
+  position: absolute;
   background: #1e1e1e;
   border-radius: 12px;
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
@@ -152,7 +147,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-.spm-terminal__header {
+.spm-hero-window__header {
   background: #323232;
   padding: 10px 16px;
   display: flex;
@@ -160,7 +155,7 @@
   gap: 12px;
 }
 
-.spm-terminal__dots {
+.spm-hero-window__dots {
   display: flex;
   gap: 6px;
 }
@@ -175,30 +170,46 @@
 .t-dot--yellow { background: #ffbd2e; }
 .t-dot--green { background: #27c93f; }
 
-.spm-terminal__title {
+.spm-hero-window__title {
   color: #999;
   font-size: 12px;
   margin-left: 4px;
 }
 
-.spm-terminal__body {
+.spm-hero-window__body {
   padding: 20px;
-  min-height: 240px;
   font-size: 14px;
   line-height: 1.6;
   color: #eee;
 }
 
-.spm-terminal__line {
+.spm-hero-window__line {
   margin-bottom: 4px;
   white-space: pre-wrap;
 }
 
+/* Specific Window Positions */
+.spm-config {
+  top: 0;
+  left: 0;
+  z-index: 1;
+  transform: translateX(-40px) scale(0.95);
+  opacity: 0.8;
+}
+
+.spm-terminal {
+  bottom: 0;
+  right: 0;
+  z-index: 2;
+  transform: translateY(20px);
+}
+
+/* Terminal Highlights */
 .t-cmd { color: #50fa7b; }
 .t-success { color: #50fa7b; font-weight: bold; }
 .t-done { color: #8be9fd; font-weight: bold; }
 
-.spm-terminal__cursor {
+.spm-hero-window__cursor {
   display: inline-block;
   width: 8px;
   height: 16px;
@@ -211,6 +222,29 @@
 @keyframes blink {
   50% { opacity: 0; }
 }
+
+/* Config Highlights */
+.spm-config__code {
+  margin: 0;
+  background: transparent;
+}
+
+.spm-config__line {
+  display: flex;
+  gap: 16px;
+}
+
+.spm-config__line-num {
+  flex-shrink: 0;
+  width: 20px;
+  color: #555;
+  text-align: right;
+  user-select: none;
+}
+
+.c-key { color: #bd93f9; }
+.c-val { color: #f1fa8c; }
+.c-punc { color: #8be9fd; }
 
 /* Quick Start Section */
 .spm-quickstart-section {
@@ -497,6 +531,7 @@
   }
   .spm-hero-visual {
     width: 100%;
+    height: 450px;
   }
   .spm-features-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -506,6 +541,15 @@
 @media (max-width: 768px) {
   .spm-hero-title {
     font-size: 3.5rem;
+  }
+  .spm-hero-visual {
+    height: 400px;
+  }
+  .spm-config {
+    transform: translateX(0) scale(0.9);
+  }
+  .spm-terminal {
+    transform: translateY(40px) scale(0.95);
   }
   .spm-features-grid,
   .spm-concepts-grid {
