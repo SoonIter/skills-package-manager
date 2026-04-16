@@ -10,14 +10,15 @@
 
 **skills-package-manager** is a specialized tool designed to manage [SKILL.md](https://github.com/SoonIter/skills-package-manager/blob/main/AGENTS.md)-based agent skills. It brings the power and reliability of modern package management (like `npm` or `pnpm`) to the world of AI agents.
 
-## Core Philosophy
+## Why skills-package-manager?
 
-Traditional agent skills often involve manual directory management and hard-to-track versions. **SPM** changes that by focusing on:
+Traditional agent skills often involve manual directory management and hard-to-track versions. **SPM** changes that by bringing modern engineering practices to AI capabilities:
 
-- **Version Control**: Use a lockfile (`skills-lock.yaml`) to ensure every developer on your team and every CI runner uses the exact same skill versions.
-- **Protocol Flexibility**: Install skills from anywhere—Git repositories, NPM packages, local symlinks, or even `.tgz` archives.
-- **Zero Duplication**: Install a skill once and automatically link it to multiple agent environments (Claude, Cursor, custom agents) simultaneously.
-- **Developer First**: Fully compatible with existing tools like `npx skills` and deeply integrated with `pnpm`.
+:::tip[Core Values]
+- **Deterministic**: Always get the same bits on every machine.
+- **Unified**: Manage Git, NPM, and Local sources in one file.
+- **Connected**: Link once, use across Claude, Cursor, and beyond.
+:::
 
 ## Project Structure
 
