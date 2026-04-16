@@ -63,4 +63,53 @@ npx skills-package-manager update
 Use the `link:` protocol in `skills.json` for rapid local skill testing without publishing.
 
 </PageTab>
+
+<PageTab label="npm / yarn / bun">
+
+## Lifecycle Integration
+
+For **npm**, **yarn**, or **bun**, you can seamlessly integrate SPM into your project's lifecycle using the `prepare` script. This ensures your agent skills are automatically synchronized every time you run a fresh install.
+
+<Steps>
+
+### Install SPM as a dev dependency
+
+Add `skills-package-manager` to your project's `devDependencies`.
+
+```bash
+npm install -D skills-package-manager
+# or
+yarn add -D skills-package-manager
+# or
+bun add -d skills-package-manager
+```
+
+### Configure the prepare script
+
+Update your `package.json` to include the `prepare` lifecycle hook:
+
+```json
+{
+  "scripts": {
+    "prepare": "skills-package-manager install"
+  }
+}
+```
+
+### Initialize and Add Skills
+
+If you haven't already, initialize your manifest and start adding skills:
+
+```bash
+npx skills-package-manager init --yes
+npx skills-package-manager add <source>
+```
+
+</Steps>
+
+:::info
+The `prepare` script runs automatically after `npm install` (and equivalent commands in Yarn/Bun), guaranteeing that your `.agents/skills` directory and agent symlinks are always up to date.
+:::
+
+</PageTab>
 </PageTabs>
