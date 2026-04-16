@@ -18,6 +18,7 @@ import { ErrorCode, ParseError, SkillError } from '../errors'
 import { cloneAndDiscover, discoverSkillsInDir, parseGitHubUrl } from '../github/listSkills'
 import type { SkillInfo } from '../github/types'
 import { installSkills } from '../install/installSkills'
+import { normalizeLinkSource } from '../specifiers/normalizeLinkSource'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { ensureDir } from '../utils/fs'
 
@@ -48,7 +49,7 @@ function buildGitSpecifier(repoUrl: string, skillPath: string, ref?: string): st
 
 function buildLinkSpecifier(sourceRoot: string, skillPath: string): string {
   const absoluteSkillPath = path.join(sourceRoot, skillPath.replace(/^\//, ''))
-  return `link:${absoluteSkillPath}`
+  return normalizeLinkSource(`link:${absoluteSkillPath}`)
 }
 
 function isDirectSkillSpecifier(specifier: string): boolean {

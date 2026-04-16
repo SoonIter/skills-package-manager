@@ -5,6 +5,7 @@ import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
 import YAML from 'yaml'
 import { addCommand, normalizeAddCommandInput, parseAddSourceSpecifier } from '../src/commands/add'
+import { normalizeLinkSource } from '../src/specifiers/normalizeLinkSource'
 import { createSkillPackage, packDirectory, startMockNpmRegistry } from './helpers'
 
 describe('normalizeAddCommandInput', () => {
@@ -228,9 +229,7 @@ describe('addCommand', () => {
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
     const installedSkill = path.join(root, '.agents/skills/hello-skill/SKILL.md')
 
-    expect(manifest.skills['hello-skill']).toBe(
-      `link:${localSkillPath.replace(/\\/g, '/').replace(/\/+$/, '')}`,
-    )
+    expect(manifest.skills['hello-skill']).toBe(normalizeLinkSource(`link:${localSkillPath}`))
     expect(existsSync(installedSkill)).toBe(true)
   })
 
@@ -255,10 +254,10 @@ describe('addCommand', () => {
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
 
     expect(manifest.skills['hello-skill']).toBe(
-      `link:${path.join(localRepo, 'skills/hello-skill')}`,
+      normalizeLinkSource(`link:${path.join(localRepo, 'skills/hello-skill')}`),
     )
     expect(manifest.skills['landing-page-design']).toBe(
-      `link:${path.join(localRepo, 'guides/design/landing-page-design')}`,
+      normalizeLinkSource(`link:${path.join(localRepo, 'guides/design/landing-page-design')}`),
     )
   })
 
