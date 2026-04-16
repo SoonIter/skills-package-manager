@@ -3,6 +3,8 @@ import { Button } from '@rspress/core/theme-original'
 import { type ReactNode, useEffect, useState } from 'react'
 import './index.css'
 
+import { version } from '../../../../package.json'
+
 interface HomeAction {
   text: string
   link: string
@@ -311,7 +313,7 @@ function ConfigViewer() {
     { line: 1, text: '{' },
     {
       line: 2,
-      text: '  "$schema": "https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json",',
+      text: `  "$schema": "https://unpkg.com/skills-package-manager@${version}/skills.schema.json",`,
     },
     { line: 3, text: '  "installDir": ".agents/skills",' },
     { line: 4, text: '  "linkTargets": [".claude/skills", ".cursor/skills"],' },
