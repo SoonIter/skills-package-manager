@@ -129,19 +129,19 @@ function getConceptIcon(icon: string) {
   if (icon === 'manifest') {
     return (
       <Icon>
-        <path d="M4 6h16" />
-        <path d="M4 12h16" />
-        <path d="M4 18h16" />
+        <rect x="4" y="4" width="16" height="16" rx="2" />
+        <path d="M9 9h6" />
+        <path d="M9 13h6" />
+        <path d="M9 17h6" />
       </Icon>
     )
   }
   if (icon === 'lockfile') {
     return (
       <Icon>
-        <path d="M15 3H9a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z" />
-        <path d="M9 3v18" />
-        <path d="m10 9-1 1 1 1" />
-        <path d="m14 13-1 1 1 1" />
+        <path d="M12 11V7a3 3 0 0 1 6 0v4" />
+        <rect x="5" y="11" width="14" height="10" rx="2" />
+        <circle cx="12" cy="16" r="1" />
       </Icon>
     )
   }
