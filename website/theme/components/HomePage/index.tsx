@@ -229,24 +229,27 @@ function Terminal() {
         <span className="t-success">✔</span> Resolving skills.json...
       </span>,
       <span key="3">
-        <span className="t-success">✔</span> Downloading git-skill (github.com/...)
+        <span className="t-success">✔</span> Downloading pr-creator (git)
       </span>,
       <span key="4">
-        <span className="t-success">✔</span> Extracting npm-skill (@scope/package)
+        <span className="t-success">✔</span> Extracting npm-skill (npm)
       </span>,
       <span key="5">
-        <span className="t-success">✔</span> Linking local-skill (./local-path)
+        <span className="t-success">✔</span> Linking local-dev (link)
       </span>,
       <span key="6">
-        <span className="t-success">✔</span> Linking .claude/skills
+        <span className="t-success">✔</span> Extracting legacy-v1 (file)
       </span>,
       <span key="7">
-        <span className="t-success">✔</span> Linking .cursor/skills
+        <span className="t-success">✔</span> Linking .claude/skills
       </span>,
       <span key="8">
+        <span className="t-success">✔</span> Linking .cursor/skills
+      </span>,
+      <span key="9">
         <span className="t-success">✔</span> Updating skills-lock.yaml
       </span>,
-      <span key="9" className="t-done">
+      <span key="10" className="t-done">
         ✨ Done in 1.2s
       </span>,
     ]
@@ -300,19 +303,26 @@ function Terminal() {
     </div>
   )
 }
-
 function ConfigViewer() {
   const code = [
     { line: 1, text: '{' },
-    { line: 2, text: '  "$schema": "https://unpkg.com/...",' },
+    {
+      line: 2,
+      text: '  "$schema": "https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json",',
+    },
     { line: 3, text: '  "installDir": ".agents/skills",' },
-    { line: 4, text: '  "linkTargets": [".claude/skills"],' },
-    { line: 5, text: '  "skills": {' },
-    { line: 6, text: '    "pr-creator": "https://github.com/...",' },
-    { line: 7, text: '    "rspress-theme": "https://github.com/...",' },
-    { line: 8, text: '    "spm-cli": "link:./packages/spm-cli"' },
-    { line: 9, text: '  }' },
-    { line: 10, text: '}' },
+    { line: 4, text: '  "linkTargets": [".claude/skills", ".cursor/skills"],' },
+    { line: 5, text: '  "selfSkill": false,' },
+    { line: 6, text: '  "skills": {' },
+    {
+      line: 7,
+      text: '    "pr-creator": "https://github.com/rstackjs/agent-skills.git#89bd10a...&path:/skills/pr-creator",',
+    },
+    { line: 8, text: '    "npm-skill": "npm:@scope/agent-logic@^1.2.0",' },
+    { line: 9, text: '    "local-dev": "link:./packages/my-custom-skill",' },
+    { line: 10, text: '    "legacy-v1": "file:./backups/old-agent.tgz"' },
+    { line: 11, text: '  }' },
+    { line: 12, text: '}' },
   ]
 
   const highlightLine = (text: string) => {

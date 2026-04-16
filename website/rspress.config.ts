@@ -23,7 +23,7 @@ export default defineConfig({
         content: 'https://github.com/SoonIter/skills-package-manager',
       },
     ],
-    darkMode: true,
+    darkMode: false,
   },
   plugins: [pluginMermaid(), pluginFontOpenSans(), pluginFileTree()],
 })

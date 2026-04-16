@@ -221,28 +221,28 @@
 
 @keyframes float-up {
   0%, 100% { transform: translateZ(50px) translateY(0); }
-  50% { transform: translateZ(50px) translateY(-15px); }
+  50% { transform: translateZ(50px) translateY(-10px); }
 }
 
 @keyframes float-down {
   0%, 100% { transform: translateZ(-20px) translate(40px, 20px) translateY(0); }
-  50% { transform: translateZ(-20px) translate(40px, 20px) translateY(15px); }
+  50% { transform: translateZ(-20px) translate(40px, 20px) translateY(10px); }
 }
 
 /* Hover Interaction Strategy */
 .spm-config-window:hover {
-  transform: translateZ(150px) scale(1.05) translateY(-20px) !important;
+  transform: translateZ(120px) scale(1.03) translateY(-10px) rotateY(5deg) !important;
   z-index: 100;
   opacity: 1;
-  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6), 0 0 30px rgba(var(--rp-c-brand-rgb), 0.3);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6), 0 0 20px rgba(var(--rp-c-brand-rgb), 0.2);
   border-color: rgba(var(--rp-c-brand-rgb), 0.4);
 }
 
 .spm-terminal-window:hover {
-  transform: translateZ(150px) scale(1.05) translateY(-20px) !important;
+  transform: translateZ(120px) scale(1.03) translateY(-10px) rotateY(5deg) !important;
   z-index: 100;
   opacity: 1;
-  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6), 0 0 30px rgba(var(--rp-c-brand-rgb), 0.3);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6), 0 0 20px rgba(var(--rp-c-brand-rgb), 0.2);
   border-color: rgba(var(--rp-c-brand-rgb), 0.4);
 }
 

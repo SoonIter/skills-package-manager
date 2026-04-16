@@ -27,6 +27,9 @@ function SiteFooter() {
 export function Layout() {
   return (
     <>
+      <Head>
+        <script>{`document.documentElement.classList.add('dark', 'rp-dark');`}</script>
+      </Head>
       <OriginalLayout bottom={<SiteFooter />} />
     </>
   )
