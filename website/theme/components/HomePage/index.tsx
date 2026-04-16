@@ -303,8 +303,11 @@ function Terminal() {
     </div>
   )
 }
+
 function ConfigViewer() {
-  const code = [
+  const [activeTab, setActiveTab] = useState<'manifest' | 'lock'>('manifest')
+
+  const manifestCode = [
     { line: 1, text: '{' },
     {
       line: 2,
@@ -325,9 +328,22 @@ function ConfigViewer() {
     { line: 12, text: '}' },
   ]
 
+  const lockCode = [
+    { line: 1, text: 'lockfileVersion: "0.1"' },
+    { line: 2, text: 'installDir: .agents/skills' },
+    { line: 3, text: 'linkTargets:' },
+    { line: 4, text: '  - .claude/skills' },
+    { line: 5, text: 'skills:' },
+    { line: 6, text: '  pr-creator:' },
+    { line: 7, text: '    specifier: https://github.com/rstackjs/agent-skills.git#89bd10a...' },
+    { line: 8, text: '    resolution:' },
+    { line: 9, text: '      type: git' },
+    { line: 10, text: '      commit: 89bd10a842356073382b281509b4c8af7f9eb5a8' },
+  ]
+
   const highlightLine = (text: string) => {
     const parts: ReactNode[] = []
-    const regex = /("[^"]+")(:?)|([{}[\],])/g
+    const regex = /("[^"]+")(:?)|([{}[\],])|(\w+:)/g
     let lastIndex = 0
     let match: RegExpExecArray | null = null
 
@@ -340,6 +356,7 @@ function ConfigViewer() {
       }
 
       if (match[1]) {
+        // JSON key or value
         const isKey = match[2] === ':'
         parts.push(
           <span key={match.index} className={isKey ? 'c-key' : 'c-val'}>
@@ -348,9 +365,17 @@ function ConfigViewer() {
         )
         if (isKey) parts.push(':')
       } else if (match[3]) {
+        // JSON/YAML punctuation
         parts.push(
           <span key={match.index} className="c-punc">
             {match[3]}
+          </span>,
+        )
+      } else if (match[4]) {
+        // YAML key
+        parts.push(
+          <span key={match.index} className="c-key">
+            {match[4]}
           </span>,
         )
       }
@@ -365,6 +390,8 @@ function ConfigViewer() {
     return parts
   }
 
+  const code = activeTab === 'manifest' ? manifestCode : lockCode
+
   return (
     <div className="spm-hero-window spm-config-window">
       <div className="spm-hero-window__header">
@@ -373,9 +400,21 @@ function ConfigViewer() {
           <span className="t-dot t-dot--yellow" />
           <span className="t-dot t-dot--green" />
         </div>
-        <div className="spm-hero-window__title">skills.json</div>
         <div className="spm-hero-window__tabs">
-          <div className="t-tab t-tab--active">skills.json</div>
+          <button
+            type="button"
+            className={`t-tab ${activeTab === 'manifest' ? 't-tab--active' : ''}`}
+            onClick={() => setActiveTab('manifest')}
+          >
+            skills.json
+          </button>
+          <button
+            type="button"
+            className={`t-tab ${activeTab === 'lock' ? 't-tab--active' : ''}`}
+            onClick={() => setActiveTab('lock')}
+          >
+            skills-lock.yaml
+          </button>
         </div>
       </div>
       <div className="spm-hero-window__body">
