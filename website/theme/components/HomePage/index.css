@@ -194,6 +194,23 @@
   font-weight: 500;
 }
 
+.spm-hero-window__tabs {
+  display: flex;
+  margin-left: 8px;
+}
+
+.t-tab {
+  padding: 4px 12px;
+  font-size: 12px;
+  color: #666;
+  border-radius: 6px 6px 0 0;
+}
+
+.t-tab--active {
+  background: rgba(30, 30, 30, 0.95);
+  color: #e0e0e0;
+}
+
 .spm-hero-window__body {
   padding: 24px;
   color: #e0e0e0;
@@ -267,6 +284,10 @@
   font-size: 14px;
 }
 
+.spm-config__line-content {
+  white-space: pre;
+}
+
 .spm-config__line-num {
   flex-shrink: 0;
   width: 20px;
@@ -311,27 +332,118 @@
   border-bottom: 1px solid var(--rp-c-divider-light);
 }
 
+.spm-quickstart-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+  margin-top: 48px;
+}
+
 .spm-quickstart-card {
   background: var(--rp-c-bg);
   border: 1px solid var(--rp-c-divider-light);
   border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.spm-quickstart-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: var(--rp-c-bg-soft);
+  border-bottom: 1px solid var(--rp-c-divider-light);
+}
+
+.spm-quickstart-label {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--rp-c-text-1);
+}
+
+.spm-quickstart-actions {
+  display: flex;
+  gap: 12px;
 }
 
 .spm-quickstart-code-wrapper {
   background: #1e2227;
   padding: 32px;
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.spm-quickstart-code {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #e0e6ed;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.spm-quickstart-code code {
+  background: transparent;
+  padding: 0;
 }
 
 .spm-copy-btn {
-  padding: 12px 24px;
+  position: relative;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 10px 20px;
   border-radius: 12px;
+  font-size: 0.85rem;
   font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.2, 1, 0.3, 1);
+  white-space: nowrap;
+  overflow: hidden;
+  align-self: flex-start;
+}
+
+.spm-copy-btn:hover {
+  background: var(--rp-c-brand);
+  color: #000;
+  border-color: var(--rp-c-brand);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(var(--rp-c-brand-rgb), 0.3);
 }
 
 .spm-copy-btn--ai {
-  background: linear-gradient(135deg, rgba(var(--rp-c-brand-rgb), 0.1), rgba(var(--rp-c-brand-rgb), 0.05));
+  border-color: rgba(var(--rp-c-brand-rgb), 0.4);
+  background: linear-gradient(135deg, rgba(var(--rp-c-brand-rgb), 0.15), rgba(var(--rp-c-brand-rgb), 0.05));
+  color: var(--rp-c-brand-light);
+}
+
+.spm-copy-btn--ai:hover {
+  color: #000;
+}
+
+.spm-copy-btn__ai-glow {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(var(--rp-c-brand-rgb), 0.2), transparent);
+  animation: sweep 3s infinite linear;
+}
+
+@keyframes sweep {
+  0% { left: -100%; }
+  50% { left: 150%; }
+  100% { left: 150%; }
 }
 
 /* Features & Concepts */
@@ -339,9 +451,23 @@
   padding: 120px 0;
 }
 
+.spm-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
 .spm-feature-card {
   padding: 48px 40px;
   border-radius: 32px;
+}
+
+.spm-concepts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 40px;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 .spm-concept-card {
@@ -362,14 +488,19 @@
 /* Responsive */
 @media (max-width: 1024px) {
   .spm-hero-container { flex-direction: column; text-align: center; }
+  .spm-hero-actions { justify-content: center; }
   .spm-hero-visual { width: 100%; margin-top: 64px; }
   .spm-3d-container { transform: rotateY(0) rotateX(0); max-width: 500px; height: 500px; }
   .spm-hero-visual:hover .spm-3d-container { transform: none; }
   .spm-config-window, .spm-terminal-window { width: 100%; position: relative; animation: none; transform: none !important; opacity: 1 !important; filter: none !important; }
   .spm-terminal-window { margin-top: -60px; }
+  .spm-quickstart-cards { grid-template-columns: 1fr; }
+  .spm-features-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 768px) {
   .spm-hero-title { font-size: 3rem; }
   .spm-cta-title { font-size: 2.5rem; }
+  .spm-quickstart-card-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .spm-features-grid, .spm-concepts-grid { grid-template-columns: 1fr; }
 }
