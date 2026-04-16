@@ -1,14 +1,33 @@
 # Introduction
 
-![logo](/logo-light.svg)
+<div className="flex items-center gap-4 mb-8">
+  <img src="/logo-light.svg" width="80" height="80" alt="logo" className="rounded-2xl shadow-lg" />
+  <div>
+    <h1 className="!m-0 text-4xl font-extrabold">skills-package-manager</h1>
+    <p className="text-xl text-gray-500 m-0">Reproducible agent skills for modern AI workflows.</p>
+  </div>
+</div>
 
-skills-package-manager is a package manager for agent skills. It manages, installs, updates, and links skill directories based on `SKILL.md`.
+**skills-package-manager** is a specialized tool designed to manage [SKILL.md](https://github.com/SoonIter/skills-package-manager/blob/main/AGENTS.md)-based agent skills. It brings the power and reliability of modern package management (like `npm` or `pnpm`) to the world of AI agents.
 
-It currently provides these core parts:
+## Core Philosophy
 
-- `skills-package-manager`: the core library and the `spm` CLI.
-- `pnpm-plugin-skills`: a pnpm plugin that automatically synchronizes skills during `pnpm install`.
+Traditional agent skills often involve manual directory management and hard-to-track versions. **SPM** changes that by focusing on:
 
-## What's next?
+- **Version Control**: Use a lockfile (`skills-lock.yaml`) to ensure every developer on your team and every CI runner uses the exact same skill versions.
+- **Protocol Flexibility**: Install skills from anywhere—Git repositories, NPM packages, local symlinks, or even `.tgz` archives.
+- **Zero Duplication**: Install a skill once and automatically link it to multiple agent environments (Claude, Cursor, custom agents) simultaneously.
+- **Developer First**: Fully compatible with existing tools like `npx skills` and deeply integrated with `pnpm`.
 
-If you want to start configuring your project right away, continue to [Getting Started](/getting-started).
+## Project Structure
+
+The ecosystem consists of two primary components:
+
+- **`skills-package-manager`**: The core engine and the `spm` CLI tool.
+- **`pnpm-plugin-skills`**: A first-class pnpm integration that hooks into the dependency resolution lifecycle.
+
+## Getting Started
+
+Ready to transform how you manage agent capabilities?
+
+[Quick Start Guide →](/getting-started)

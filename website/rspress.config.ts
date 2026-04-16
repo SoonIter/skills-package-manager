@@ -20,10 +20,10 @@ export default defineConfig({
       {
         icon: 'github',
         mode: 'link',
-        content: 'https://github.com/SoonIter/skills-pm',
+        content: 'https://github.com/SoonIter/skills-package-manager',
       },
     ],
-    darkMode: false,
+    darkMode: true,
   },
   plugins: [pluginMermaid(), pluginFontOpenSans(), pluginFileTree()],
 })

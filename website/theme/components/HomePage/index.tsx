@@ -229,19 +229,25 @@ function Terminal() {
         <span className="t-success">✔</span> Resolving skills.json...
       </span>,
       <span key="3">
-        <span className="t-success">✔</span> Downloading pr-creator...
+        <span className="t-success">✔</span> Downloading git-skill (github.com/...)
       </span>,
       <span key="4">
-        <span className="t-success">✔</span> Linking .claude/skills/pr-creator
+        <span className="t-success">✔</span> Extracting npm-skill (@scope/package)
       </span>,
       <span key="5">
-        <span className="t-success">✔</span> Linking .cursor/skills/pr-creator
+        <span className="t-success">✔</span> Linking local-skill (./local-path)
       </span>,
       <span key="6">
+        <span className="t-success">✔</span> Linking .claude/skills
+      </span>,
+      <span key="7">
+        <span className="t-success">✔</span> Linking .cursor/skills
+      </span>,
+      <span key="8">
         <span className="t-success">✔</span> Updating skills-lock.yaml
       </span>,
-      <span key="7" className="t-done">
-        ✨ Done in 0.8s
+      <span key="9" className="t-done">
+        ✨ Done in 1.2s
       </span>,
     ]
 
