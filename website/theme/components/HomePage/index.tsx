@@ -298,14 +298,26 @@ function Terminal() {
 function ConfigViewer() {
   const code = [
     { line: 1, text: '{' },
-    { line: 2, text: '  "$schema": "https://unpkg.com/...",' },
+    {
+      line: 2,
+      text: '  "$schema": "https://unpkg.com/skills-package-manager@0.4.0/skills.schema.json",',
+    },
     { line: 3, text: '  "installDir": ".agents/skills",' },
     { line: 4, text: '  "linkTargets": [".claude/skills"],' },
     { line: 5, text: '  "selfSkill": false,' },
     { line: 6, text: '  "skills": {' },
-    { line: 7, text: '    "pr-creator": "https://github.com/...",' },
-    { line: 8, text: '    "rspress-theme": "https://github.com/...",' },
-    { line: 9, text: '    "spm-cli": "link:./packages/spm-cli"' },
+    {
+      line: 7,
+      text: '    "pr-creator": "https://github.com/rstackjs/agent-skills.git#89bd10a842356073382b281509b4c8af7f9eb5a8&path:/skills/pr-creator",',
+    },
+    {
+      line: 8,
+      text: '    "rspress-custom-theme": "https://github.com/rstackjs/agent-skills.git#89bd10a842356073382b281509b4c8af7f9eb5a8&path:/skills/rspress-custom-theme",',
+    },
+    {
+      line: 9,
+      text: '    "skills-package-manager-cli": "link:./packages/skills-package-manager/skills/skills-package-manager-cli"',
+    },
     { line: 10, text: '  }' },
     { line: 11, text: '}' },
   ]
