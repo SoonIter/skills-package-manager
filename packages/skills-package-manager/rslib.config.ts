@@ -10,6 +10,9 @@ export default defineConfig({
           index: './src/index.ts',
         },
       },
+      splitChunks: {
+        preset: 'per-package',
+      },
       output: {
         target: 'node',
         cleanDistPath: true,
