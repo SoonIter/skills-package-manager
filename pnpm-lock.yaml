@@ -52,10 +52,16 @@ importers:
         version: 5.9.3
 
   packages/skills-package-manager:
-    dependencies:
+    devDependencies:
       '@clack/prompts':
         specifier: ^1.1.0
         version: 1.1.0
+      '@rslib/core':
+        specifier: ^0.20.0
+        version: 0.20.2(core-js@3.42.0)(typescript@5.9.3)
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.0
       cac:
         specifier: ^7.0.0
         version: 7.0.0
@@ -68,22 +74,15 @@ importers:
       tar:
         specifier: ^7.4.3
         version: 7.5.13
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
       yaml:
         specifier: ^2.8.1
         version: 2.8.3
       zod:
         specifier: ^4.3.6
         version: 4.3.6
-    devDependencies:
-      '@rslib/core':
-        specifier: ^0.20.0
-        version: 0.20.2(core-js@3.42.0)(typescript@5.9.3)
-      '@types/node':
-        specifier: ^24.0.0
-        version: 24.12.0
-      typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
 
   website:
     dependencies:
