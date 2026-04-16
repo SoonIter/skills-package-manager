@@ -1,6 +1,6 @@
 import { useFrontmatter } from '@rspress/core/runtime'
 import { Button } from '@rspress/core/theme-original'
-import React, { type ReactNode, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import './index.css'
 
 interface HomeAction {
@@ -146,7 +146,7 @@ function getConceptIcon(icon: string) {
   return null
 }
 
-function CopyButton({ text, label }: { text: string; label: string }) {
+function CopyButton({ text, label, isAi }: { text: string; label: string; isAi?: boolean }) {
   const [copied, setCopied] = useState(false)
 
   const fallbackCopyText = (value: string) => {
@@ -197,17 +197,101 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 
   return (
     <button
-      className="spm-copy-btn"
+      className={`spm-copy-btn ${isAi ? 'spm-copy-btn--ai' : ''}`}
       onClick={handleCopy}
       type="button"
       aria-label="Copy to clipboard"
     >
+      {isAi && <span className="spm-copy-btn__ai-glow" />}
       {copied ? (
         <span className="spm-copy-btn-text">Copied!</span>
       ) : (
         <span className="spm-copy-btn-text">{label}</span>
       )}
     </button>
+  )
+}
+
+interface TerminalLine {
+  id: number
+  content: ReactNode
+}
+
+function Terminal() {
+  const [lines, setLines] = useState<TerminalLine[]>([])
+
+  useEffect(() => {
+    const terminalLines: ReactNode[] = [
+      <span key="1" className="t-cmd">
+        $ npx skills-package-manager install
+      </span>,
+      <span key="2">
+        <span className="t-success">✔</span> Resolving skills.json...
+      </span>,
+      <span key="3">
+        <span className="t-success">✔</span> Downloading vercel-labs/skills@1.2.0
+      </span>,
+      <span key="4">
+        <span className="t-success">✔</span> Linking .claude/skills/vercel-labs
+      </span>,
+      <span key="5">
+        <span className="t-success">✔</span> Linking .cursor/skills/vercel-labs
+      </span>,
+      <span key="6">
+        <span className="t-success">✔</span> Updating skills-lock.yaml
+      </span>,
+      <span key="7" className="t-done">
+        ✨ Done in 0.8s
+      </span>,
+    ]
+
+    let currentLine = 0
+    const interval = setInterval(() => {
+      if (currentLine < terminalLines.length) {
+        setLines((prev) => [...prev, { id: currentLine, content: terminalLines[currentLine] }])
+        currentLine++
+      } else {
+        clearInterval(interval)
+        setTimeout(() => {
+          setLines([])
+          currentLine = 0
+          const restartInterval = setInterval(() => {
+            if (currentLine < terminalLines.length) {
+              setLines((prev) => [
+                ...prev,
+                { id: currentLine, content: terminalLines[currentLine] },
+              ])
+              currentLine++
+            } else {
+              clearInterval(restartInterval)
+            }
+          }, 400)
+        }, 3000)
+      }
+    }, 400)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="spm-terminal">
+      <div className="spm-terminal__header">
+        <div className="spm-terminal__dots">
+          <span className="t-dot t-dot--red" />
+          <span className="t-dot t-dot--yellow" />
+          <span className="t-dot t-dot--green" />
+        </div>
+        <div className="spm-terminal__title">bash</div>
+      </div>
+      <div className="spm-terminal__body">
+        {lines.map((line) => (
+          <div key={line.id} className="spm-terminal__line">
+            {line.content}
+          </div>
+        ))}
+        <span className="spm-terminal__cursor" />
+      </div>
+    </div>
   )
 }
 
@@ -222,10 +306,11 @@ export function HomePage() {
   const quickStarts = frontmatter?.quickStarts ?? []
   const concepts = frontmatter?.concepts ?? []
   const heroActions = hero?.actions ?? []
-  const heroImage = hero?.image
 
   return (
     <div className="spm-home-wrapper">
+      <div className="spm-grid-bg" />
+
       <div className="spm-hero-section">
         <div className="spm-hero-container">
           <div className="spm-hero-content">
@@ -250,14 +335,8 @@ export function HomePage() {
             </div>
           </div>
           <div className="spm-hero-visual">
-            <div className="spm-hero-image-wrapper">
-              <img
-                src={heroImage?.src ?? '/logo-light.svg'}
-                alt={heroImage?.alt ?? 'skills-package-manager logo'}
-                className="spm-hero-img"
-              />
-              <div className="spm-hero-glow"></div>
-            </div>
+            <Terminal />
+            <div className="spm-hero-glow" />
           </div>
         </div>
       </div>
@@ -274,7 +353,7 @@ export function HomePage() {
                 <div className="spm-quickstart-card-header">
                   <h3 className="spm-quickstart-label">{item.label}</h3>
                   <div className="spm-quickstart-actions">
-                    <CopyButton text={item.agentText} label="Copy for Agent" />
+                    <CopyButton text={item.agentText} label="Copy for Agent" isAi />
                   </div>
                 </div>
                 <div className="spm-quickstart-code-wrapper">

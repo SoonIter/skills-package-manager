@@ -17,23 +17,23 @@ hero:
       link: /introduction
 
 features:
-  - title: Reproducible Installs with skills-lock.yaml
-    details: Stop committing heavy skill files! `skills-lock.yaml` handles version control automatically. Keep your git history clean while ensuring everyone on your team uses the exact same skills. Update effortlessly with `npx skills-package-manager update`.
+  - title: Lockfile-Driven Versioning
+    details: Ditch heavy git commits. `skills-lock.yaml` ensures every team member and CI/CD environment runs on identical skill versions.
     icon: lock
-  - title: Multi-Protocol in skills.json
-    details: Flexibly declare your dependencies. Whether it's a local `link:`, an `npm:` package, a `git:` repository, or even a specific sub-folder inside a `.tgz` archive, `skills-package-manager` handles it natively.
+  - title: Any Source, Any Skill
+    details: Mix local `link:`, versioned `npm:`, or direct `git:` repos with ease—even sub-folders within `.tgz` archives.
     icon: globe
-  - title: Drop-in for npx skills
-    details: "Fully compatible with your existing workflows. Transitioning is as simple as swapping the command: change `npx skills add` to `npx skills-package-manager add` and instantly unlock powerful new capabilities."
+  - title: npx skills compatible
+    details: A seamless, drop-in replacement. Swap `npx skills` for `npx skills-package-manager` and unlock more power today.
     icon: swap
-  - title: First-Class pnpm Integration
-    details: Built with `pnpm` lovers in mind. Use `pnpm-plugin-skills` to hook directly into your dependency resolution lifecycle, keeping your AI agent skills perfectly synced with your Node packages.
+  - title: Native pnpm Integration
+    details: The `pnpm-plugin-skills` hooks directly into your install lifecycle for zero-effort, automatic skill synchronization.
     icon: plug
-  - title: Open Source & Privacy First
-    details: 100% open-source, purely client-side, and completely neutral. Enjoy a high-performance tool with absolutely no telemetry, tracking, or mandatory registries.
+  - title: 100% Open & Private
+    details: Zero telemetry. No tracking. Purely client-side tooling that respects your privacy and works with any registry.
     icon: shield
-  - title: Multi-Agent Native
-    details: Stop duplicating skill folders for different tools. Install your skills once and automatically link them into `.claude/skills`, `.cursor/skills`, or any custom agent directory simultaneously.
+  - title: One Install, Multiple Agents
+    details: Stop folder duplication. Install once and simultaneously link into `.claude`, `.cursor`, and custom agent directories.
     icon: multi
 
 quickStarts:
