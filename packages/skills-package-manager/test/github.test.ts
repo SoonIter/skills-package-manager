@@ -15,7 +15,7 @@ describe('parseOwnerRepo', () => {
   it('parses owner/repo with dots and hyphens', () => {
     expect(parseOwnerRepo('some.user/my-repo.git')).toEqual({
       owner: 'some.user',
-      repo: 'my-repo.git',
+      repo: 'my-repo',
     })
   })
 
@@ -98,6 +98,33 @@ describe('discoverSkillsInDir', () => {
     expect(skills).toHaveLength(1)
     expect(skills[0].name).toBe('find-skills')
     expect(skills[0].path).toBe('/skills/find-skills')
+  })
+
+  it('discovers skills recursively in nested directories', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'skills-discover-nested-'))
+    mkdirSync(path.join(dir, 'guides/design/landing-page-design'), { recursive: true })
+    writeFileSync(
+      path.join(dir, 'guides/design/landing-page-design/SKILL.md'),
+      '---\nname: landing-page-design\ndescription: Design landing pages\n---\n',
+    )
+
+    const skills = await discoverSkillsInDir(dir)
+    expect(skills).toHaveLength(1)
+    expect(skills[0].name).toBe('landing-page-design')
+    expect(skills[0].path).toBe('/guides/design/landing-page-design')
+  })
+
+  it('skips unrelated hidden directories but still scans supported hidden skill roots', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'skills-discover-hidden-'))
+    mkdirSync(path.join(dir, '.claude/skills/visible-skill'), { recursive: true })
+    mkdirSync(path.join(dir, '.cache/ignored-skill'), { recursive: true })
+    writeFileSync(path.join(dir, '.claude/skills/visible-skill/SKILL.md'), '# Visible skill\n')
+    writeFileSync(path.join(dir, '.cache/ignored-skill/SKILL.md'), '# Ignored skill\n')
+
+    const skills = await discoverSkillsInDir(dir)
+    expect(skills).toHaveLength(1)
+    expect(skills[0].name).toBe('visible-skill')
+    expect(skills[0].path).toBe('/.claude/skills/visible-skill')
   })
 
   it('returns empty array when no skills found', async () => {

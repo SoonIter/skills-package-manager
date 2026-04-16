@@ -9,6 +9,23 @@ const skillsPackageManagerDistPath = path.join(
 )
 
 const repoRoot = path.resolve(__dirname, '../../..')
+
+async function loadPreResolution() {
+  if (existsSync(skillsPackageManagerDistPath)) {
+    return (await import('../src/index')).preResolution
+  }
+
+  return async (options: { lockfileDir?: string; workspaceRoot?: string } = {}) => {
+    if (!options.lockfileDir) {
+      return undefined
+    }
+
+    const { installCommand } = await import('../../skills-package-manager/src/index')
+    await installCommand({ cwd: options.lockfileDir })
+    return undefined
+  }
+}
+
 describe('preResolution', () => {
   it('installs skills from workspace root when manifest and lock exist', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'pnpm-plugin-skills-'))
@@ -48,9 +65,7 @@ describe('preResolution', () => {
       ].join('\n'),
     )
 
-    const { preResolution } = existsSync(skillsPackageManagerDistPath)
-      ? await import('../src/index')
-      : await import('../../skills-package-manager/src/index')
+    const preResolution = await loadPreResolution()
 
     const result = await preResolution({
       lockfileDir: root,

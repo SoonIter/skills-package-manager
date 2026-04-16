@@ -8,6 +8,7 @@ import type { SkillInfo } from './types'
 const execFileAsync = promisify(execFile)
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '__pycache__'])
+const ALLOWED_HIDDEN_DIRS = new Set(['.agents', '.claude', '.github'])
 
 function parseSkillFrontmatter(content: string): { name: string; description: string } {
   const fmMatch = content.match(/^---\n([\s\S]*?)\n---/)
@@ -49,60 +50,39 @@ async function parseSkillDir(dir: string, relativePath: string): Promise<SkillIn
   }
 }
 
-/**
- * Scan a directory for subdirs containing SKILL.md.
- * Returns skills found in that directory level.
- */
-async function scanForSkills(baseDir: string, subDir: string): Promise<SkillInfo[]> {
+function shouldSkipDir(name: string): boolean {
+  if (SKIP_DIRS.has(name)) {
+    return true
+  }
+
+  return name.startsWith('.') && !ALLOWED_HIDDEN_DIRS.has(name)
+}
+
+async function scanForSkillsRecursive(baseDir: string, subDir = ''): Promise<SkillInfo[]> {
   const searchDir = subDir ? join(baseDir, subDir) : baseDir
-  const skills: SkillInfo[] = []
 
   try {
     const entries = await readdir(searchDir, { withFileTypes: true })
-    const dirs = entries.filter((e) => e.isDirectory() && !SKIP_DIRS.has(e.name))
+    const dirs = entries.filter((entry) => entry.isDirectory() && !shouldSkipDir(entry.name))
 
-    const checks = dirs.map(async (entry) => {
-      const fullPath = join(searchDir, entry.name)
-      if (await hasSkillMd(fullPath)) {
-        const relativePath = subDir ? `/${subDir}/${entry.name}` : `/${entry.name}`
-        return parseSkillDir(fullPath, relativePath)
-      }
-      return null
-    })
+    const results = await Promise.all(
+      dirs.map(async (entry) => {
+        const relativePath = subDir ? `${subDir}/${entry.name}` : entry.name
+        const fullPath = join(searchDir, entry.name)
 
-    const results = await Promise.all(checks)
-    for (const r of results) {
-      if (r) skills.push(r)
-    }
+        if (await hasSkillMd(fullPath)) {
+          const parsed = await parseSkillDir(fullPath, `/${relativePath}`)
+          return parsed ? [parsed] : []
+        }
+
+        return scanForSkillsRecursive(baseDir, relativePath)
+      }),
+    )
+
+    return results.flat()
   } catch {
-    // directory doesn't exist
+    return []
   }
-
-  return skills
-}
-
-async function discoverSkillsInDirs(
-  baseDir: string,
-  commonDirs: string[],
-  options?: { includeRoot?: boolean },
-): Promise<SkillInfo[]> {
-  if (options?.includeRoot ?? true) {
-    const rootSkills = await scanForSkills(baseDir, '')
-    if (rootSkills.length > 0) {
-      rootSkills.sort((a, b) => a.name.localeCompare(b.name))
-      return rootSkills
-    }
-  }
-
-  for (const dir of commonDirs) {
-    const skills = await scanForSkills(baseDir, dir)
-    if (skills.length > 0) {
-      skills.sort((a, b) => a.name.localeCompare(b.name))
-      return skills
-    }
-  }
-
-  return []
 }
 
 /**
@@ -140,15 +120,12 @@ export async function cloneAndDiscover(
 
 /**
  * Discover skills in a local directory by scanning for SKILL.md files.
- * Checks root-level dirs first, then common subdirs (skills/, .agents/skills/, etc.)
+ * Recursively scans the repo tree for directories containing SKILL.md.
  */
 export async function discoverSkillsInDir(baseDir: string): Promise<SkillInfo[]> {
-  return discoverSkillsInDirs(baseDir, [
-    'skills',
-    '.agents/skills',
-    '.claude/skills',
-    '.github/skills',
-  ])
+  const skills = await scanForSkillsRecursive(baseDir)
+  skills.sort((a, b) => a.path.localeCompare(b.path) || a.name.localeCompare(b.name))
+  return skills
 }
 
 /**
@@ -171,7 +148,7 @@ export function parseOwnerRepo(input: string): { owner: string; repo: string } |
   if (!match) {
     return null
   }
-  return { owner: match[1], repo: match[2] }
+  return { owner: match[1], repo: match[2].replace(/\.git$/, '') }
 }
 
 export function parseGitHubUrl(input: string): { owner: string; repo: string } | null {

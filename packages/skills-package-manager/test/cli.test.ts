@@ -49,7 +49,16 @@ function withHandlers<THandlers extends object>(handlers: THandlers) {
 describe('runCli dispatch', () => {
   it('dispatches add with specifier only', async () => {
     const add = createAsyncSpy<
-      [options: { cwd: string; specifier: string; skill?: string }],
+      [
+        options: {
+          cwd: string
+          specifier: string
+          skill?: string
+          global?: boolean
+          yes?: boolean
+          agent?: string[]
+        },
+      ],
       string
     >('added')
 
@@ -60,13 +69,31 @@ describe('runCli dispatch', () => {
 
     expect(result).toBe('added')
     expect(add.calls).toEqual([
-      [{ cwd: '/workspace/project', specifier: 'github:owner/repo', skill: undefined }],
+      [
+        {
+          cwd: '/workspace/project',
+          specifier: 'github:owner/repo',
+          skill: undefined,
+          global: undefined,
+          yes: undefined,
+          agent: undefined,
+        },
+      ],
     ])
   })
 
   it('dispatches add with optional --skill', async () => {
     const add = createAsyncSpy<
-      [options: { cwd: string; specifier: string; skill?: string }],
+      [
+        options: {
+          cwd: string
+          specifier: string
+          skill?: string
+          global?: boolean
+          yes?: boolean
+          agent?: string[]
+        },
+      ],
       string
     >('added')
 
@@ -76,7 +103,64 @@ describe('runCli dispatch', () => {
     })
 
     expect(add.calls).toEqual([
-      [{ cwd: '/workspace/project', specifier: 'owner/repo', skill: 'my-skill' }],
+      [
+        {
+          cwd: '/workspace/project',
+          specifier: 'owner/repo',
+          skill: 'my-skill',
+          global: undefined,
+          yes: undefined,
+          agent: undefined,
+        },
+      ],
+    ])
+  })
+
+  it('dispatches add with -g -y and repeated --agent', async () => {
+    const add = createAsyncSpy<
+      [
+        options: {
+          cwd: string
+          specifier: string
+          skill?: string
+          global?: boolean
+          yes?: boolean
+          agent?: string[]
+        },
+      ],
+      string
+    >('added')
+
+    await runCli(
+      [
+        'node',
+        'spm',
+        'add',
+        'owner/repo',
+        '--agent',
+        'claude-code',
+        '--agent',
+        'continue',
+        '-g',
+        '-y',
+      ],
+      {
+        cwd: '/workspace/project',
+        ...withHandlers({ addCommand: add.fn }),
+      },
+    )
+
+    expect(add.calls).toEqual([
+      [
+        {
+          cwd: '/workspace/project',
+          specifier: 'owner/repo',
+          skill: undefined,
+          global: true,
+          yes: true,
+          agent: ['claude-code', 'continue'],
+        },
+      ],
     ])
   })
 

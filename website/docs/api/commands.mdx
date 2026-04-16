@@ -1,19 +1,43 @@
 # Commands
 
-## `spm add`
+## `npx skills-package-manager add`
 
 Add one or more skills, then install and link them immediately after writing the manifest.
 
-## `spm init`
+For the `npx` workflow, this is also the main migration pitch: teams already familiar with `npx skills add ...` can usually start by replacing it with `npx skills-package-manager add ...` and keep the same high-level add habit.
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--skill <name>` | Select a specific skill when the source contains multiple skills. |
+| `-y, --yes` | Skip prompts. When `--skill` is omitted and multiple skills are discovered, add all of them. |
+| `-a, --agent <name>` | Append compatible agent `linkTargets` for this add. Repeat the flag to target multiple agents. Agents that already read from `.agents/skills` locally do not add a separate project `linkTarget`. |
+| `-g, --global` | Add to the global skills workspace instead of the current project. On first global use, provide at least one `--agent` so the global manifest knows which directories to link into. |
+
+### Examples
+
+```bash
+# Add one skill from a multi-skill source
+npx skills-package-manager add https://github.com/rstackjs/agent-skills --skill rspress-custom-theme
+
+# Add all discovered skills and link them into multiple local agent directories
+npx skills-package-manager add ../local-skills --agent claude-code --agent continue -y
+
+# Add to the global workspace using an agent-specific global directory
+npx skills-package-manager add ../local-skills -g --agent claude-code --skill hello-skill -y
+```
+
+## `npx skills-package-manager init`
 
 Initialize a new `skills.json` manifest.
 
-- `spm init`: interactive initialization for `installDir` and additional `linkTargets`
-- `spm init --yes`: non-interactive initialization with defaults
+- `npx skills-package-manager init`: interactive initialization for `installDir` and additional `linkTargets`
+- `npx skills-package-manager init --yes`: non-interactive initialization with defaults
 - `selfSkill` defaults to `false` in the generated manifest
 - Fails if `skills.json` already exists
 
-## `spm install`
+## `npx skills-package-manager install`
 
 Install all skills defined in `skills.json`, synchronize `skills-lock.yaml`, `installDir`, and `linkTargets`, and also install the bundled `skills-package-manager-cli` self skill when `selfSkill` is enabled. The helper skill is not written to `skills-lock.yaml`.
 
@@ -44,7 +68,7 @@ Manifest specifiers without a ref (commit/branch) are compatible with any lockfi
 When setting up a project for the first time (no lockfile exists):
 
 ```bash
-spm install
+npx skills-package-manager install
 ```
 
 This will:
@@ -59,7 +83,7 @@ This will:
 In CI/CD pipelines, use `--frozen-lockfile` for reproducible builds:
 
 ```bash
-spm install --frozen-lockfile
+npx skills-package-manager install --frozen-lockfile
 ```
 
 This ensures:
@@ -70,10 +94,10 @@ This ensures:
 
 #### After adding a new skill
 
-After running `spm add` or manually editing `skills.json`:
+After running `npx skills-package-manager add` or manually editing `skills.json`:
 
 ```bash
-spm install
+npx skills-package-manager install
 ```
 
 This will:
@@ -88,12 +112,12 @@ If you get "Lockfile is out of sync" with `--frozen-lockfile`:
 
 ```bash
 # Option 1: Update the lockfile (recommended for local dev)
-spm install
+npx skills-package-manager install
 
 # Option 2: Check what changed
 git diff skills.json skills-lock.yaml
 ```
 
-## `spm update`
+## `npx skills-package-manager update`
 
 Refresh the resolvable skills declared in the manifest to their latest locked versions, with the option to update only selected skills.
