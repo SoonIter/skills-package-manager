@@ -17,7 +17,7 @@ function SiteFooter() {
         <div className="spm-footer__links">
           <Link href="/introduction">Documentation</Link>
           <Link href="/getting-started">Quick Start</Link>
-          <a href="https://github.com/SoonIter/skills-pm">GitHub</a>
+          <a href="https://github.com/SoonIter/skills-package-manager">GitHub</a>
         </div>
       </div>
     </div>

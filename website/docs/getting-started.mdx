@@ -1,121 +1,115 @@
 # Getting Started
 
-import { PageTabs, PageTab } from '@rspress/core/theme';
+import { PageTabs, PageTab, Steps } from '@rspress/core/theme';
 import PnpmGuide from './_pnpm.mdx';
 
 <PageTabs>
-<PageTab label="pnpm">
+<PageTab label="pnpm (Recommended)">
 <PnpmGuide />
 </PageTab>
-<PageTab label="common">
+<PageTab label="Standalone CLI">
 
-import { Steps } from '@rspress/core/theme';
+## 1. Quick Initialization
 
-## 1. Initialize your project
-
-If you're not using pnpm or prefer a standalone workflow, you can use the CLI directly to manage skills.
+If you're not using pnpm, you can manage skills using the standalone CLI. Initialize your project to create a `skills.json` manifest.
 
 <Steps>
 
-### Install the CLI
-
-You don't need to install the CLI globally — just use `npx` to run it on demand:
+### Bootstrap your project
 
 ```bash
-npx skills-package-manager --help
-```
-
-### Create a `skills.json` manifest
-
-Initialize a new project with the `init` command:
-
-```bash
-# Interactive — prompt for installDir and linkTargets
-npx skills-package-manager init
-
-# Non-interactive — write the default manifest immediately
+# Run once with npx, no global install required
 npx skills-package-manager init --yes
 ```
 
-The default `skills.json` created by `init --yes`:
+### Add your first skill
 
-```json
-{
-  "installDir": ".agents/skills",
-  "linkTargets": [],
-  "selfSkill": false,
-  "skills": {}
-}
-```
-
-This manifest defines:
-
-- `installDir`: where managed skills are materialized
-- `linkTargets`: which agent-specific directories receive links
-- `selfSkill`: whether to auto-install the bundled `skills-package-manager-cli` skill for help with `skills.json`, `skills-lock.yaml`, and `spm`. This helper skill is not written to `skills-lock.yaml`.
-- `skills`: which skills should be installed (empty initially)
-
-### Install your first skills
-
-Add skills to your project using the `add` command:
+Select from a variety of sources (Git, NPM, Local).
 
 ```bash
-# Interactive — clone repo, discover skills, select via multiselect prompt
-npx skills-package-manager add vercel-labs/skills
-npx skills-package-manager add https://github.com/rstackjs/agent-skills
+# Interactive mode (discovers skills in a repo)
+npx skills-package-manager add rstackjs/agent-skills
 
-# Non-interactive — add a specific skill by name
-npx skills-package-manager add vercel-labs/skills --skill find-skills
+# Explicitly add a specific skill
+npx skills-package-manager add rstackjs/agent-skills --skill pr-creator
 ```
 
-After `add`, the skill is immediately resolved, materialized into `installDir`, and linked to each configured `linkTarget`.
-
-### Run install to materialize skills
-
-If you edited `skills.json` manually or want to ensure everything is synced:
+### Materialize & Link
 
 ```bash
 npx skills-package-manager install
 ```
 
-This reads `skills.json`, resolves each skill specifier, generates or updates `skills-lock.yaml`, materializes skills into `installDir`, and links them into every directory listed in `linkTargets`.
-
-### Add `.agents/skills` to `.gitignore`
-
-Since the skill directories are generated artifacts, you should add them to `.gitignore`:
-
-```txt title=".gitignore"
-.agents/skills
-.claude/skills
-```
+This command will:
+1.  Resolve dependencies and generate `skills-lock.yaml`.
+2.  Download/Copy files to `.agents/skills`.
+3.  Symlink them to your agent folders (e.g., `.claude/skills`).
 
 </Steps>
 
-## 2. Add more skills when needed
+:::tip
+Remember to add `.agents/skills` and your agent link targets to your `.gitignore` to keep your repository lean!
+:::
 
-When you want to introduce another skill, you can either edit `skills.json` directly or use the CLI:
+## 2. Advanced Workflow
 
-```bash
-npx skills-package-manager add vercel-labs/skills --skill find-skills
-npx skills-package-manager add https://github.com/rstackjs/agent-skills --skill rspress-custom-theme
-```
-
-## 3. Refresh remote skill versions
-
-When remote git-based (URL) or `npm:` skills should move forward to newer resolved versions, run:
-
+### Update to latest versions
+To move your git-based skills to their latest commits:
 ```bash
 npx skills-package-manager update
 ```
 
-Or update specific skills only:
-
-```bash
-npx skills-package-manager update find-skills rspress-custom-theme
-```
-
-This keeps the resolved lockfile state and linked directories aligned with the latest declared versions.
+### Link local developments
+Use the `link:` protocol in `skills.json` for rapid local skill testing without publishing.
 
 </PageTab>
 
+<PageTab label="npm / yarn / bun">
+
+## Lifecycle Integration
+
+For **npm**, **yarn**, or **bun**, you can seamlessly integrate SPM into your project's lifecycle using the `prepare` script. This ensures your agent skills are automatically synchronized every time you run a fresh install.
+
+<Steps>
+
+### Install SPM as a dev dependency
+
+Add `skills-package-manager` to your project's `devDependencies`.
+
+```bash
+npm install -D skills-package-manager
+# or
+yarn add -D skills-package-manager
+# or
+bun add -d skills-package-manager
+```
+
+### Configure the prepare script
+
+Update your `package.json` to include the `prepare` lifecycle hook:
+
+```json
+{
+  "scripts": {
+    "prepare": "skills-package-manager install"
+  }
+}
+```
+
+### Initialize and Add Skills
+
+If you haven't already, initialize your manifest and start adding skills:
+
+```bash
+npx skills-package-manager init --yes
+npx skills-package-manager add <source>
+```
+
+</Steps>
+
+:::info
+The `prepare` script runs automatically after `npm install` (and equivalent commands in Yarn/Bun), guaranteeing that your `.agents/skills` directory and agent symlinks are always up to date.
+:::
+
+</PageTab>
 </PageTabs>

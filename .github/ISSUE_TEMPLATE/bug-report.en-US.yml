@@ -8,7 +8,7 @@ body:
       value: |
         Thanks for taking the time to report this issue. Before submitting, please note:
 
-         - Confirm that your problem cannot be solved by the [documentation](https://skills-package-manager.dev).
+         - Confirm that your problem cannot be solved by the [documentation](https://skills-package-manager.site).
          - Make sure you searched in the [Issues](https://github.com/sooniter/skills-package-manager/issues) and have not found the same issue.
          - If this looks like an upstream package manager or Git provider issue, please report it to the relevant repository as well.
 

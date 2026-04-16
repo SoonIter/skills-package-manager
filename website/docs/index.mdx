@@ -3,8 +3,8 @@ pageType: home
 
 hero:
   name: skills-package-manager
-  text: Package manager for agent skills
-  tagline: Manage, install, and link SKILL.md-based agent skills with ease.
+  text: The Next-Gen Package Manager for Agent Skills
+  tagline: Seamlessly manage, install, and link AI agent skills with lockfile-driven reproducibility and multi-protocol support.
   image:
     src: /logo-light.svg
     alt: skills-package-manager logo
@@ -17,27 +17,41 @@ hero:
       link: /introduction
 
 features:
-  - title: Easy Management
-    details: Install, update, and link skills using simple CLI commands.
-    icon: 📦
-  - title: pnpm Integration
-    details: Automatically sync skills during pnpm install with the dedicated plugin.
-    icon: 🔌
-  - title: Lockfile Support
-    details: Resolve and lock skill versions for reproducible environments.
-    icon: 🔒
-  - title: Multiple Protocols
-    details: Supports npm packages, git repositories, and local link targets out of the box.
-    icon: 🌐
+  - title: Lockfile-Driven Versioning
+    details: Ditch heavy git commits. `skills-lock.yaml` ensures every team member and CI/CD environment runs on identical skill versions.
+    icon: lock
+  - title: Any Source, Any Skill
+    details: Mix local `link:`, versioned `npm:`, or direct `git:` repos with ease—even sub-folders within `.tgz` archives.
+    icon: globe
+  - title: npx skills compatible
+    details: A seamless, drop-in replacement. Swap `npx skills` for `npx skills-package-manager` and unlock more power today.
+    icon: swap
+  - title: Native pnpm Integration
+    details: The `pnpm-plugin-skills` hooks directly into your install lifecycle for zero-effort, automatic skill synchronization.
+    icon: plug
+  - title: 100% Open & Private
+    details: Zero telemetry. No tracking. Purely client-side tooling that respects your privacy and works with any registry.
+    icon: shield
+  - title: One Install, Multiple Agents
+    details: Stop folder duplication. Install once and simultaneously link into `.claude`, `.cursor`, and custom agent directories.
+    icon: multi
 
-protocols:
-  - key: npm
-    label: npm
-    desc: Install from any npm registry or tarball.
-  - key: git
-    label: git
-    desc: Clone and resolve directly from git repositories.
-  - key: link
-    label: link
-    desc: Symlink local directories for rapid development.
+quickStarts:
+  - label: 'CLI Setup'
+    command: "npx skills-package-manager init --yes\nnpx skills-package-manager add <skill-name>\nnpx skills-package-manager install"
+    agentText: 'Use skills-package-manager to initialize and install skills for this project.'
+  - label: 'pnpm Plugin'
+    command: 'pnpm add pnpm-plugin-skills --config'
+    agentText: 'Add pnpm-plugin-skills as a pnpm config dependency to automatically sync skills on install.'
+  - label: 'npm / yarn / bun'
+    command: "npm install -D skills-package-manager\n# In package.json:\n# \"prepare\": \"skills-package-manager install\""
+    agentText: 'Install skills-package-manager as a dev dependency and add the prepare script for automatic sync.'
+
+concepts:
+  - title: 'skills.json: The Manifest'
+    details: 'The single source of truth for your required skills across any protocol.'
+    icon: 'manifest'
+  - title: 'skills-lock.yaml: The Lockfile'
+    details: 'Locks dependencies to ensure deterministic, reproducible installations every time.'
+    icon: 'lockfile'
 ---

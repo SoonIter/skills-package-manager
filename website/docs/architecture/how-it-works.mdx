@@ -41,13 +41,44 @@ The system then syncs links to `linkTargets`, for example:
 For skills no longer managed by the manifest, the installation flow performs cleanup to avoid stale content remaining in `installDir`.
 
 ```mermaid
-flowchart TD
-    A[skills.json] --> B[Parse specifiers]
-    B --> C[Resolve git/link/file/npm sources]
-    C --> D[Write skills-lock.yaml]
-    D --> E[Materialize managed skills]
-    E --> F[Link targets]
-    F --> G[Prune stale managed skills]
+graph TD
+    subgraph Input ["1. Declaration"]
+        A["skills.json (Manifest)"]
+    end
+
+    subgraph Core ["2. SPM Core Engine"]
+        B["Specifier Parser"]
+        C{"Resolver"}
+        D["Git Resolver"]
+        E["NPM Resolver"]
+        F["Link/File Resolver"]
+        G["Lockfile Generator"]
+    end
+
+    subgraph Output ["3. Materialization"]
+        H["skills-lock.yaml"]
+        I[".agents/skills/ (Physical Files)"]
+        J[".claude/skills/ (Symlinks)"]
+        K[".cursor/skills/ (Symlinks)"]
+    end
+
+    A --> B
+    B --> C
+    C -->|git:| D
+    C -->|npm:| E
+    C -->|link/file:| F
+    
+    D & E & F --> G
+    G --> H
+    G --> I
+    I --> J
+    I --> K
+
+    style A fill:#2dd4bf,stroke:#14b8a6,color:#000
+    style H fill:#5eead4,stroke:#14b8a6,color:#000
+    style I fill:#f1fa8c,stroke:#d1d100,color:#000
+    style J fill:#bd93f9,stroke:#9b6dff,color:#000
+    style K fill:#bd93f9,stroke:#9b6dff,color:#000
 ```
 
 ## Design goals

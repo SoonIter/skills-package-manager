@@ -25,7 +25,7 @@ async function main() {
 
   // Generate in package directory (for npm publishing)
   const pkgOutputPath = path.join(rootDir, 'skills.schema.json')
-  await writeFile(pkgOutputPath, JSON.stringify(output, null, 2) + '\n')
+  await writeFile(pkgOutputPath, `${JSON.stringify(output, null, 2)}\n`)
   console.log(`✅ Generated JSON Schema (package): ${pkgOutputPath}`)
 }
 
