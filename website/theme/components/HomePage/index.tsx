@@ -148,6 +148,62 @@ function getConceptIcon(icon: string) {
   return null
 }
 
+function getQuickStartIcon(label: string) {
+  if (label.toLowerCase().includes('pnpm')) {
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" role="img" aria-label="pnpm">
+        <title>pnpm</title>
+        <path
+          d="M0 0h6.75v6.75H0V0zm8.625 0h6.75v6.75h-6.75V0zm8.625 0H24v6.75h-6.75V0zM0 8.625h6.75v6.75H0v-6.75zm8.625 0h6.75v6.75h-6.75v-6.75zm8.625 0H24v6.75h-6.75v-6.75zM0 17.25h6.75V24H0v-6.75zm8.625 0h6.75V24h-6.75v-6.75z"
+          fill="#F69220"
+        />
+      </svg>
+    )
+  }
+  if (label.toLowerCase().includes('cli')) {
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" role="img" aria-label="CLI">
+        <title>CLI</title>
+        <rect
+          x="2"
+          y="4"
+          width="20"
+          height="16"
+          rx="3"
+          fill="#2d2d2d"
+          stroke="#444"
+          strokeWidth="1.5"
+        />
+        <circle cx="6" cy="8" r="1.5" fill="#ff5f57" />
+        <circle cx="10" cy="8" r="1.5" fill="#febc2e" />
+        <circle cx="14" cy="8" r="1.5" fill="#28c840" />
+        <path
+          d="M7 14l3 2-3 2M12 18h4"
+          stroke="#fff"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    )
+  }
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      role="img"
+      aria-label="npm / yarn / bun"
+    >
+      <title>npm / yarn / bun</title>
+      <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" fill="#CB3837" opacity="0.8" />
+      <path d="M12 22l9-5V7l-9 5-9-5v10l9 5z" fill="#3178C6" opacity="0.8" />
+      <path d="M12 12l9-5-9-5-9 5 9 5z" fill="#F7DF1E" opacity="0.8" />
+    </svg>
+  )
+}
+
 function CopyButton({ text, label, isAi }: { text: string; label: string; isAi?: boolean }) {
   const [copied, setCopied] = useState(false)
 
@@ -496,6 +552,7 @@ export function HomePage() {
             {quickStarts.map((item) => (
               <div key={item.label} className="spm-quickstart-card">
                 <div className="spm-quickstart-card-header">
+                  <div className="spm-quickstart-icon">{getQuickStartIcon(item.label)}</div>
                   <h3 className="spm-quickstart-label">{item.label}</h3>
                 </div>
                 <div className="spm-quickstart-code-wrapper">

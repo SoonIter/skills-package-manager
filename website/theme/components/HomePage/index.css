@@ -446,6 +446,16 @@
   color: var(--rp-c-text-1);
 }
 
+.spm-quickstart-icon {
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.spm-quickstart-icon svg {
+  display: block;
+}
+
 .spm-quickstart-code-wrapper {
   background: #1e2227;
   padding: 32px;
