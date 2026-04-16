@@ -151,12 +151,24 @@ function getConceptIcon(icon: string) {
 function getQuickStartIcon(label: string) {
   if (label.toLowerCase().includes('pnpm')) {
     return (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" role="img" aria-label="pnpm">
+      <svg
+        width="24"
+        height="24"
+        viewBox="66 33.5 184.5 184.5"
+        fill="none"
+        role="img"
+        aria-label="pnpm"
+      >
         <title>pnpm</title>
-        <path
-          d="M0 0h6.75v6.75H0V0zm8.625 0h6.75v6.75h-6.75V0zm8.625 0H24v6.75h-6.75V0zM0 8.625h6.75v6.75H0v-6.75zm8.625 0h6.75v6.75h-6.75v-6.75zm8.625 0H24v6.75h-6.75v-6.75zM0 17.25h6.75V24H0v-6.75zm8.625 0h6.75V24h-6.75v-6.75z"
-          fill="#F69220"
-        />
+        <rect x="67.59" y="35" width="180" height="180" fill="#ffffff" />
+        <rect x="187.6" y="45" width="50" height="50" fill="#f9ad00" />
+        <rect x="132.59" y="45" width="50" height="50" fill="#f9ad00" />
+        <rect x="77.59" y="45" width="50" height="50" fill="#f9ad00" />
+        <rect x="187.6" y="100" width="50" height="50" fill="#f9ad00" />
+        <rect x="132.59" y="100" width="50" height="50" fill="#4e4e4e" />
+        <rect x="132.59" y="155" width="50" height="50" fill="#4e4e4e" />
+        <rect x="187.6" y="155" width="50" height="50" fill="#4e4e4e" />
+        <rect x="77.59" y="155" width="50" height="50" fill="#4e4e4e" />
       </svg>
     )
   }
@@ -164,23 +176,10 @@ function getQuickStartIcon(label: string) {
     return (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" role="img" aria-label="CLI">
         <title>CLI</title>
-        <rect
-          x="2"
-          y="4"
-          width="20"
-          height="16"
-          rx="3"
-          fill="#2d2d2d"
-          stroke="#444"
-          strokeWidth="1.5"
-        />
-        <circle cx="6" cy="8" r="1.5" fill="#ff5f57" />
-        <circle cx="10" cy="8" r="1.5" fill="#febc2e" />
-        <circle cx="14" cy="8" r="1.5" fill="#28c840" />
         <path
-          d="M7 14l3 2-3 2M12 18h4"
-          stroke="#fff"
-          strokeWidth="1.5"
+          d="M4 17l6-5-6-5M12 19h8"
+          stroke="#2dd4bf"
+          strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
