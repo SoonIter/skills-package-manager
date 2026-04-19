@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
@@ -129,6 +129,42 @@ describe('patch workflow', () => {
     )
     expect(readFileSync(path.join(reopenedBase.editDir, 'SKILL.md'), 'utf8')).not.toContain(
       'Patched locally.',
+    )
+  })
+
+  it('ignores nested vcs metadata when generating a patch', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-patch-vcs-'))
+    const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
+    const tarballPath = packDirectory(packageRoot)
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'hello-skill': `file:${tarballPath}#path:/skills/hello-skill`,
+      },
+    })
+
+    const patchResult = await withMutedInfo(() =>
+      patchCommand({ cwd: root, skillName: 'hello-skill' }),
+    )
+
+    mkdirSync(path.join(patchResult.editDir, '.git'), { recursive: true })
+    writeFileSync(
+      path.join(patchResult.editDir, '.git', 'config'),
+      '[core]\nrepositoryformatversion = 0\n',
+    )
+    writeFileSync(
+      path.join(patchResult.editDir, 'SKILL.md'),
+      '# Hello from tgz\n\nPatched with vcs metadata.\n',
+    )
+
+    const patchCommitResult = await withMutedInfo(() =>
+      patchCommitCommand({ cwd: root, editDir: patchResult.editDir }),
+    )
+
+    expect(readFileSync(patchCommitResult.patchFile, 'utf8')).toContain(
+      'Patched with vcs metadata.',
     )
   })
 })

@@ -42,7 +42,7 @@ async function createBaseLock(
   manifest: NonNullable<Awaited<ReturnType<typeof readSkillsManifest>>>,
   currentLock: SkillsLock | null,
 ) {
-  if (currentLock && isLockInSync(manifest, currentLock)) {
+  if (currentLock && (await isLockInSync(cwd, manifest, currentLock))) {
     return {
       ...currentLock,
       skills: { ...currentLock.skills },

@@ -20,18 +20,14 @@ import {
   withBundledSelfSkillLock,
 } from '../install/installSkills'
 import { generateSkillPatch, readPatchEditState } from '../patches/skillPatch'
-
-function toPortableRelativePath(from: string, to: string): string {
-  const relativePath = path.relative(from, to) || '.'
-  return path.sep === '/' ? relativePath : relativePath.split(path.sep).join('/')
-}
+import { toPortableRelativePath } from '../utils/path'
 
 async function createBaseLock(
   cwd: string,
   manifest: NonNullable<Awaited<ReturnType<typeof readSkillsManifest>>>,
   currentLock: SkillsLock | null,
 ) {
-  if (currentLock && isLockInSync(manifest, currentLock)) {
+  if (currentLock && (await isLockInSync(cwd, manifest, currentLock))) {
     return {
       ...currentLock,
       skills: { ...currentLock.skills },

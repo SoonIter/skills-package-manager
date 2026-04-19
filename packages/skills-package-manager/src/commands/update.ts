@@ -10,6 +10,7 @@ import {
   withBundledSelfSkillLock,
 } from '../install/installSkills'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
+import { stableStringify } from '../utils/stableStringify'
 
 function createEmptyResult(): UpdateCommandResult {
   return {
@@ -77,7 +78,7 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
       const { entry } = await resolveLockEntry(options.cwd, specifier)
       const nextEntry = await attachManifestPatchToEntry(options.cwd, manifest, skillName, entry)
       const previous = currentLock?.skills[skillName]
-      if (previous && JSON.stringify(previous) === JSON.stringify(nextEntry)) {
+      if (previous && stableStringify(previous) === stableStringify(nextEntry)) {
         result.unchanged.push(skillName)
         continue
       }

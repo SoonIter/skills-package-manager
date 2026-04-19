@@ -8,6 +8,7 @@ import { ErrorCode, GitError, ParseError } from '../errors'
 import { resolveNpmPackage } from '../npm/packPackage'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { sha256, sha256Directory, sha256File } from '../utils/hash'
+import { toPortableRelativePath } from '../utils/path'
 import type {
   InstallProgressListener,
   NormalizedSkillsManifest,
@@ -16,11 +17,6 @@ import type {
 } from './types'
 
 const execFileAsync = promisify(execFile)
-
-function toPortableRelativePath(from: string, to: string): string {
-  const relativePath = path.relative(from, to) || '.'
-  return path.sep === '/' ? relativePath : relativePath.split(path.sep).join('/')
-}
 
 async function resolveGitCommitByLsRemote(url: string, target: string): Promise<string | null> {
   try {

@@ -1,10 +1,10 @@
 import { execFile } from 'node:child_process'
-import { cp, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { access, cp, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
 import type { SkillsLockEntry } from '../config/types'
-import { convertNodeError, ErrorCode, ParseError } from '../errors'
+import { convertNodeError, ErrorCode, GitError, ParseError } from '../errors'
 
 const execFileAsync = promisify(execFile)
 
@@ -62,49 +62,100 @@ async function clearDirectoryExceptGit(rootDir: string) {
 async function copySkillDir(from: string, to: string) {
   await cp(from, to, {
     recursive: true,
-    filter: (source) => path.basename(source) !== PATCH_EDIT_STATE_FILE,
+    filter: (source) => {
+      const baseName = path.basename(source)
+      return baseName !== PATCH_EDIT_STATE_FILE && baseName !== '.git' && baseName !== '.hg'
+    },
   })
+}
+
+async function runGitCommand(
+  args: string[],
+  options: {
+    cwd: string
+    message: string
+    operation: string
+    maxBuffer?: number
+  },
+) {
+  try {
+    return await execFileAsync('git', args, {
+      cwd: options.cwd,
+      ...(options.maxBuffer ? { maxBuffer: options.maxBuffer } : {}),
+    })
+  } catch (error) {
+    const nodeError = error as NodeJS.ErrnoException
+    if (nodeError.code === 'ENOENT') {
+      throw new GitError({
+        code: ErrorCode.GIT_NOT_INSTALLED,
+        operation: options.operation,
+        message: 'git is required to create and apply skill patches',
+        cause: error as Error,
+      })
+    }
+
+    throw new GitError({
+      code: ErrorCode.GIT_FETCH_FAILED,
+      operation: options.operation,
+      message: options.message,
+      cause: error as Error,
+    })
+  }
 }
 
 export async function applySkillPatch(targetDir: string, patchFilePath: string) {
   try {
-    await execFileAsync('git', ['apply', '--whitespace=nowarn', patchFilePath], {
-      cwd: targetDir,
-    })
+    await access(patchFilePath)
   } catch (error) {
-    throw new Error(`Failed to apply patch ${patchFilePath}: ${(error as Error).message}`, {
-      cause: error as Error,
+    throw convertNodeError(error as NodeJS.ErrnoException, {
+      operation: 'read',
+      path: patchFilePath,
     })
   }
+
+  await runGitCommand(['apply', '--whitespace=nowarn', patchFilePath], {
+    cwd: targetDir,
+    operation: 'apply',
+    message: `Failed to apply patch ${patchFilePath}`,
+  })
 }
 
 export async function generateSkillPatch(baseDir: string, editedDir: string): Promise<string> {
   const repoRoot = await mkdtemp(path.join(tmpdir(), 'skills-pm-patch-commit-'))
 
   try {
-    await execFileAsync('git', ['init', '--quiet'], { cwd: repoRoot })
-    await execFileAsync('git', ['config', 'user.email', 'skills-package-manager@example.com'], {
+    await runGitCommand(['init', '--quiet'], {
       cwd: repoRoot,
+      operation: 'init',
+      message: 'Failed to initialize git repository for patch generation',
     })
-    await execFileAsync('git', ['config', 'user.name', 'skills-package-manager'], {
+    await runGitCommand(['config', 'user.email', 'skills-package-manager@example.com'], {
       cwd: repoRoot,
+      operation: 'config',
+      message: 'Failed to configure git user email for patch generation',
+    })
+    await runGitCommand(['config', 'user.name', 'skills-package-manager'], {
+      cwd: repoRoot,
+      operation: 'config',
+      message: 'Failed to configure git user name for patch generation',
     })
 
     await copySkillDir(baseDir, repoRoot)
-    await execFileAsync('git', ['add', '--all'], { cwd: repoRoot })
-    await execFileAsync(
-      'git',
-      ['commit', '--quiet', '--allow-empty', '--no-gpg-sign', '-m', 'base'],
-      {
-        cwd: repoRoot,
-      },
-    )
+    await runGitCommand(['add', '--all'], {
+      cwd: repoRoot,
+      operation: 'add',
+      message: 'Failed to stage base skill files for patch generation',
+    })
+    await runGitCommand(['commit', '--quiet', '--allow-empty', '--no-gpg-sign', '-m', 'base'], {
+      cwd: repoRoot,
+      operation: 'commit',
+      message: 'Failed to create base commit for patch generation',
+    })
 
     await clearDirectoryExceptGit(repoRoot)
     await copySkillDir(editedDir, repoRoot)
 
-    const { stdout } = await execFileAsync(
-      'git',
+    const { stdout } = await runGitCommand(
       [
         'diff',
         '--binary',
@@ -116,7 +167,12 @@ export async function generateSkillPatch(baseDir: string, editedDir: string): Pr
         '--',
         '.',
       ],
-      { cwd: repoRoot, maxBuffer: 10 * 1024 * 1024 },
+      {
+        cwd: repoRoot,
+        operation: 'diff',
+        message: 'Failed to generate skill patch',
+        maxBuffer: 10 * 1024 * 1024,
+      },
     )
 
     return stdout

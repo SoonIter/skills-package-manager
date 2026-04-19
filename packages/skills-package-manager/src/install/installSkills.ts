@@ -9,12 +9,7 @@ import {
   shouldInjectBundledSelfSkill,
 } from '../config/skillsManifest'
 import { resolveLockEntry, syncSkillsLock } from '../config/syncSkillsLock'
-import type {
-  InstallProgressListener,
-  NormalizedSkillsManifest,
-  SkillsLock,
-  SkillsManifest,
-} from '../config/types'
+import type { InstallProgressListener, SkillsLock, SkillsManifest } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
 import { cleanupPackedNpmPackage, downloadNpmPackageTarball } from '../npm/packPackage'
 import { applySkillPatch } from '../patches/skillPatch'
@@ -243,7 +238,7 @@ export async function installSkills(
     if (!currentLock) {
       throw new Error('Lockfile is required in frozen mode but none was found')
     }
-    if (!isLockInSync(manifest, currentLock)) {
+    if (!(await isLockInSync(rootDir, manifest, currentLock))) {
       throw new Error(
         'Lockfile is out of sync with manifest. Run install without --frozen-lockfile to update.',
       )
