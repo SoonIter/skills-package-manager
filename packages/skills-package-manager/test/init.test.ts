@@ -1,6 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { cancel } from '@clack/prompts'
 import { describe, expect, it } from '@rstest/core'
 import { promptInitManifestOptions } from '../src/cli/prompt'
 import { runCli } from '../src/cli/runCli'
@@ -79,15 +80,15 @@ describe('promptInitManifestOptions', () => {
     const result = await promptInitManifestOptions(
       {
         text: async () => '.agents/skills',
-        groupMultiselect: async () => {
+        groupMultiselect: async <Value>() => {
           calls.push('groupMultiselect')
-          return ['.claude/skills']
+          return ['.claude/skills'] as Value[]
         },
         note: () => {
           calls.push('note')
         },
         cancel: () => {},
-        isCancel: () => false,
+        isCancel: (value: unknown): value is symbol => value === cancel,
       },
       () => {
         throw new Error('should not exit')

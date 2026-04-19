@@ -8,7 +8,12 @@ import { ErrorCode, GitError, ParseError } from '../errors'
 import { resolveNpmPackage } from '../npm/packPackage'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { sha256, sha256Directory, sha256File } from '../utils/hash'
-import type { InstallProgressListener, SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
+import type {
+  InstallProgressListener,
+  NormalizedSkillsManifest,
+  SkillsLock,
+  SkillsLockEntry,
+} from './types'
 
 const execFileAsync = promisify(execFile)
 
@@ -184,7 +189,7 @@ export async function resolveLockEntry(
 
 export async function attachManifestPatchToEntry(
   cwd: string,
-  manifest: SkillsManifest,
+  manifest: NormalizedSkillsManifest,
   skillName: string,
   entry: SkillsLockEntry,
 ): Promise<SkillsLockEntry> {
@@ -205,7 +210,7 @@ export async function attachManifestPatchToEntry(
 
 export async function syncSkillsLock(
   cwd: string,
-  manifest: SkillsManifest,
+  manifest: NormalizedSkillsManifest,
   _existingLock: SkillsLock | null,
   options?: {
     onProgress?: InstallProgressListener

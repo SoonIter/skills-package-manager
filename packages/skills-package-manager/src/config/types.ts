@@ -1,19 +1,28 @@
-import type { z } from 'zod'
-import type { skillsManifestSchema } from './schema'
-
 /**
  * Skills manifest input type used for authoring/writing manifests.
- * This preserves optionality for schema fields with defaults.
- * See schema.ts for the source of truth.
+ * This preserves optionality for fields with defaults.
  */
-export type SkillsManifest = z.input<typeof skillsManifestSchema>
+export type SkillsManifest = {
+  $schema?: string
+  installDir?: string
+  linkTargets?: string[]
+  selfSkill?: boolean
+  skills?: Record<string, string>
+  patchedSkills?: Record<string, string>
+}
 
 /**
- * Skills manifest output type after schema parsing/default application.
+ * Skills manifest output type after validation/default application.
  * Use this for normalized manifests returned from reads/parsing.
- * See schema.ts for the source of truth.
  */
-export type NormalizedSkillsManifest = z.output<typeof skillsManifestSchema>
+export type NormalizedSkillsManifest = {
+  $schema?: string
+  installDir: string
+  linkTargets: string[]
+  selfSkill?: boolean
+  skills: Record<string, string>
+  patchedSkills?: Record<string, string>
+}
 
 export type NormalizedSpecifier = {
   type: 'git' | 'link' | 'file' | 'npm'

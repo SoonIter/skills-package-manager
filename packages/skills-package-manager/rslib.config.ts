@@ -4,7 +4,9 @@ export default defineConfig({
   lib: [
     {
       format: 'esm',
-      dts: false,
+      dts: {
+        bundle: true,
+      },
       source: {
         entry: {
           index: './src/index.ts',

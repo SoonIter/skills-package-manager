@@ -49,5 +49,5 @@ export async function extractSkillToDir(
     return
   }
 
-  throw new Error(`Unsupported resolution type in 0.1.0 core flow: ${entry.resolution.type}`)
+  throw new Error('Unsupported resolution type in 0.1.0 core flow')
 }

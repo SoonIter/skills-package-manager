@@ -3,7 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { normalizeLinkSource } from '../specifiers/normalizeLinkSource'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
-import type { SkillsManifest } from './types'
+import type { NormalizedSkillsManifest, SkillsManifest } from './types'
 
 export const SELF_SKILL_NAME = 'skills-package-manager-cli'
 const SELF_SKILL_CANDIDATE_PATHS = [
@@ -32,7 +32,10 @@ export function shouldInjectBundledSelfSkill(manifest: SkillsManifest): boolean 
   return normalizeSkillsManifest(manifest).selfSkill === true
 }
 
-function hasEquivalentSkillSpecifier(manifest: SkillsManifest, specifier: string): boolean {
+function hasEquivalentSkillSpecifier(
+  manifest: NormalizedSkillsManifest,
+  specifier: string,
+): boolean {
   const normalizedTarget = normalizeSpecifier(specifier).normalized
   return Object.values(manifest.skills).some((existingSpecifier) => {
     try {
@@ -43,7 +46,9 @@ function hasEquivalentSkillSpecifier(manifest: SkillsManifest, specifier: string
   })
 }
 
-export function normalizeSkillsManifest(manifest: Partial<SkillsManifest>): SkillsManifest {
+export function normalizeSkillsManifest(
+  manifest: Partial<SkillsManifest>,
+): NormalizedSkillsManifest {
   return {
     $schema: manifest.$schema,
     installDir: manifest.installDir ?? '.agents/skills',
@@ -57,7 +62,7 @@ export function normalizeSkillsManifest(manifest: Partial<SkillsManifest>): Skil
 export async function expandSkillsManifest(
   _rootDir: string,
   manifest: SkillsManifest,
-): Promise<SkillsManifest> {
+): Promise<NormalizedSkillsManifest> {
   const normalized = normalizeSkillsManifest(manifest)
 
   if (!normalized.selfSkill) {

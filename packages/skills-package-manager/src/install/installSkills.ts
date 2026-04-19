@@ -9,7 +9,12 @@ import {
   shouldInjectBundledSelfSkill,
 } from '../config/skillsManifest'
 import { resolveLockEntry, syncSkillsLock } from '../config/syncSkillsLock'
-import type { InstallProgressListener, SkillsLock, SkillsManifest } from '../config/types'
+import type {
+  InstallProgressListener,
+  NormalizedSkillsManifest,
+  SkillsLock,
+  SkillsManifest,
+} from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
 import { cleanupPackedNpmPackage, downloadNpmPackageTarball } from '../npm/packPackage'
 import { applySkillPatch } from '../patches/skillPatch'
@@ -174,7 +179,7 @@ export async function fetchSkillsFromLock(
         continue
       }
 
-      throw new Error(`Unsupported resolution type in 0.1.0 core flow: ${entry.resolution.type}`)
+      throw new Error('Unsupported resolution type in 0.1.0 core flow')
     }
 
     await writeInstallState(rootDir, installDir, {

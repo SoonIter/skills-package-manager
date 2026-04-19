@@ -2,9 +2,11 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { convertNodeError, ErrorCode, ManifestError, ParseError } from '../errors'
 import { skillsManifestSchema } from './schema'
-import type { SkillsManifest } from './types'
+import type { NormalizedSkillsManifest } from './types'
 
-export async function readSkillsManifest(rootDir: string): Promise<SkillsManifest | null> {
+export async function readSkillsManifest(
+  rootDir: string,
+): Promise<NormalizedSkillsManifest | null> {
   const filePath = path.join(rootDir, 'skills.json')
 
   try {

@@ -1,6 +1,6 @@
 import { normalizeLinkSource } from '../specifiers/normalizeLinkSource'
 import { parseSpecifier } from '../specifiers/parseSpecifier'
-import type { SkillsLock, SkillsManifest } from './types'
+import type { NormalizedSkillsManifest, SkillsLock } from './types'
 
 interface ParsedSpecifier {
   sourcePart: string
@@ -63,7 +63,7 @@ function arraysEqual(a: string[], b: string[]): boolean {
  * Uses semantic comparison of specifiers (not strict string equality)
  * Also checks installDir and linkTargets match
  */
-export function isLockInSync(manifest: SkillsManifest, lock: SkillsLock | null): boolean {
+export function isLockInSync(manifest: NormalizedSkillsManifest, lock: SkillsLock | null): boolean {
   if (!lock) return false
 
   // Check installDir matches
