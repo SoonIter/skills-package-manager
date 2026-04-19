@@ -50,6 +50,7 @@ export function normalizeSkillsManifest(manifest: Partial<SkillsManifest>): Skil
     linkTargets: manifest.linkTargets ?? [],
     selfSkill: manifest.selfSkill ?? false,
     skills: manifest.skills ?? {},
+    patchedSkills: manifest.patchedSkills,
   }
 }
 

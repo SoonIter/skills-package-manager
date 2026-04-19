@@ -11,6 +11,9 @@ skills-package-manager uses two files to describe and lock the installed state o
   "installDir": ".agents/skills",
   "linkTargets": [".claude/skills"],
   "selfSkill": false,
+  "patchedSkills": {
+    "find-skills": "patches/find-skills.patch"
+  },
   "skills": {
     "find-skills": "https://github.com/vercel-labs/skills.git#path:/skills/find-skills",
     "my-local-skill": "link:./local-source/skills/my-local-skill",
@@ -25,6 +28,7 @@ Field descriptions:
 - `installDir`: The directory where materialized skills are written.
 - `linkTargets`: A list of target directories where symbolic links should be created.
 - `selfSkill`: Whether to auto-install the bundled `skills-package-manager-cli` skill during install. It is not written to `skills-lock.yaml`. Defaults to `false`.
+- `patchedSkills`: Optional mapping from skill name to a committed patch file path.
 - `skills`: A mapping from skill name to specifier.
 
 ## `skills-lock.yaml`
@@ -43,6 +47,9 @@ skills:
       commit: abc1234...
       path: /skills/find-skills
     digest: sha256-...
+    patch:
+      path: patches/find-skills.patch
+      digest: sha256-...
 ```
 
 It typically contains:
@@ -51,6 +58,7 @@ It typically contains:
 - A specific commit, local content digest, tarball reference, or resolved package version and integrity
 - The skill path
 - The final content digest
+- Optional patch path and patch digest metadata
 
 ## Why both exist
 

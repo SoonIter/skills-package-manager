@@ -40,6 +40,10 @@ export type SkillsLockEntry = {
         registry?: string
       }
   digest: string
+  patch?: {
+    path: string
+    digest: string
+  }
 }
 
 export type SkillsLock = {
@@ -66,6 +70,32 @@ export type AddCommandOptions = {
 export type UpdateCommandOptions = {
   cwd: string
   skills?: string[]
+}
+
+export type PatchCommandOptions = {
+  cwd: string
+  skillName: string
+  editDir?: string
+  ignoreExisting?: boolean
+}
+
+export type PatchCommandResult = {
+  status: 'patched'
+  skillName: string
+  editDir: string
+  originalSpecifier: string
+}
+
+export type PatchCommitCommandOptions = {
+  cwd: string
+  editDir: string
+  patchesDir?: string
+}
+
+export type PatchCommitCommandResult = {
+  status: 'patched'
+  skillName: string
+  patchFile: string
 }
 
 export type UpdateCommandResult = {

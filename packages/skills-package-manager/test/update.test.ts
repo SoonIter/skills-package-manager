@@ -13,6 +13,7 @@ import {
   installStageHooks,
   linkSkillsFromLock,
 } from '../src/install/installSkills'
+import { sha256 } from '../src/utils/hash'
 import { createSkillPackage, packDirectory, startMockNpmRegistry } from './helpers'
 
 describe('resolveLockEntry', () => {
@@ -719,7 +720,7 @@ describe('updateCommand resolve', () => {
           'hello-skill': {
             specifier: `${gitRepo}#HEAD&path:/skills/hello-skill`,
             resolution: { type: 'git', url: gitRepo, commit, path: '/skills/hello-skill' },
-            digest: `sha256-${commit}`,
+            digest: sha256(`${gitRepo}:${commit}:/skills/hello-skill`),
           },
         },
       }),

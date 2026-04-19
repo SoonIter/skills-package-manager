@@ -20,5 +20,9 @@ export const skillsManifestSchema = z
       .record(z.string(), z.string())
       .default({})
       .describe('Map of skill names to their specifiers'),
+    patchedSkills: z
+      .record(z.string(), z.string())
+      .optional()
+      .describe('Map of skill names to their patch file paths'),
   })
   .strict()

@@ -182,6 +182,27 @@ export async function resolveLockEntry(
   })
 }
 
+export async function attachManifestPatchToEntry(
+  cwd: string,
+  manifest: SkillsManifest,
+  skillName: string,
+  entry: SkillsLockEntry,
+): Promise<SkillsLockEntry> {
+  const patchPath = manifest.patchedSkills?.[skillName]
+  if (!patchPath) {
+    return entry
+  }
+
+  const absolutePatchPath = path.resolve(cwd, patchPath)
+  return {
+    ...entry,
+    patch: {
+      path: toPortableRelativePath(cwd, absolutePatchPath),
+      digest: await sha256File(absolutePatchPath),
+    },
+  }
+}
+
 export async function syncSkillsLock(
   cwd: string,
   manifest: SkillsManifest,
@@ -193,8 +214,9 @@ export async function syncSkillsLock(
   const entries = await Promise.all(
     Object.entries(manifest.skills).map(async ([skillName, specifier]) => {
       const { skillName: resolvedName, entry } = await resolveLockEntry(cwd, specifier, skillName)
+      const entryWithPatch = await attachManifestPatchToEntry(cwd, manifest, resolvedName, entry)
       options?.onProgress?.({ type: 'resolved', skillName: resolvedName })
-      return [resolvedName, entry] as const
+      return [resolvedName, entryWithPatch] as const
     }),
   )
 

@@ -24,6 +24,10 @@ export async function writeSkillsManifest(
     nextManifest.selfSkill = manifest.selfSkill
   }
 
+  if (manifest.patchedSkills && Object.keys(manifest.patchedSkills).length > 0) {
+    nextManifest.patchedSkills = manifest.patchedSkills
+  }
+
   try {
     await writeFile(filePath, `${JSON.stringify(nextManifest, null, 2)}\n`, 'utf8')
   } catch (error) {

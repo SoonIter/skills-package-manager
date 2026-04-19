@@ -12,6 +12,7 @@ import { resolveLockEntry, syncSkillsLock } from '../config/syncSkillsLock'
 import type { InstallProgressListener, SkillsLock, SkillsManifest } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
 import { cleanupPackedNpmPackage, downloadNpmPackageTarball } from '../npm/packPackage'
+import { applySkillPatch } from '../patches/skillPatch'
 import { sha256 } from '../utils/hash'
 import { readInstallState, writeInstallState } from './installState'
 import { linkSkill } from './links'
@@ -96,6 +97,12 @@ export async function fetchSkillsFromLock(
           '/',
           installDir,
         )
+        if (entry.patch) {
+          await applySkillPatch(
+            path.join(rootDir, installDir, skillName),
+            path.resolve(rootDir, entry.patch.path),
+          )
+        }
         options?.onProgress?.({ type: 'added', skillName })
         continue
       }
@@ -108,6 +115,12 @@ export async function fetchSkillsFromLock(
           entry.resolution.path,
           installDir,
         )
+        if (entry.patch) {
+          await applySkillPatch(
+            path.join(rootDir, installDir, skillName),
+            path.resolve(rootDir, entry.patch.path),
+          )
+        }
         options?.onProgress?.({ type: 'added', skillName })
         continue
       }
@@ -121,6 +134,12 @@ export async function fetchSkillsFromLock(
           entry.resolution.path,
           installDir,
         )
+        if (entry.patch) {
+          await applySkillPatch(
+            path.join(rootDir, installDir, skillName),
+            path.resolve(rootDir, entry.patch.path),
+          )
+        }
         options?.onProgress?.({ type: 'added', skillName })
         continue
       }
@@ -145,6 +164,12 @@ export async function fetchSkillsFromLock(
           entry.resolution.path,
           installDir,
         )
+        if (entry.patch) {
+          await applySkillPatch(
+            path.join(rootDir, installDir, skillName),
+            path.resolve(rootDir, entry.patch.path),
+          )
+        }
         options?.onProgress?.({ type: 'added', skillName })
         continue
       }
