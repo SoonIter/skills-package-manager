@@ -1,6 +1,9 @@
+import path from 'node:path'
 import { normalizeLinkSource } from '../specifiers/normalizeLinkSource'
 import { parseSpecifier } from '../specifiers/parseSpecifier'
-import type { SkillsLock, SkillsManifest } from './types'
+import { sha256File } from '../utils/hash'
+import { toPortableRelativePath } from '../utils/path'
+import type { NormalizedSkillsManifest, SkillsLock } from './types'
 
 interface ParsedSpecifier {
   sourcePart: string
@@ -18,30 +21,22 @@ function parseForComparison(specifier: string): ParsedSpecifier {
   }
 }
 
-/**
- * Check if manifest specifier is compatible with lock specifier
- * Manifest without ref is compatible with any lock ref (use lock version)
- */
 function isSpecifierCompatible(manifestSpecifier: string, lockSpecifier: string): boolean {
   const manifest = parseForComparison(manifestSpecifier)
   const lock = parseForComparison(lockSpecifier)
 
-  // Source must match
   if (manifest.sourcePart !== lock.sourcePart) {
     return false
   }
 
-  // Path must match
   if (manifest.path !== lock.path) {
     return false
   }
 
-  // Manifest has no ref -> compatible with any lock ref
   if (manifest.ref === null) {
     return true
   }
 
-  // Manifest has ref -> must match lock exactly
   return manifest.ref === lock.ref
 }
 
@@ -58,20 +53,47 @@ function arraysEqual(a: string[], b: string[]): boolean {
   return a.every((val, i) => val === b[i])
 }
 
-/**
- * Check if lockfile is in sync with manifest
- * Uses semantic comparison of specifiers (not strict string equality)
- * Also checks installDir and linkTargets match
- */
-export function isLockInSync(manifest: SkillsManifest, lock: SkillsLock | null): boolean {
+async function isPatchInSync(
+  rootDir: string,
+  manifest: NormalizedSkillsManifest,
+  skillName: string,
+  lock: SkillsLock,
+): Promise<boolean> {
+  const lockEntry = lock.skills[skillName]
+  if (!lockEntry) {
+    return false
+  }
+
+  const manifestPatchPath = manifest.patchedSkills?.[skillName]
+  if (!manifestPatchPath) {
+    return lockEntry.patch === undefined
+  }
+
+  if (!lockEntry.patch) {
+    return false
+  }
+
+  const absolutePatchPath = path.resolve(rootDir, manifestPatchPath)
+  const normalizedPatchPath = toPortableRelativePath(rootDir, absolutePatchPath)
+
+  if (lockEntry.patch.path !== normalizedPatchPath) {
+    return false
+  }
+
+  return lockEntry.patch.digest === (await sha256File(absolutePatchPath))
+}
+
+export async function isLockInSync(
+  rootDir: string,
+  manifest: NormalizedSkillsManifest,
+  lock: SkillsLock | null,
+): Promise<boolean> {
   if (!lock) return false
 
-  // Check installDir matches
   if (normalizeInstallDir(manifest.installDir) !== normalizeInstallDir(lock.installDir)) {
     return false
   }
 
-  // Check linkTargets matches
   if (
     !arraysEqual(normalizeLinkTargets(manifest.linkTargets), normalizeLinkTargets(lock.linkTargets))
   ) {
@@ -80,17 +102,21 @@ export function isLockInSync(manifest: SkillsManifest, lock: SkillsLock | null):
 
   const manifestSkills = Object.entries(manifest.skills)
   const lockSkillNames = Object.keys(lock.skills)
+  const patchedSkillNames = Object.keys(manifest.patchedSkills ?? {})
 
-  // Check skill count
   if (manifestSkills.length !== lockSkillNames.length) {
     return false
   }
 
-  // Check each skill's specifier is compatible
+  if (patchedSkillNames.some((skillName) => !(skillName in manifest.skills))) {
+    return false
+  }
+
   for (const [name, specifier] of manifestSkills) {
     const lockEntry = lock.skills[name]
     if (!lockEntry) return false
     if (!isSpecifierCompatible(specifier, lockEntry.specifier)) return false
+    if (!(await isPatchInSync(rootDir, manifest, name, lock))) return false
   }
 
   return true

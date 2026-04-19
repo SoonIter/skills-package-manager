@@ -11,6 +11,8 @@ npx skills-package-manager --help
 npx skills-package-manager --version
 npx skills-package-manager add <specifier> [--skill <name>]
 npx skills-package-manager install
+npx skills-package-manager patch <skill>
+npx skills-package-manager patch-commit <edit-dir>
 npx skills-package-manager update [skill...]
 npx skills-package-manager init [--yes]
 ```
@@ -104,6 +106,40 @@ npx skills-package-manager install
 
 This resolves each skill from its specifier, materializes it into `installDir` (default `.agents/skills/`), and creates symlinks for each `linkTarget`.
 When `selfSkill` is `true`, `npx skills-package-manager install` also installs the bundled `skills-package-manager-cli` skill so users get guidance for `skills.json`, `skills-lock.yaml`, and `npx skills-package-manager` commands. This helper skill is not written to `skills-lock.yaml`.
+If `patchedSkills` contains an entry for a skill, the corresponding patch file is applied after the skill is materialized.
+
+### `npx skills-package-manager patch`
+
+Prepare a skill for patching without changing the manifest yet:
+
+```bash
+npx skills-package-manager patch hello-skill
+npx skills-package-manager patch hello-skill --edit-dir ./tmp/hello-skill
+```
+
+Behavior:
+
+- Resolves the currently locked content for the target skill
+- Extracts an editable copy into a temporary directory by default
+- Reapplies any committed patch for that skill unless `--ignore-existing` is passed
+- Writes patch edit metadata so `patch-commit` can generate a new patch file later
+
+### `npx skills-package-manager patch-commit`
+
+Commit an edited patch directory back into the project:
+
+```bash
+npx skills-package-manager patch-commit /tmp/skills-pm-patch-hello-skill-12345
+npx skills-package-manager patch-commit ./tmp/hello-skill --patches-dir ./custom-patches
+```
+
+Behavior:
+
+- Compares the edited directory with the original resolved skill content
+- Writes a unified diff patch file to `patches/<skill>.patch` by default
+- Updates `skills.json` through the `patchedSkills` field
+- Updates `skills-lock.yaml` with patch path and digest metadata
+- Reinstalls and relinks the patched skill so the working tree reflects the committed patch
 
 ### `npx skills-package-manager update`
 
@@ -172,10 +208,11 @@ link: link:<path-to-skill-dir>
 src/
 ├── bin/           # CLI entry points
 ├── cli/           # CLI runner and interactive prompts
-├── commands/      # add, install command implementations
+├── commands/      # add, install, patch command implementations
 ├── config/        # skills.json / skills-lock.yaml read/write
 ├── github/        # Git clone + skill discovery (listSkills)
 ├── install/       # Skill materialization, linking, pruning
+├── patches/       # Patch edit state, diff generation, patch application
 ├── specifiers/    # Specifier parsing and normalization
 └── utils/         # Hashing, filesystem helpers
 ```

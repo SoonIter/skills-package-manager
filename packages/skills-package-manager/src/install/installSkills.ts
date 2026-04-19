@@ -12,6 +12,7 @@ import { resolveLockEntry, syncSkillsLock } from '../config/syncSkillsLock'
 import type { InstallProgressListener, SkillsLock, SkillsManifest } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
 import { cleanupPackedNpmPackage, downloadNpmPackageTarball } from '../npm/packPackage'
+import { applySkillPatch } from '../patches/skillPatch'
 import { sha256 } from '../utils/hash'
 import { readInstallState, writeInstallState } from './installState'
 import { linkSkill } from './links'
@@ -96,6 +97,12 @@ export async function fetchSkillsFromLock(
           '/',
           installDir,
         )
+        if (entry.patch) {
+          await applySkillPatch(
+            path.join(rootDir, installDir, skillName),
+            path.resolve(rootDir, entry.patch.path),
+          )
+        }
         options?.onProgress?.({ type: 'added', skillName })
         continue
       }
@@ -108,6 +115,12 @@ export async function fetchSkillsFromLock(
           entry.resolution.path,
           installDir,
         )
+        if (entry.patch) {
+          await applySkillPatch(
+            path.join(rootDir, installDir, skillName),
+            path.resolve(rootDir, entry.patch.path),
+          )
+        }
         options?.onProgress?.({ type: 'added', skillName })
         continue
       }
@@ -121,6 +134,12 @@ export async function fetchSkillsFromLock(
           entry.resolution.path,
           installDir,
         )
+        if (entry.patch) {
+          await applySkillPatch(
+            path.join(rootDir, installDir, skillName),
+            path.resolve(rootDir, entry.patch.path),
+          )
+        }
         options?.onProgress?.({ type: 'added', skillName })
         continue
       }
@@ -145,11 +164,17 @@ export async function fetchSkillsFromLock(
           entry.resolution.path,
           installDir,
         )
+        if (entry.patch) {
+          await applySkillPatch(
+            path.join(rootDir, installDir, skillName),
+            path.resolve(rootDir, entry.patch.path),
+          )
+        }
         options?.onProgress?.({ type: 'added', skillName })
         continue
       }
 
-      throw new Error(`Unsupported resolution type in 0.1.0 core flow: ${entry.resolution.type}`)
+      throw new Error('Unsupported resolution type in 0.1.0 core flow')
     }
 
     await writeInstallState(rootDir, installDir, {
@@ -213,7 +238,7 @@ export async function installSkills(
     if (!currentLock) {
       throw new Error('Lockfile is required in frozen mode but none was found')
     }
-    if (!isLockInSync(manifest, currentLock)) {
+    if (!(await isLockInSync(rootDir, manifest, currentLock))) {
       throw new Error(
         'Lockfile is out of sync with manifest. Run install without --frozen-lockfile to update.',
       )

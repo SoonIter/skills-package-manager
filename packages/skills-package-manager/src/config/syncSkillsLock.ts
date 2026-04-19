@@ -8,14 +8,15 @@ import { ErrorCode, GitError, ParseError } from '../errors'
 import { resolveNpmPackage } from '../npm/packPackage'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { sha256, sha256Directory, sha256File } from '../utils/hash'
-import type { InstallProgressListener, SkillsLock, SkillsLockEntry, SkillsManifest } from './types'
+import { toPortableRelativePath } from '../utils/path'
+import type {
+  InstallProgressListener,
+  NormalizedSkillsManifest,
+  SkillsLock,
+  SkillsLockEntry,
+} from './types'
 
 const execFileAsync = promisify(execFile)
-
-function toPortableRelativePath(from: string, to: string): string {
-  const relativePath = path.relative(from, to) || '.'
-  return path.sep === '/' ? relativePath : relativePath.split(path.sep).join('/')
-}
 
 async function resolveGitCommitByLsRemote(url: string, target: string): Promise<string | null> {
   try {
@@ -182,9 +183,30 @@ export async function resolveLockEntry(
   })
 }
 
+export async function attachManifestPatchToEntry(
+  cwd: string,
+  manifest: NormalizedSkillsManifest,
+  skillName: string,
+  entry: SkillsLockEntry,
+): Promise<SkillsLockEntry> {
+  const patchPath = manifest.patchedSkills?.[skillName]
+  if (!patchPath) {
+    return entry
+  }
+
+  const absolutePatchPath = path.resolve(cwd, patchPath)
+  return {
+    ...entry,
+    patch: {
+      path: toPortableRelativePath(cwd, absolutePatchPath),
+      digest: await sha256File(absolutePatchPath),
+    },
+  }
+}
+
 export async function syncSkillsLock(
   cwd: string,
-  manifest: SkillsManifest,
+  manifest: NormalizedSkillsManifest,
   _existingLock: SkillsLock | null,
   options?: {
     onProgress?: InstallProgressListener
@@ -193,8 +215,9 @@ export async function syncSkillsLock(
   const entries = await Promise.all(
     Object.entries(manifest.skills).map(async ([skillName, specifier]) => {
       const { skillName: resolvedName, entry } = await resolveLockEntry(cwd, specifier, skillName)
+      const entryWithPatch = await attachManifestPatchToEntry(cwd, manifest, resolvedName, entry)
       options?.onProgress?.({ type: 'resolved', skillName: resolvedName })
-      return [resolvedName, entry] as const
+      return [resolvedName, entryWithPatch] as const
     }),
   )
 

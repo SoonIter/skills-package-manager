@@ -5,6 +5,8 @@ export { runCli } from './cli/runCli'
 export { addCommand } from './commands/add'
 export { initCommand } from './commands/init'
 export { installCommand } from './commands/install'
+export { patchCommand } from './commands/patch'
+export { patchCommitCommand } from './commands/patchCommit'
 export { updateCommand } from './commands/update'
 export { isLockInSync } from './config/compareSkillsLock'
 export { readSkillsLock } from './config/readSkillsLock'
@@ -19,6 +21,10 @@ export type {
   InstallProgressEvent,
   InstallProgressListener,
   NormalizedSpecifier,
+  PatchCommandOptions,
+  PatchCommandResult,
+  PatchCommitCommandOptions,
+  PatchCommitCommandResult,
   SkillsLock,
   SkillsLockEntry,
   SkillsManifest,

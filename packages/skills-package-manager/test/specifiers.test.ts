@@ -1,6 +1,10 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
 import { isLockInSync } from '../src/config/compareSkillsLock'
 import { normalizeSpecifier } from '../src/specifiers/normalizeSpecifier'
+import { sha256File } from '../src/utils/hash'
 
 describe('normalizeSpecifier', () => {
   it('parses git path specifier', () => {
@@ -85,9 +89,10 @@ describe('normalizeSpecifier', () => {
     ).toThrow('Invalid specifier: multiple # fragments are not supported')
   })
 
-  it('treats equivalent link specifiers as in sync', () => {
-    expect(
+  it('treats equivalent link specifiers as in sync', async () => {
+    await expect(
       isLockInSync(
+        process.cwd(),
         {
           installDir: '.agents/skills',
           linkTargets: [],
@@ -111,12 +116,13 @@ describe('normalizeSpecifier', () => {
           },
         },
       ),
-    ).toBe(true)
+    ).resolves.toBe(true)
   })
 
-  it('ignores selfSkill when checking whether a lockfile is in sync', () => {
-    expect(
+  it('ignores selfSkill when checking whether a lockfile is in sync', async () => {
+    await expect(
       isLockInSync(
+        process.cwd(),
         {
           installDir: '.agents/skills',
           linkTargets: [],
@@ -130,6 +136,84 @@ describe('normalizeSpecifier', () => {
           skills: {},
         },
       ),
-    ).toBe(true)
+    ).resolves.toBe(true)
+  })
+
+  it('treats stale patch metadata as out of sync', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-lock-patch-sync-'))
+    const patchPath = path.join(root, 'patches', 'hello-skill.patch')
+
+    mkdirSync(path.dirname(patchPath), { recursive: true })
+    writeFileSync(patchPath, 'diff --git a/SKILL.md b/SKILL.md\n', 'utf8')
+
+    await expect(
+      isLockInSync(
+        root,
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': 'link:./fixtures/local-source/skills/hello-skill',
+          },
+          patchedSkills: {
+            'hello-skill': 'patches/hello-skill.patch',
+          },
+        },
+        {
+          lockfileVersion: '0.1',
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': {
+              specifier: 'link:./fixtures/local-source/skills/hello-skill',
+              resolution: {
+                type: 'link',
+                path: './fixtures/local-source/skills/hello-skill',
+              },
+              digest: 'sha256-test',
+              patch: {
+                path: 'patches/hello-skill.patch',
+                digest: 'sha256-stale',
+              },
+            },
+          },
+        },
+      ),
+    ).resolves.toBe(false)
+
+    await expect(
+      isLockInSync(
+        root,
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': 'link:./fixtures/local-source/skills/hello-skill',
+          },
+          patchedSkills: {
+            'hello-skill': 'patches/hello-skill.patch',
+          },
+        },
+        {
+          lockfileVersion: '0.1',
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': {
+              specifier: 'link:./fixtures/local-source/skills/hello-skill',
+              resolution: {
+                type: 'link',
+                path: './fixtures/local-source/skills/hello-skill',
+              },
+              digest: 'sha256-test',
+              patch: {
+                path: 'patches/hello-skill.patch',
+                digest: await sha256File(patchPath),
+              },
+            },
+          },
+        },
+      ),
+    ).resolves.toBe(true)
   })
 })

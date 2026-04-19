@@ -1,6 +1,5 @@
 import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
-// @ts-expect-error
 import pkg from '../../package.json'
 import { convertNodeError } from '../errors'
 import type { SkillsManifest } from './types'
@@ -22,6 +21,10 @@ export async function writeSkillsManifest(
   // Only include selfSkill if it's explicitly set
   if (manifest.selfSkill !== undefined) {
     nextManifest.selfSkill = manifest.selfSkill
+  }
+
+  if (manifest.patchedSkills && Object.keys(manifest.patchedSkills).length > 0) {
+    nextManifest.patchedSkills = manifest.patchedSkills
   }
 
   try {

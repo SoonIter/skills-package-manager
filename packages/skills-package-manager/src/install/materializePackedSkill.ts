@@ -2,14 +2,12 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { x } from 'tar'
-import { materializeLocalSkill } from './materializeLocalSkill'
+import { copyLocalSkillToDir, writeInstalledSkillMarker } from './materializeLocalSkill'
 
-export async function materializePackedSkill(
-  rootDir: string,
-  skillName: string,
+export async function extractPackedSkillToDir(
   tarballPath: string,
   sourcePath: string,
-  installDir: string,
+  targetDir: string,
 ) {
   const extractRoot = await mkdtemp(path.join(tmpdir(), 'skills-pm-packed-skill-'))
 
@@ -22,14 +20,20 @@ export async function materializePackedSkill(
       preservePaths: false,
       strict: true,
     })
-    await materializeLocalSkill(
-      rootDir,
-      skillName,
-      path.join(extractRoot, 'package'),
-      sourcePath,
-      installDir,
-    )
+    await copyLocalSkillToDir(path.join(extractRoot, 'package'), sourcePath, targetDir)
   } finally {
     await rm(extractRoot, { recursive: true, force: true }).catch(() => {})
   }
+}
+
+export async function materializePackedSkill(
+  rootDir: string,
+  skillName: string,
+  tarballPath: string,
+  sourcePath: string,
+  installDir: string,
+) {
+  const targetDir = path.join(rootDir, installDir, skillName)
+  await extractPackedSkillToDir(tarballPath, sourcePath, targetDir)
+  await writeInstalledSkillMarker(targetDir, skillName)
 }

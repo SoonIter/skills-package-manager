@@ -1,6 +1,5 @@
 import { access } from 'node:fs/promises'
 import path from 'node:path'
-// @ts-expect-error
 import pkg from '../../package.json'
 import type { InitPromptResult } from '../cli/prompt'
 import { promptInitManifestOptions } from '../cli/prompt'

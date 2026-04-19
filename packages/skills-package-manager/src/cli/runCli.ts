@@ -3,12 +3,16 @@ import packageJson from '../../package.json'
 import { addCommand } from '../commands/add'
 import { initCommand } from '../commands/init'
 import { installCommand } from '../commands/install'
+import { patchCommand } from '../commands/patch'
+import { patchCommitCommand } from '../commands/patchCommit'
 import { updateCommand } from '../commands/update'
 import { formatErrorForDisplay, SpmError } from '../errors'
 
 type CliHandlers = {
   addCommand: typeof addCommand
   installCommand: typeof installCommand
+  patchCommitCommand: typeof patchCommitCommand
+  patchCommand: typeof patchCommand
   updateCommand: typeof updateCommand
   initCommand: typeof initCommand
 }
@@ -22,6 +26,8 @@ function createHandlers(overrides?: Partial<CliHandlers>): CliHandlers {
   return {
     addCommand,
     installCommand,
+    patchCommitCommand,
+    patchCommand,
     updateCommand,
     initCommand,
     ...overrides,
@@ -82,6 +88,26 @@ export async function runCli(argv: string[], context: InternalRunCliContext = {}
     .option('--frozen-lockfile', 'Fail if lockfile is out of sync')
     .action(async (_args: string[], options: { frozenLockfile?: boolean }) => {
       return handlers.installCommand({ cwd, frozenLockfile: options.frozenLockfile })
+    })
+
+  cli
+    .command('patch <skill>')
+    .option('--edit-dir <dir>', 'Directory to extract the editable skill into')
+    .option('--ignore-existing', 'Ignore an existing committed patch while preparing the edit dir')
+    .action(async (skill: string, options: { editDir?: string; ignoreExisting?: boolean }) => {
+      return handlers.patchCommand({
+        cwd,
+        skillName: skill,
+        editDir: options.editDir,
+        ignoreExisting: options.ignoreExisting,
+      })
+    })
+
+  cli
+    .command('patch-commit <editDir>')
+    .option('--patches-dir <dir>', 'Directory to save the generated patch file into')
+    .action(async (editDir: string, options: { patchesDir?: string }) => {
+      return handlers.patchCommitCommand({ cwd, editDir, patchesDir: options.patchesDir })
     })
 
   cli.command('update [...skills]').action(async (skills: string[] = []) => {

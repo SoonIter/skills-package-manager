@@ -1,6 +1,6 @@
 # CLI commands
 
-The documented CLI workflow centers on `npx skills-package-manager` for the four main actions of skill management: add, init, install, and update.
+The documented CLI workflow centers on `npx skills-package-manager` for the six main actions of skill management: add, init, install, patch, patch-commit, and update.
 
 ## `npx skills-package-manager add`
 
@@ -145,6 +145,40 @@ Update behavior:
 - Fails immediately on unknown skill names
 - Writes back `skills-lock.yaml` only after fetch and link both succeed
 
+## `npx skills-package-manager patch`
+
+Prepare a skill for local editing.
+
+```bash
+npx skills-package-manager patch hello-skill
+npx skills-package-manager patch hello-skill --edit-dir ./tmp/hello-skill
+```
+
+Patch behavior:
+
+- Resolves the currently locked content of the target skill
+- Extracts an editable copy into a temporary directory by default
+- Reapplies the committed patch unless `--ignore-existing` is passed
+- Stores patch edit metadata for `patch-commit`
+
+## `npx skills-package-manager patch-commit`
+
+Commit an edited patch directory back into the project.
+
+```bash
+npx skills-package-manager patch-commit /tmp/skills-pm-patch-hello-skill-12345
+npx skills-package-manager patch-commit ./tmp/hello-skill --patches-dir ./custom-patches
+```
+
+Patch-commit behavior:
+
+- Reconstructs the original unpatched skill content from the edit metadata
+- Generates a unified diff patch file
+- Writes that patch file to `patches/` by default
+- Records the patch in `skills.json` under `patchedSkills`
+- Stores patch path and digest metadata in `skills-lock.yaml`
+- Reinstalls the patched skill immediately so `installDir` stays current
+
 ## When to use which
 
 | Command | Typical scenario |
@@ -152,4 +186,6 @@ Update behavior:
 | `npx skills-package-manager add` | Introduce a new skill for the first time |
 | `npx skills-package-manager init` | Create the initial `skills.json` manifest |
 | `npx skills-package-manager install` | Restore all skills from the manifest |
+| `npx skills-package-manager patch` | Open an installed skill for patch editing |
+| `npx skills-package-manager patch-commit` | Save an edited patch and reapply it to the project |
 | `npx skills-package-manager update` | Refresh versions of resolvable git or npm skills |

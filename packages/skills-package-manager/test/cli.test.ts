@@ -176,6 +176,57 @@ describe('runCli dispatch', () => {
     expect(install.calls).toEqual([[{ cwd: '/workspace/project' }]])
   })
 
+  it('dispatches patch with optional flags', async () => {
+    const patch = createAsyncSpy<
+      [options: { cwd: string; skillName: string; editDir?: string; ignoreExisting?: boolean }],
+      string
+    >('patched')
+
+    await runCli(
+      ['node', 'spm', 'patch', 'alpha', '--edit-dir', './tmp/alpha', '--ignore-existing'],
+      {
+        cwd: '/workspace/project',
+        ...withHandlers({ patchCommand: patch.fn }),
+      },
+    )
+
+    expect(patch.calls).toEqual([
+      [
+        {
+          cwd: '/workspace/project',
+          skillName: 'alpha',
+          editDir: './tmp/alpha',
+          ignoreExisting: true,
+        },
+      ],
+    ])
+  })
+
+  it('dispatches patch-commit with an optional patches dir', async () => {
+    const patchCommit = createAsyncSpy<
+      [options: { cwd: string; editDir: string; patchesDir?: string }],
+      string
+    >('patched')
+
+    await runCli(
+      ['node', 'spm', 'patch-commit', './tmp/alpha', '--patches-dir', './patches/custom'],
+      {
+        cwd: '/workspace/project',
+        ...withHandlers({ patchCommitCommand: patchCommit.fn }),
+      },
+    )
+
+    expect(patchCommit.calls).toEqual([
+      [
+        {
+          cwd: '/workspace/project',
+          editDir: './tmp/alpha',
+          patchesDir: './patches/custom',
+        },
+      ],
+    ])
+  })
+
   it('dispatches update with skills array', async () => {
     const update = createAsyncSpy<[options: { cwd: string; skills?: string[] }], string>('updated')
 

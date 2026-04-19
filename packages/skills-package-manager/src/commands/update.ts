@@ -1,6 +1,6 @@
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
-import { resolveLockEntry } from '../config/syncSkillsLock'
+import { attachManifestPatchToEntry, resolveLockEntry } from '../config/syncSkillsLock'
 import type { SkillsLock, UpdateCommandOptions, UpdateCommandResult } from '../config/types'
 import { writeSkillsLock } from '../config/writeSkillsLock'
 import { ErrorCode, ManifestError, SkillError } from '../errors'
@@ -10,6 +10,7 @@ import {
   withBundledSelfSkillLock,
 } from '../install/installSkills'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
+import { stableStringify } from '../utils/stableStringify'
 
 function createEmptyResult(): UpdateCommandResult {
   return {
@@ -75,45 +76,14 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
       }
 
       const { entry } = await resolveLockEntry(options.cwd, specifier)
+      const nextEntry = await attachManifestPatchToEntry(options.cwd, manifest, skillName, entry)
       const previous = currentLock?.skills[skillName]
-      if (
-        previous?.resolution.type === 'git' &&
-        entry.resolution.type === 'git' &&
-        previous.specifier === entry.specifier &&
-        previous.resolution.url === entry.resolution.url &&
-        previous.resolution.commit === entry.resolution.commit &&
-        previous.resolution.path === entry.resolution.path
-      ) {
+      if (previous && stableStringify(previous) === stableStringify(nextEntry)) {
         result.unchanged.push(skillName)
         continue
       }
 
-      if (
-        previous?.resolution.type === 'npm' &&
-        entry.resolution.type === 'npm' &&
-        previous.specifier === entry.specifier &&
-        previous.resolution.packageName === entry.resolution.packageName &&
-        previous.resolution.version === entry.resolution.version &&
-        previous.resolution.path === entry.resolution.path &&
-        previous.resolution.tarball === entry.resolution.tarball &&
-        previous.resolution.integrity === entry.resolution.integrity &&
-        previous.resolution.registry === entry.resolution.registry
-      ) {
-        result.unchanged.push(skillName)
-        continue
-      }
-
-      if (
-        previous?.resolution.type === 'file' &&
-        entry.resolution.type === 'file' &&
-        previous.specifier === entry.specifier &&
-        previous.digest === entry.digest
-      ) {
-        result.unchanged.push(skillName)
-        continue
-      }
-
-      candidateLock.skills[skillName] = entry
+      candidateLock.skills[skillName] = nextEntry
       result.updated.push(skillName)
     } catch (error) {
       result.failed.push({ name: skillName, reason: (error as Error).message })

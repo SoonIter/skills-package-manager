@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
 import { ErrorCode, GitError } from '../errors'
-import { materializeLocalSkill } from './materializeLocalSkill'
+import { copyLocalSkillToDir, writeInstalledSkillMarker } from './materializeLocalSkill'
 
 const execFileAsync = promisify(execFile)
 
@@ -40,13 +40,11 @@ async function fetchCommitFallback(checkoutRoot: string, commit: string, _repoUr
   }
 }
 
-export async function materializeGitSkill(
-  rootDir: string,
-  skillName: string,
+export async function extractGitSkillToDir(
   repoUrl: string,
   commit: string,
   sourcePath: string,
-  installDir: string,
+  targetDir: string,
 ) {
   const checkoutRoot = await mkdtemp(path.join(tmpdir(), 'skills-pm-git-checkout-'))
 
@@ -83,8 +81,21 @@ export async function materializeGitSkill(
     const skillDocPath = path.join(checkoutRoot, sourcePath.replace(/^\//, ''), 'SKILL.md')
     await readFile(skillDocPath, 'utf8')
 
-    await materializeLocalSkill(rootDir, skillName, checkoutRoot, sourcePath, installDir)
+    await copyLocalSkillToDir(checkoutRoot, sourcePath, targetDir)
   } finally {
     await rm(checkoutRoot, { recursive: true, force: true })
   }
+}
+
+export async function materializeGitSkill(
+  rootDir: string,
+  skillName: string,
+  repoUrl: string,
+  commit: string,
+  sourcePath: string,
+  installDir: string,
+) {
+  const targetDir = path.join(rootDir, installDir, skillName)
+  await extractGitSkillToDir(repoUrl, commit, sourcePath, targetDir)
+  await writeInstalledSkillMarker(targetDir, skillName)
 }

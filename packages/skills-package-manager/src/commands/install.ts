@@ -41,7 +41,7 @@ export async function installCommand(options: InstallCommandOptions) {
             'Lockfile is required in frozen mode but none was found. Run "spm install" first.',
         })
       }
-      if (!isLockInSync(manifest, currentLock)) {
+      if (!(await isLockInSync(options.cwd, manifest, currentLock))) {
         throw new ManifestError({
           code: ErrorCode.LOCKFILE_OUTDATED,
           filePath: `${options.cwd}/skills-lock.yaml`,

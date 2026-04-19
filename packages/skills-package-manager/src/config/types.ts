@@ -1,19 +1,28 @@
-import type { z } from 'zod'
-import type { skillsManifestSchema } from './schema'
-
 /**
  * Skills manifest input type used for authoring/writing manifests.
- * This preserves optionality for schema fields with defaults.
- * See schema.ts for the source of truth.
+ * This preserves optionality for fields with defaults.
  */
-export type SkillsManifest = z.input<typeof skillsManifestSchema>
+export type SkillsManifest = {
+  $schema?: string
+  installDir?: string
+  linkTargets?: string[]
+  selfSkill?: boolean
+  skills?: Record<string, string>
+  patchedSkills?: Record<string, string>
+}
 
 /**
- * Skills manifest output type after schema parsing/default application.
+ * Skills manifest output type after validation/default application.
  * Use this for normalized manifests returned from reads/parsing.
- * See schema.ts for the source of truth.
  */
-export type NormalizedSkillsManifest = z.output<typeof skillsManifestSchema>
+export type NormalizedSkillsManifest = {
+  $schema?: string
+  installDir: string
+  linkTargets: string[]
+  selfSkill?: boolean
+  skills: Record<string, string>
+  patchedSkills?: Record<string, string>
+}
 
 export type NormalizedSpecifier = {
   type: 'git' | 'link' | 'file' | 'npm'
@@ -40,6 +49,10 @@ export type SkillsLockEntry = {
         registry?: string
       }
   digest: string
+  patch?: {
+    path: string
+    digest: string
+  }
 }
 
 export type SkillsLock = {
@@ -66,6 +79,32 @@ export type AddCommandOptions = {
 export type UpdateCommandOptions = {
   cwd: string
   skills?: string[]
+}
+
+export type PatchCommandOptions = {
+  cwd: string
+  skillName: string
+  editDir?: string
+  ignoreExisting?: boolean
+}
+
+export type PatchCommandResult = {
+  status: 'patched'
+  skillName: string
+  editDir: string
+  originalSpecifier: string
+}
+
+export type PatchCommitCommandOptions = {
+  cwd: string
+  editDir: string
+  patchesDir?: string
+}
+
+export type PatchCommitCommandResult = {
+  status: 'patched'
+  skillName: string
+  patchFile: string
 }
 
 export type UpdateCommandResult = {

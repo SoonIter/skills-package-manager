@@ -13,6 +13,7 @@ import {
   installStageHooks,
   linkSkillsFromLock,
 } from '../src/install/installSkills'
+import { sha256 } from '../src/utils/hash'
 import { createSkillPackage, packDirectory, startMockNpmRegistry } from './helpers'
 
 describe('resolveLockEntry', () => {
@@ -719,7 +720,7 @@ describe('updateCommand resolve', () => {
           'hello-skill': {
             specifier: `${gitRepo}#HEAD&path:/skills/hello-skill`,
             resolution: { type: 'git', url: gitRepo, commit, path: '/skills/hello-skill' },
-            digest: `sha256-${commit}`,
+            digest: sha256(`${gitRepo}:${commit}:/skills/hello-skill`),
           },
         },
       }),
@@ -764,5 +765,66 @@ describe('updateCommand resolve', () => {
     expect(result.failed).toHaveLength(1)
     const persisted = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
     expect(persisted.skills).toEqual({})
+  })
+
+  it('treats semantically identical file entries with different key order as unchanged', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-stable-equal-'))
+    const packageRoot = createSkillPackage('hello-skill', '# Hello stable\n')
+    const tarballPath = packDirectory(packageRoot)
+
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': `file:${tarballPath}#path:/skills/hello-skill`,
+          },
+        },
+        null,
+        2,
+      ),
+    )
+
+    writeFileSync(
+      path.join(root, 'skills-lock.yaml'),
+      [
+        "lockfileVersion: '0.1'",
+        'installDir: .agents/skills',
+        'linkTargets: []',
+        'skills:',
+        '  hello-skill:',
+        `    digest: ${sha256('stable')}`,
+        '    specifier: file:../../ignored#path:/skills/hello-skill',
+        '    resolution:',
+        '      path: /skills/hello-skill',
+        `      tarball: ${JSON.stringify(path.relative(root, tarballPath))}`,
+        '      type: file',
+        '',
+      ].join('\n'),
+    )
+
+    const resolved = await resolveLockEntry(
+      root,
+      `file:${tarballPath}#path:/skills/hello-skill`,
+      'hello-skill',
+    )
+    const existingLock = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
+    existingLock.skills['hello-skill'] = {
+      digest: resolved.entry.digest,
+      specifier: resolved.entry.specifier,
+      resolution: {
+        path: resolved.entry.resolution.type === 'file' ? resolved.entry.resolution.path : '/',
+        tarball: resolved.entry.resolution.type === 'file' ? resolved.entry.resolution.tarball : '',
+        type: 'file',
+      },
+    }
+    writeFileSync(path.join(root, 'skills-lock.yaml'), YAML.stringify(existingLock))
+
+    const result = await updateCommand({ cwd: root })
+
+    expect(result.updated).toEqual([])
+    expect(result.unchanged).toEqual(['hello-skill'])
   })
 })
