@@ -1,8 +1,14 @@
 import { createHash } from 'node:crypto'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { homedir, tmpdir } from 'node:os'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import semver from 'semver'
+import {
+  createRequestHeaders,
+  type NpmConfig,
+  readNpmConfig,
+  resolveRegistryConfig,
+} from './config'
 
 export type ResolvedNpmPackage = {
   name: string
@@ -27,177 +33,7 @@ type RegistryPackageMetadata = {
   >
 }
 
-type NpmConfig = {
-  settings: Map<string, string>
-  authEntries: RegistryAuthEntry[]
-}
-
-type RegistryAuthEntry = {
-  prefix: string
-  authorization: string
-}
-
 const resolvedNpmPackageCache = new Map<string, Promise<ResolvedNpmPackage>>()
-
-function normalizeRegistryUrl(url: string): string {
-  return url.endsWith('/') ? url : `${url}/`
-}
-
-function interpolateEnv(value: string): string {
-  return value.replace(/\$\{([^}]+)\}/g, (_match, key) => process.env[key] ?? '')
-}
-
-async function readNpmRc(filePath: string): Promise<Map<string, string>> {
-  try {
-    const content = await readFile(filePath, 'utf8')
-    const entries = new Map<string, string>()
-
-    for (const rawLine of content.split(/\r?\n/)) {
-      const line = rawLine.trim()
-      if (!line || line.startsWith('#') || line.startsWith(';')) {
-        continue
-      }
-
-      const separator = line.indexOf('=')
-      if (separator < 0) {
-        continue
-      }
-
-      entries.set(line.slice(0, separator).trim(), interpolateEnv(line.slice(separator + 1).trim()))
-    }
-
-    return entries
-  } catch {
-    return new Map()
-  }
-}
-
-function getCandidateDirs(cwd: string): string[] {
-  const resolvedCwd = path.resolve(cwd)
-
-  if (process.platform === 'win32') {
-    const parsed = path.parse(resolvedCwd)
-    const relative = resolvedCwd.slice(parsed.root.length)
-    const parts = relative.split(path.sep).filter(Boolean)
-    return [
-      parsed.root,
-      ...parts.map((_part, index) => path.join(parsed.root, ...parts.slice(0, index + 1))),
-    ]
-  }
-
-  const parts = resolvedCwd.split(path.sep).filter(Boolean)
-  return ['/', ...parts.map((_part, index) => path.join('/', ...parts.slice(0, index + 1)))]
-}
-
-function buildRegistryAuthEntries(settings: Map<string, string>): RegistryAuthEntry[] {
-  const registryAuthConfigs = new Map<
-    string,
-    {
-      authToken?: string
-      auth?: string
-      username?: string
-      password?: string
-    }
-  >()
-
-  for (const [key, value] of settings) {
-    const match = key.match(/^(\/\/.+\/):(_authToken|_auth|username|_password)$/)
-    if (!match) {
-      continue
-    }
-
-    const [, prefix, field] = match
-    const config = registryAuthConfigs.get(prefix) ?? {}
-    registryAuthConfigs.set(prefix, {
-      ...config,
-      [field === '_authToken'
-        ? 'authToken'
-        : field === '_auth'
-          ? 'auth'
-          : field === 'username'
-            ? 'username'
-            : 'password']: value,
-    })
-  }
-
-  return [...registryAuthConfigs.entries()]
-    .map(([prefix, config]) => {
-      if (config.authToken) {
-        return {
-          prefix,
-          authorization: `Bearer ${config.authToken}`,
-        }
-      }
-
-      if (config.auth) {
-        return {
-          prefix,
-          authorization: `Basic ${config.auth}`,
-        }
-      }
-
-      if (config.username && config.password) {
-        const decodedPassword = Buffer.from(config.password, 'base64').toString('utf8')
-        return {
-          prefix,
-          authorization: `Basic ${Buffer.from(`${config.username}:${decodedPassword}`).toString(
-            'base64',
-          )}`,
-        }
-      }
-
-      return null
-    })
-    .filter((entry): entry is RegistryAuthEntry => entry !== null)
-    .sort((a, b) => b.prefix.length - a.prefix.length)
-}
-
-async function loadNpmConfig(cwd: string): Promise<NpmConfig> {
-  const configs = new Map<string, string>()
-
-  for (const [key, value] of await readNpmRc(path.join(homedir(), '.npmrc'))) {
-    configs.set(key, value)
-  }
-
-  for (const candidateDir of getCandidateDirs(cwd)) {
-    for (const [key, value] of await readNpmRc(path.join(candidateDir, '.npmrc'))) {
-      configs.set(key, value)
-    }
-  }
-
-  return {
-    settings: configs,
-    authEntries: buildRegistryAuthEntries(configs),
-  }
-}
-
-function resolveRegistryConfig(config: NpmConfig, packageName: string): string {
-  const scopeMatch = packageName.match(/^(@[^/]+)\//)
-  if (scopeMatch) {
-    const scopeRegistry = config.settings.get(`${scopeMatch[1]}:registry`)
-    if (scopeRegistry) {
-      return normalizeRegistryUrl(scopeRegistry)
-    }
-  }
-
-  return normalizeRegistryUrl(config.settings.get('registry') ?? 'https://registry.npmjs.org/')
-}
-
-function resolveAuthorizationHeader(config: NpmConfig, requestUrl: string): string | undefined {
-  const url = new URL(requestUrl)
-  const requestKey = `//${url.host}${url.pathname}`
-  const matched = config.authEntries.find((entry) => requestKey.startsWith(entry.prefix))
-  return matched?.authorization
-}
-
-function createRequestHeaders(config: NpmConfig, requestUrl: string): HeadersInit | undefined {
-  const authorization = resolveAuthorizationHeader(config, requestUrl)
-  if (!authorization) {
-    return undefined
-  }
-
-  return { authorization }
-}
 
 function parseRegistryPackageSpecifier(specifier: string): {
   packageName: string
@@ -250,13 +86,14 @@ function resolveVersionFromMetadata(
 async function resolveNpmPackageUncached(
   cwd: string,
   specifier: string,
+  config?: NpmConfig,
 ): Promise<ResolvedNpmPackage> {
-  const config = await loadNpmConfig(cwd)
+  const npmConfig = config ?? (await readNpmConfig(cwd))
   const { packageName, requestedVersion } = parseRegistryPackageSpecifier(specifier)
-  const registry = resolveRegistryConfig(config, packageName)
+  const registry = resolveRegistryConfig(npmConfig, packageName)
   const metadataUrl = new URL(encodeURIComponent(packageName), registry)
   const response = await fetch(metadataUrl, {
-    headers: createRequestHeaders(config, metadataUrl.toString()),
+    headers: createRequestHeaders(npmConfig, metadataUrl.toString()),
   })
 
   if (!response.ok) {
@@ -284,6 +121,7 @@ async function resolveNpmPackageUncached(
 export async function resolveNpmPackage(
   cwd: string,
   specifier: string,
+  config?: NpmConfig,
 ): Promise<ResolvedNpmPackage> {
   const cacheKey = `${path.resolve(cwd)}\0${specifier}`
   const cached = resolvedNpmPackageCache.get(cacheKey)
@@ -291,7 +129,7 @@ export async function resolveNpmPackage(
     return cached
   }
 
-  const pending = resolveNpmPackageUncached(cwd, specifier)
+  const pending = resolveNpmPackageUncached(cwd, specifier, config)
   resolvedNpmPackageCache.set(cacheKey, pending)
 
   try {
@@ -327,13 +165,14 @@ export async function downloadNpmPackageTarball(
   cwd: string,
   tarballUrl: string,
   expectedIntegrity?: string,
+  config?: NpmConfig,
 ): Promise<string> {
   const downloadRoot = await mkdtemp(path.join(tmpdir(), 'skills-pm-npm-download-'))
 
   try {
-    const config = await loadNpmConfig(cwd)
+    const npmConfig = config ?? (await readNpmConfig(cwd))
     const response = await fetch(tarballUrl, {
-      headers: createRequestHeaders(config, tarballUrl),
+      headers: createRequestHeaders(npmConfig, tarballUrl),
     })
     if (!response.ok) {
       throw new Error(`Failed to download npm tarball: ${response.status}`)

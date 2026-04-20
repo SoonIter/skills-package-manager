@@ -6,9 +6,9 @@ import { ErrorCode, ManifestError, SkillError } from '../errors'
 import { extractSkillToDir } from '../install/extractSkillToDir'
 import { installStageHooks } from '../install/installSkills'
 import { generateSkillPatch, readPatchEditState } from '../patches/skillPatch'
-import { Installer } from '../pipeline/Installer'
+import { loadConfig } from '../pipeline/loadConfig'
 import { ResolveQueue } from '../pipeline/ResolveQueue'
-import { ConfigRepository } from '../repositories/ConfigRepository'
+import { runResolvedPipeline } from '../pipeline/runPipeline'
 import { LockfileRepository } from '../repositories/LockfileRepository'
 import { ManifestRepository } from '../repositories/ManifestRepository'
 import { LockEntry } from '../structures/LockEntry'
@@ -35,7 +35,7 @@ function resolvePatchFilePath(
 export async function patchCommitCommand(
   options: PatchCommitCommandOptions,
 ): Promise<PatchCommitCommandResult> {
-  const config = await new ConfigRepository().load(options.cwd)
+  const config = await loadConfig(options.cwd)
   if (!config.manifest) {
     throw new ManifestError({
       code: ErrorCode.MANIFEST_NOT_FOUND,
@@ -101,6 +101,7 @@ export async function patchCommitCommand(
       rootDir: options.cwd,
       manifest: config.manifest,
       currentLock: config.lockfile,
+      npmConfig: config.npmConfig,
     })
     const patchedEntry = await resolveQueue.attachManifestPatch(
       options.cwd,
@@ -112,26 +113,21 @@ export async function patchCommitCommand(
     const nextLock = baseLock
       .withManifest(nextManifest)
       .withEntry(editState.skillName, patchedEntry)
-    const installer = new Installer({
-      hooks: {
-        beforeFetch: async (cwd, manifest, lockfile) =>
-          installStageHooks.beforeFetch(
-            cwd,
-            manifest.toJSON({ includeDefaults: true }),
-            lockfile.toJSON(),
-          ),
-      },
-    })
-    const runtimeLock = await installer.resolveQueue.createRuntimeLockfile({
+    const runtimeLock = await resolveQueue.createRuntimeLockfile({
       rootDir: options.cwd,
       manifest: nextManifest,
       lockfile: nextLock,
+      npmConfig: config.npmConfig,
     })
 
-    await installer.materialize({
+    await runResolvedPipeline({
       rootDir: options.cwd,
       manifest: nextManifest,
       lockfile: runtimeLock,
+      currentInstallState: config.installState,
+      hooks: {
+        beforeFetch: installStageHooks.beforeFetch,
+      },
     })
     await new ManifestRepository().write(options.cwd, nextManifest)
     await new LockfileRepository().write(options.cwd, nextLock)

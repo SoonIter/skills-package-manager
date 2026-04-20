@@ -5,8 +5,8 @@ import type { PatchCommandOptions, PatchCommandResult, SkillsLockEntry } from '.
 import { convertNodeError, ErrorCode, FileSystemError, ManifestError, SkillError } from '../errors'
 import { extractSkillToDir } from '../install/extractSkillToDir'
 import { applySkillPatch, writePatchEditState } from '../patches/skillPatch'
+import { loadConfig } from '../pipeline/loadConfig'
 import { ResolveQueue } from '../pipeline/ResolveQueue'
-import { ConfigRepository } from '../repositories/ConfigRepository'
 import { LockEntry } from '../structures/LockEntry'
 
 async function ensureEditDirDoesNotExist(editDir: string) {
@@ -50,7 +50,7 @@ async function resolveEditDir(cwd: string, skillName: string, editDir?: string):
 }
 
 export async function patchCommand(options: PatchCommandOptions): Promise<PatchCommandResult> {
-  const config = await new ConfigRepository().load(options.cwd)
+  const config = await loadConfig(options.cwd)
   if (!config.manifest) {
     throw new ManifestError({
       code: ErrorCode.MANIFEST_NOT_FOUND,
@@ -71,6 +71,7 @@ export async function patchCommand(options: PatchCommandOptions): Promise<PatchC
     rootDir: options.cwd,
     manifest: config.manifest,
     currentLock: config.lockfile,
+    npmConfig: config.npmConfig,
   })
   const currentEntry = baseLock.getEntry(options.skillName)
 

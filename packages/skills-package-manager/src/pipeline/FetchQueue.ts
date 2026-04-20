@@ -1,10 +1,12 @@
 import path from 'node:path'
 import type { InstallProgressListener } from '../config/types'
+import type { InstallState } from '../install/installState'
 import { readInstallState, writeInstallState } from '../install/installState'
 import { materializeGitSkill } from '../install/materializeGitSkill'
 import { materializeLocalSkill } from '../install/materializeLocalSkill'
 import { materializePackedSkill } from '../install/materializePackedSkill'
 import { pruneManagedSkills } from '../install/pruneManagedSkills'
+import type { NpmConfig } from '../npm/config'
 import { cleanupPackedNpmPackage, downloadNpmPackageTarball } from '../npm/packPackage'
 import { applySkillPatch } from '../patches/skillPatch'
 import type { Lockfile } from '../structures/Lockfile'
@@ -44,6 +46,8 @@ export class FetchQueue {
     rootDir: string
     manifest: Manifest
     lockfile: Lockfile
+    currentInstallState?: InstallState | null
+    npmConfig?: NpmConfig
     onProgress?: InstallProgressListener
   }): Promise<{ status: 'skipped' | 'fetched'; fetched: FetchedSkill[] }> {
     await this.hooks.beforeFetch?.(options.rootDir, options.manifest, options.lockfile)
@@ -60,7 +64,8 @@ export class FetchQueue {
     )
 
     const lockDigest = sha256(JSON.stringify(options.lockfile.toJSON()))
-    const state = await readInstallState(options.rootDir, installDir)
+    const state =
+      options.currentInstallState ?? (await readInstallState(options.rootDir, installDir))
     if (
       state?.lockDigest === lockDigest &&
       (await areManagedSkillsInstalled(options.rootDir, installDir, options.lockfile.skillNames()))
@@ -111,6 +116,7 @@ export class FetchQueue {
               options.rootDir,
               resolution.tarball,
               resolution.integrity,
+              options.npmConfig,
             )
             downloadedTarballs.set(cacheKey, tarballPathPromise)
           }

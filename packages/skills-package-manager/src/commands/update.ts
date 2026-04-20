@@ -1,9 +1,9 @@
 import type { UpdateCommandOptions, UpdateCommandResult } from '../config/types'
 import { ErrorCode, ManifestError, SkillError } from '../errors'
 import { installStageHooks } from '../install/installSkills'
-import { Installer } from '../pipeline/Installer'
+import { loadConfig } from '../pipeline/loadConfig'
 import { ResolveQueue } from '../pipeline/ResolveQueue'
-import { ConfigRepository } from '../repositories/ConfigRepository'
+import { runResolvedPipeline } from '../pipeline/runPipeline'
 import { LockfileRepository } from '../repositories/LockfileRepository'
 import { Specifier } from '../structures/Specifier'
 import { stableStringify } from '../utils/stableStringify'
@@ -19,7 +19,7 @@ function createEmptyResult(): UpdateCommandResult {
 }
 
 export async function updateCommand(options: UpdateCommandOptions): Promise<UpdateCommandResult> {
-  const config = await new ConfigRepository().load(options.cwd)
+  const config = await loadConfig(options.cwd)
   if (!config.manifest) {
     throw new ManifestError({
       code: ErrorCode.MANIFEST_NOT_FOUND,
@@ -47,6 +47,7 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
       rootDir: options.cwd,
       manifest: config.manifest,
       currentLock: null,
+      npmConfig: config.npmConfig,
     })
   }
 
@@ -70,6 +71,7 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
         config.manifest,
         skillName,
         specifier,
+        config.npmConfig,
       )
       const previous = config.lockfile?.getEntry(skillName)
       if (
@@ -92,26 +94,21 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
     return result
   }
 
-  const installer = new Installer({
-    hooks: {
-      beforeFetch: async (cwd, manifest, lockfile) =>
-        installStageHooks.beforeFetch(
-          cwd,
-          manifest.toJSON({ includeDefaults: true }),
-          lockfile.toJSON(),
-        ),
-    },
-  })
-  const runtimeLock = await installer.resolveQueue.createRuntimeLockfile({
+  const runtimeLock = await resolveQueue.createRuntimeLockfile({
     rootDir: options.cwd,
     manifest: config.manifest,
     lockfile: candidateLock,
+    npmConfig: config.npmConfig,
   })
 
-  await installer.materialize({
+  await runResolvedPipeline({
     rootDir: options.cwd,
     manifest: config.manifest,
     lockfile: runtimeLock,
+    currentInstallState: config.installState,
+    hooks: {
+      beforeFetch: installStageHooks.beforeFetch,
+    },
   })
   await new LockfileRepository().write(options.cwd, candidateLock)
 

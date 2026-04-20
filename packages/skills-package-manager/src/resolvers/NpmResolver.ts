@@ -12,7 +12,7 @@ export class NpmResolver implements Resolver {
 
   async resolve(specifier: Specifier, context: ResolveContext): Promise<LockEntry> {
     const packageSpecifier = specifier.source.slice('npm:'.length)
-    const resolved = await resolveNpmPackage(context.rootDir, packageSpecifier)
+    const resolved = await resolveNpmPackage(context.rootDir, packageSpecifier, context.npmConfig)
     return new LockEntry({
       specifier: specifier.normalized,
       resolution: Resolution.npm(

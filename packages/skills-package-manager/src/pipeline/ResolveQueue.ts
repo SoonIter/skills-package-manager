@@ -1,5 +1,6 @@
 import path from 'node:path'
 import type { InstallProgressListener } from '../config/types'
+import type { NpmConfig } from '../npm/config'
 import { FileResolver } from '../resolvers/FileResolver'
 import { GitResolver } from '../resolvers/GitResolver'
 import { LinkResolver } from '../resolvers/LinkResolver'
@@ -45,12 +46,14 @@ export class ResolveQueue {
     manifest: Manifest,
     skillName: string,
     specifier: string,
+    npmConfig?: NpmConfig,
   ): Promise<{ skillName: string; entry: LockEntry }> {
     const parsedSpecifier = Specifier.parse(specifier)
     const resolvedSkillName = skillName || parsedSpecifier.skillName
     const entry = await this.registry.resolve(parsedSpecifier, {
       rootDir,
       skillName: resolvedSkillName,
+      npmConfig,
     })
     return {
       skillName: resolvedSkillName,
@@ -63,6 +66,7 @@ export class ResolveQueue {
     manifest: Manifest
     currentLock: Lockfile | null
     onProgress?: InstallProgressListener
+    npmConfig?: NpmConfig
   }): Promise<Lockfile> {
     const normalizedManifest = options.manifest.normalize()
     const entries = await Promise.all(
@@ -72,6 +76,7 @@ export class ResolveQueue {
           options.manifest,
           skillName,
           specifier,
+          options.npmConfig,
         )
         options.onProgress?.({ type: 'resolved', skillName: resolved.skillName })
         return [resolved.skillName, resolved.entry.toJSON()] as const
@@ -91,6 +96,7 @@ export class ResolveQueue {
     manifest: Manifest
     currentLock: Lockfile | null
     onProgress?: InstallProgressListener
+    npmConfig?: NpmConfig
   }): Promise<Lockfile> {
     if (
       options.currentLock &&
@@ -108,6 +114,7 @@ export class ResolveQueue {
     currentLock: Lockfile | null
     skillNames: string[]
     onProgress?: InstallProgressListener
+    npmConfig?: NpmConfig
   }): Promise<Lockfile> {
     let nextLock = options.currentLock
       ? options.currentLock.clone()
@@ -125,6 +132,7 @@ export class ResolveQueue {
         options.manifest,
         skillName,
         specifier,
+        options.npmConfig,
       )
       nextLock = nextLock.withEntry(resolved.skillName, resolved.entry)
       options.onProgress?.({ type: 'resolved', skillName: resolved.skillName })
@@ -137,6 +145,7 @@ export class ResolveQueue {
     rootDir: string
     manifest: Manifest
     lockfile: Lockfile
+    npmConfig?: NpmConfig
   }): Promise<Lockfile> {
     const runtimeManifest = options.manifest.withBundledSelfSkill()
     let runtimeLock = options.lockfile.withManifest(runtimeManifest)
@@ -151,6 +160,7 @@ export class ResolveQueue {
         runtimeManifest,
         skillName,
         specifier,
+        options.npmConfig,
       )
       runtimeLock = runtimeLock.withEntry(resolved.skillName, resolved.entry)
     }

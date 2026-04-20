@@ -7,7 +7,7 @@ export type LinkedSkill = {
   skillName: string
 }
 
-export class LinkQueue {
+export class LinkTaskQueue {
   async run(options: {
     rootDir: string
     manifest: Manifest

@@ -1,92 +1,335 @@
 # How it works
 
-The installation flow of skills-package-manager can be understood as three stages: resolve, materialize, and link.
+This page is a workflow-first view of `skills-package-manager`.
 
-## 1. Resolve specifiers
+It is intentionally drawn as a refactor-oriented mental model:
 
-The installer first reads `skills.json` and resolves each skill specifier:
+- Start from top-level CLI commands
+- Move through `loadConfig`
+- Then think in terms of `ResolveQueue`, `FetchQueue`, and `LinkTaskQueue`
+- Avoid hiding the flow behind a single large orchestrator object
 
-- GitHub shorthand: `owner/repo`
-- Git URL: `https://github.com/owner/repo.git`
-- Git URL + `path:`
-- Git URL + `ref` + `path:`
-- Local `link:` skills
-- Local `file:` tarballs
-- `npm:` package sources
+The goal is to make the runtime easy to reason about before introducing concurrency and cache layers.
 
-## 2. Generate resolutions
+## Core runtime flow
 
-Different sources produce different resolution records:
+At the center, every command is some variation of this shared flow:
 
-- `git`: resolved to repository URL, commit, and skill path
-- `link`: resolved to a local path and content digest
-- `file`: resolved to a local tarball path and skill path
-- `npm`: resolved to a package name, version, registry, tarball URL, integrity, and skill path
+1. `loadConfig`
+2. produce or reuse resolution tasks
+3. enqueue fetch work as soon as a resolution is available
+4. enqueue link work as soon as a fetch is available
+5. persist the resulting manifest / lock / install state when needed
 
-These results are written to the lockfile for reuse and auditing.
-
-## 3. Materialize into installDir
-
-The installer copies skill files into a managed directory under `installDir`, ensuring the agent can reliably read the installed skill content.
-
-## 4. Link to target directories
-
-The system then syncs links to `linkTargets`, for example:
-
-- `.claude/skills`
-- Other agent-specific skill directories
-
-## 5. Prune old skills
-
-For skills no longer managed by the manifest, the installation flow performs cleanup to avoid stale content remaining in `installDir`.
+The important point is that `resolve`, `fetch`, and `link` are **pipeline stages**, not strict global barriers. A skill can move from resolve to fetch before every other skill has finished resolving.
 
 ```mermaid
-graph TD
-    subgraph Input ["1. Declaration"]
-        A["skills.json (Manifest)"]
+flowchart LR
+    A["CLI command"] --> B["loadConfig()"]
+
+    subgraph LoadConfig ["loadConfig"]
+      B1["Read skills.json"]
+      B2["Read skills-lock.yaml"]
+      B3["Read .npmrc and source-specific config"]
+      B4["Normalize Manifest / Specifier / Lockfile defaults"]
+      B5["If installDir exists, read .skills-pm-install-state.json"]
     end
 
-    subgraph Core ["2. SPM Core Engine"]
-        B["Specifier Parser"]
-        C{"Resolver"}
-        D["Git Resolver"]
-        E["NPM Resolver"]
-        F["Link/File Resolver"]
-        G["Lockfile Generator"]
+    B --> B1 --> B2 --> B3 --> B4 --> B5
+    B5 --> C["Seed ResolveQueue"]
+
+    subgraph ResolveStage ["ResolveQueue"]
+      C1["Parse manifest skill entries"]
+      C2{"ResolverRegistry"}
+      C3["GitResolver"]
+      C4["NpmResolver"]
+      C5["FileResolver"]
+      C6["LinkResolver"]
+      C7["Emit resolved task"]
     end
 
-    subgraph Output ["3. Materialization"]
-        H["skills-lock.yaml"]
-        I[".agents/skills/ (Physical Files)"]
-        J[".claude/skills/ (Symlinks)"]
-        K[".cursor/skills/ (Symlinks)"]
+    C --> C1 --> C2
+    C2 --> C3 --> C7
+    C2 --> C4 --> C7
+    C2 --> C5 --> C7
+    C2 --> C6 --> C7
+
+    C7 --> D["Push into FetchQueue immediately"]
+
+    subgraph FetchStage ["FetchQueue"]
+      D1["Check KV cache / local cache"]
+      D2{"Cache hit?"}
+      D3["Reuse tarball / checkout / digest metadata"]
+      D4["Fetch from npm / git / file source"]
+      D5["Materialize into installDir"]
+      D6["Apply patch if lock entry includes patch"]
+      D7["Emit fetched task"]
     end
 
-    A --> B
-    B --> C
-    C -->|git:| D
-    C -->|npm:| E
-    C -->|link/file:| F
-    
-    D & E & F --> G
-    G --> H
-    G --> I
-    I --> J
-    I --> K
+    D --> D1 --> D2
+    D2 -->|yes| D3 --> D5
+    D2 -->|no| D4 --> D5
+    D5 --> D6 --> D7
 
-    style A fill:#2dd4bf,stroke:#14b8a6,color:#000
-    style H fill:#5eead4,stroke:#14b8a6,color:#000
-    style I fill:#f1fa8c,stroke:#d1d100,color:#000
-    style J fill:#bd93f9,stroke:#9b6dff,color:#000
-    style K fill:#bd93f9,stroke:#9b6dff,color:#000
+    D7 --> E["Push into LinkTaskQueue immediately"]
+
+    subgraph LinkStage ["LinkTaskQueue"]
+      E1["Ensure installDir and link target dirs exist"]
+      E2["Prune stale managed skills if needed"]
+      E3["Create / replace symlink in each linkTarget"]
+      E4["Update install state"]
+    end
+
+    E --> E1 --> E2 --> E3 --> E4
+```
+
+## Shared stages
+
+### 1. `loadConfig`
+
+`loadConfig` should produce a single in-memory view of all relevant inputs:
+
+- `Manifest`
+- `Lockfile`
+- parsed / normalized `Specifier`s
+- source config such as `.npmrc`
+- install state from `.skills-pm-install-state.json` if `installDir` already exists
+
+The key rule is: defaults are applied here, once.
+
+### 2. `ResolveQueue`
+
+`ResolveQueue` turns manifest declarations into concrete resolution records.
+
+Examples:
+
+- `git` resolves to `repo + commit + path`
+- `npm` resolves to `package + version + registry + tarball + integrity + path`
+- `file` resolves to `tarball + path`
+- `link` resolves to `local path + digest`
+
+As soon as one skill has a complete resolution, it can be pushed into `FetchQueue`.
+
+### 3. `FetchQueue`
+
+`FetchQueue` is responsible for obtaining or reusing concrete source artifacts and turning them into installed skill content.
+
+This is the natural place for:
+
+- remote fetches
+- tarball download reuse
+- git checkout reuse
+- KV cache
+- content-addressed cache
+- source-level integrity checks
+
+### 4. `LinkTaskQueue`
+
+`LinkTaskQueue` is the final filesystem-facing stage:
+
+- ensure managed directories exist
+- prune stale managed skills
+- create or replace symlinks into `linkTargets`
+- update install state
+
+## Command overview
+
+Different CLI commands enter the shared pipeline at different points:
+
+```mermaid
+flowchart TD
+    A["spm init"] --> A1["Write initial skills.json"]
+
+    B["spm add"] --> B1["Discover / normalize skill source"]
+    B1 --> B2["Write manifest entry"]
+    B2 --> B3["Resolve lock entry"]
+    B3 --> B4["Run install-style pipeline"]
+
+    C["spm install"] --> C1["loadConfig"]
+    C1 --> C2["ResolveQueue -> FetchQueue -> LinkTaskQueue"]
+
+    D["spm update"] --> D1["Select target skills"]
+    D1 --> D2["Re-resolve selected entries"]
+    D2 --> D3["Fetch + link updated runtime state"]
+
+    E["spm patch"] --> E1["Resolve base lock entry"]
+    E1 --> E2["Extract editable working copy"]
+
+    F["spm patch-commit"] --> F1["Diff edit dir against base"]
+    F1 --> F2["Write patch file"]
+    F2 --> F3["Attach patch to manifest / lock"]
+    F3 --> F4["Run fetch + link for patched skill"]
+```
+
+## `spm init`
+
+`init` is the only command that does not enter the install pipeline. It creates the initial manifest.
+
+```mermaid
+flowchart TD
+    A["spm init"] --> B{"skills.json exists?"}
+    B -->|yes| C["Fail: manifest already exists"]
+    B -->|no| D{"--yes ?"}
+    D -->|yes| E["Create default Manifest"]
+    D -->|no| F["Prompt for installDir / linkTargets"]
+    F --> E
+    E --> G["Write skills.json"]
+    G --> H["Return manifest"]
+```
+
+## `spm add`
+
+`add` has two parts:
+
+1. source discovery / specifier normalization
+2. manifest + lock update followed by an install-style pipeline
+
+```mermaid
+flowchart TD
+    A["spm add <specifier>"] --> B["Resolve target cwd and agent linkTargets"]
+    B --> C{"Specifier is repo / local source to discover?"}
+
+    C -->|yes| D["Clone or scan source"]
+    D --> E["Discover skill directories"]
+    E --> F["Select one or more skills"]
+    F --> G["Build normalized git/link specifier per skill"]
+
+    C -->|no| H["Normalize direct specifier"]
+    H --> G
+
+    G --> I["Read or create Manifest"]
+    I --> J["Add manifest skill entry"]
+    J --> K["Write skills.json"]
+    K --> L["Sync lock entries from manifest"]
+    L --> M["Write skills-lock.yaml"]
+    M --> N["Run install pipeline"]
+
+    subgraph InstallPipeline ["Per-skill pipeline after add"]
+      N1["loadConfig"]
+      N2["ResolveQueue"]
+      N3["FetchQueue"]
+      N4["LinkTaskQueue"]
+    end
+
+    N --> N1 --> N2 --> N3 --> N4
+```
+
+## `spm install`
+
+`install` is the cleanest expression of the package manager pipeline.
+
+```mermaid
+flowchart TD
+    A["spm install"] --> B["loadConfig"]
+    B --> C{"skills.json exists?"}
+    C -->|no| D["Fail: manifest missing"]
+    C -->|yes| E{"--frozen-lockfile ?"}
+
+    E -->|yes| F["Validate lockfile exists and is in sync"]
+    F --> G["Seed runtime tasks from lockfile"]
+
+    E -->|no| H["Resolve manifest entries into next lockfile"]
+    H --> I["Persist next skills-lock.yaml after success"]
+    H --> G
+
+    G --> J["Optionally inject bundled self skill into runtime-only lock"]
+
+    subgraph Pipeline ["Streaming task pipeline"]
+      J --> K["ResolveQueue emits resolved skill"]
+      K --> L["FetchQueue checks cache and fetches / materializes"]
+      L --> M["LinkTaskQueue creates linkTargets symlinks"]
+    end
+
+    M --> N["Write .skills-pm-install-state.json"]
+    N --> O["Report progress"]
+```
+
+## `spm update`
+
+`update` is like a partial install: only selected skills are re-resolved, but the resulting runtime state is still fetched and linked.
+
+```mermaid
+flowchart TD
+    A["spm update [skills...]"] --> B["loadConfig"]
+    B --> C["Choose target skills or all manifest skills"]
+    C --> D{"Target exists in manifest?"}
+    D -->|no| E["Fail for unknown skill"]
+    D -->|yes| F["Create candidate lock snapshot"]
+
+    F --> G["For each target skill"]
+    G --> H{"Specifier type is link?"}
+    H -->|yes| I["Mark as skipped"]
+    H -->|no| J["Resolve selected skill"]
+    J --> K{"Entry changed?"}
+    K -->|no| L["Mark unchanged"]
+    K -->|yes| M["Replace lock entry in candidate lock"]
+
+    I --> N
+    L --> N
+    M --> N["After all targets processed"]
+
+    N --> O{"Any resolve failures?"}
+    O -->|yes| P["Return failed result without writing lock"]
+    O -->|no| Q["Create runtime lock"]
+    Q --> R["FetchQueue -> LinkTaskQueue"]
+    R --> S["Write updated skills-lock.yaml"]
+```
+
+## `spm patch`
+
+`patch` prepares an editable working directory from the currently resolved skill content.
+
+```mermaid
+flowchart TD
+    A["spm patch <skill>"] --> B["loadConfig"]
+    B --> C{"Skill exists in manifest?"}
+    C -->|no| D["Fail: unknown skill"]
+    C -->|yes| E["Ensure base lock is in sync or re-resolve it"]
+    E --> F["Find current lock entry"]
+    F --> G["Remove patch metadata to get base entry"]
+    G --> H["Extract skill content into editDir"]
+    H --> I{"Existing patch and not --ignore-existing ?"}
+    I -->|yes| J["Apply existing patch into editDir"]
+    I -->|no| K["Skip patch application"]
+    J --> L["Write patch edit state metadata"]
+    K --> L
+    L --> M["Return editDir"]
+```
+
+## `spm patch-commit`
+
+`patch-commit` turns an edited working tree back into:
+
+- a patch file on disk
+- updated `patchedSkills` in the manifest
+- updated patch metadata in the lockfile
+- refreshed installed content
+
+```mermaid
+flowchart TD
+    A["spm patch-commit <editDir>"] --> B["loadConfig"]
+    B --> C["Read patch edit state"]
+    C --> D{"Manifest skill and original specifier still match?"}
+    D -->|no| E["Fail: patch base is stale"]
+    D -->|yes| F["Extract base entry to temp dir"]
+    F --> G["Diff temp dir vs editDir"]
+    G --> H{"Patch is empty?"}
+    H -->|yes| I["Fail: no changes"]
+    H -->|no| J["Write patch file"]
+
+    J --> K["Update Manifest.patchedSkills"]
+    K --> L["Ensure base lock"]
+    L --> M["Attach patch digest/path to lock entry"]
+    M --> N["Create runtime lock"]
+    N --> O["FetchQueue -> LinkTaskQueue"]
+    O --> P["Write skills.json"]
+    P --> Q["Write skills-lock.yaml"]
 ```
 
 ## Design goals
 
-The goal of this flow is not to treat skills as ordinary npm packages, but to bring “AI agent capability units” into an engineering workflow:
+This queue-oriented model is trying to make the package manager easy to evolve in three directions:
 
-- Declarative
-- Reproducible
-- Linkable
-- Updatable
-- Auditable
+- **Concurrency**: one skill can advance to fetch or link without waiting for every other skill
+- **Caching**: resolve and fetch outputs have explicit handoff points
+- **Debuggability**: the user can trace the flow from command function to queue to filesystem effect
