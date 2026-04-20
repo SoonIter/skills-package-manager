@@ -8,12 +8,6 @@ export { installCommand } from './commands/install'
 export { patchCommand } from './commands/patch'
 export { patchCommitCommand } from './commands/patchCommit'
 export { updateCommand } from './commands/update'
-export { isLockInSync } from './config/compareSkillsLock'
-export { readSkillsLock } from './config/readSkillsLock'
-export { readSkillsManifest } from './config/readSkillsManifest'
-export { expandSkillsManifest, normalizeSkillsManifest } from './config/skillsManifest'
-// Config
-export { resolveLockEntry } from './config/syncSkillsLock'
 export type {
   AddCommandOptions,
   InitCommandOptions,
@@ -31,8 +25,6 @@ export type {
   UpdateCommandOptions,
   UpdateCommandResult,
 } from './config/types'
-export { writeSkillsLock } from './config/writeSkillsLock'
-export { writeSkillsManifest } from './config/writeSkillsManifest'
 // Errors
 export {
   convertNodeError,
@@ -58,14 +50,16 @@ export {
   parseOwnerRepo,
 } from './github/listSkills'
 export type { SkillInfo } from './github/types'
-// Install
-export {
-  fetchSkillsFromLock,
-  installSkills,
-  installStageHooks,
-  linkSkillsFromLock,
-} from './install/installSkills'
 export { createInstallProgressReporter } from './install/progressReporter'
-// Specifiers
-export { normalizeSpecifier } from './specifiers/normalizeSpecifier'
-export { parseSpecifier } from './specifiers/parseSpecifier'
+export { Installer } from './pipeline/Installer'
+export { ConfigRepository } from './repositories/ConfigRepository'
+export { LockfileRepository } from './repositories/LockfileRepository'
+export { ManifestRepository } from './repositories/ManifestRepository'
+export type { ResolveContext, Resolver } from './resolvers/Resolver'
+export { ResolverRegistry } from './resolvers/ResolverRegistry'
+export { Config } from './structures/Config'
+export { LockEntry } from './structures/LockEntry'
+export { Lockfile } from './structures/Lockfile'
+export { Manifest } from './structures/Manifest'
+export { Resolution } from './structures/Resolution'
+export { Specifier } from './structures/Specifier'

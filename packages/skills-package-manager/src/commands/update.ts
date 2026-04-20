@@ -1,15 +1,11 @@
-import { readSkillsLock } from '../config/readSkillsLock'
-import { readSkillsManifest } from '../config/readSkillsManifest'
-import { attachManifestPatchToEntry, resolveLockEntry } from '../config/syncSkillsLock'
-import type { SkillsLock, UpdateCommandOptions, UpdateCommandResult } from '../config/types'
-import { writeSkillsLock } from '../config/writeSkillsLock'
+import type { UpdateCommandOptions, UpdateCommandResult } from '../config/types'
 import { ErrorCode, ManifestError, SkillError } from '../errors'
-import {
-  fetchSkillsFromLock,
-  linkSkillsFromLock,
-  withBundledSelfSkillLock,
-} from '../install/installSkills'
-import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
+import { installStageHooks } from '../install/installSkills'
+import { Installer } from '../pipeline/Installer'
+import { ResolveQueue } from '../pipeline/ResolveQueue'
+import { ConfigRepository } from '../repositories/ConfigRepository'
+import { LockfileRepository } from '../repositories/LockfileRepository'
+import { Specifier } from '../structures/Specifier'
 import { stableStringify } from '../utils/stableStringify'
 
 function createEmptyResult(): UpdateCommandResult {
@@ -22,25 +18,9 @@ function createEmptyResult(): UpdateCommandResult {
   }
 }
 
-function createBaseLock(_cwd: string, currentLock: SkillsLock | null): SkillsLock {
-  if (currentLock) {
-    return {
-      ...currentLock,
-      skills: { ...currentLock.skills },
-    }
-  }
-
-  return {
-    lockfileVersion: '0.1',
-    installDir: '.agents/skills',
-    linkTargets: [],
-    skills: {},
-  }
-}
-
 export async function updateCommand(options: UpdateCommandOptions): Promise<UpdateCommandResult> {
-  const manifest = await readSkillsManifest(options.cwd)
-  if (!manifest) {
+  const config = await new ConfigRepository().load(options.cwd)
+  if (!config.manifest) {
     throw new ManifestError({
       code: ErrorCode.MANIFEST_NOT_FOUND,
       filePath: `${options.cwd}/skills.json`,
@@ -48,10 +28,9 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
     })
   }
 
-  const currentLock = await readSkillsLock(options.cwd)
-  const targetSkills = options.skills ?? Object.keys(manifest.skills)
+  const targetSkills = options.skills ?? Object.keys(config.manifest.normalize().skills)
   for (const skillName of targetSkills) {
-    if (!(skillName in manifest.skills)) {
+    if (!config.manifest.hasSkill(skillName)) {
       throw new SkillError({
         code: ErrorCode.SKILL_NOT_FOUND,
         skillName,
@@ -61,29 +40,47 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
   }
 
   const result = createEmptyResult()
-  const candidateLock = createBaseLock(options.cwd, currentLock)
-  candidateLock.installDir = manifest.installDir ?? '.agents/skills'
-  candidateLock.linkTargets = manifest.linkTargets ?? []
+  const resolveQueue = new ResolveQueue()
+  let candidateLock = config.lockfile?.clone()
+  if (!candidateLock) {
+    candidateLock = await resolveQueue.syncLockfile({
+      rootDir: options.cwd,
+      manifest: config.manifest,
+      currentLock: null,
+    })
+  }
+
+  candidateLock = candidateLock.withManifest(config.manifest)
 
   for (const skillName of targetSkills) {
-    const specifier = manifest.skills[skillName]
+    const specifier = config.manifest.getSkillSpecifier(skillName)
+    if (!specifier) {
+      continue
+    }
 
     try {
-      const normalized = normalizeSpecifier(specifier)
-      if (normalized.type === 'link') {
+      const normalizedSpecifier = Specifier.parse(specifier)
+      if (normalizedSpecifier.type === 'link') {
         result.skipped.push({ name: skillName, reason: 'link-specifier' })
         continue
       }
 
-      const { entry } = await resolveLockEntry(options.cwd, specifier)
-      const nextEntry = await attachManifestPatchToEntry(options.cwd, manifest, skillName, entry)
-      const previous = currentLock?.skills[skillName]
-      if (previous && stableStringify(previous) === stableStringify(nextEntry)) {
+      const resolved = await resolveQueue.resolveSkill(
+        options.cwd,
+        config.manifest,
+        skillName,
+        specifier,
+      )
+      const previous = config.lockfile?.getEntry(skillName)
+      if (
+        previous &&
+        stableStringify(previous.toJSON()) === stableStringify(resolved.entry.toJSON())
+      ) {
         result.unchanged.push(skillName)
         continue
       }
 
-      candidateLock.skills[skillName] = nextEntry
+      candidateLock = candidateLock.withEntry(resolved.skillName, resolved.entry)
       result.updated.push(skillName)
     } catch (error) {
       result.failed.push({ name: skillName, reason: (error as Error).message })
@@ -95,11 +92,28 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
     return result
   }
 
-  const runtimeLock = await withBundledSelfSkillLock(options.cwd, manifest, candidateLock)
+  const installer = new Installer({
+    hooks: {
+      beforeFetch: async (cwd, manifest, lockfile) =>
+        installStageHooks.beforeFetch(
+          cwd,
+          manifest.toJSON({ includeDefaults: true }),
+          lockfile.toJSON(),
+        ),
+    },
+  })
+  const runtimeLock = await installer.resolveQueue.createRuntimeLockfile({
+    rootDir: options.cwd,
+    manifest: config.manifest,
+    lockfile: candidateLock,
+  })
 
-  await fetchSkillsFromLock(options.cwd, manifest, runtimeLock)
-  await linkSkillsFromLock(options.cwd, manifest, runtimeLock)
-  await writeSkillsLock(options.cwd, candidateLock)
+  await installer.materialize({
+    rootDir: options.cwd,
+    manifest: config.manifest,
+    lockfile: runtimeLock,
+  })
+  await new LockfileRepository().write(options.cwd, candidateLock)
 
   result.status = result.updated.length > 0 ? 'updated' : 'skipped'
   return result

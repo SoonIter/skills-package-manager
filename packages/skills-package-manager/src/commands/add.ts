@@ -455,7 +455,7 @@ async function addSingleSkill(
   const existingManifest = (await readSkillsManifest(cwd)) ?? {
     installDir: manifestDefaults?.installDir ?? '.agents/skills',
     linkTargets: manifestDefaults?.linkTargets ?? [],
-    skills: {},
+    skills: {} as Record<string, string>,
   }
 
   if (manifestDefaults) {

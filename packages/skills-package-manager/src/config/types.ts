@@ -1,66 +1,16 @@
-/**
- * Skills manifest input type used for authoring/writing manifests.
- * This preserves optionality for fields with defaults.
- */
-export type SkillsManifest = {
-  $schema?: string
-  installDir?: string
-  linkTargets?: string[]
-  selfSkill?: boolean
-  skills?: Record<string, string>
-  patchedSkills?: Record<string, string>
-}
+import type {
+  LockEntryData,
+  LockfileData,
+  ManifestData,
+  NormalizedManifestData,
+  SpecifierData,
+} from '../structures/types'
 
-/**
- * Skills manifest output type after validation/default application.
- * Use this for normalized manifests returned from reads/parsing.
- */
-export type NormalizedSkillsManifest = {
-  $schema?: string
-  installDir: string
-  linkTargets: string[]
-  selfSkill?: boolean
-  skills: Record<string, string>
-  patchedSkills?: Record<string, string>
-}
-
-export type NormalizedSpecifier = {
-  type: 'git' | 'link' | 'file' | 'npm'
-  source: string
-  ref: string | null
-  path: string
-  normalized: string
-  skillName: string
-}
-
-export type SkillsLockEntry = {
-  specifier: string
-  resolution:
-    | { type: 'link'; path: string }
-    | { type: 'file'; tarball: string; path: string }
-    | { type: 'git'; url: string; commit: string; path: string }
-    | {
-        type: 'npm'
-        packageName: string
-        version: string
-        path: string
-        tarball: string
-        integrity?: string
-        registry?: string
-      }
-  digest: string
-  patch?: {
-    path: string
-    digest: string
-  }
-}
-
-export type SkillsLock = {
-  lockfileVersion: '0.1'
-  installDir: string
-  linkTargets: string[]
-  skills: Record<string, SkillsLockEntry>
-}
+export type SkillsManifest = ManifestData
+export type NormalizedSkillsManifest = NormalizedManifestData
+export type NormalizedSpecifier = SpecifierData
+export type SkillsLockEntry = LockEntryData
+export type SkillsLock = LockfileData
 
 export type InitCommandOptions = {
   cwd: string

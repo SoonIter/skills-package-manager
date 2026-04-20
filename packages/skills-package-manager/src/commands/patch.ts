@@ -1,19 +1,13 @@
 import { access, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { isLockInSync } from '../config/compareSkillsLock'
-import { readSkillsLock } from '../config/readSkillsLock'
-import { readSkillsManifest } from '../config/readSkillsManifest'
-import { syncSkillsLock } from '../config/syncSkillsLock'
-import type {
-  PatchCommandOptions,
-  PatchCommandResult,
-  SkillsLock,
-  SkillsLockEntry,
-} from '../config/types'
+import type { PatchCommandOptions, PatchCommandResult, SkillsLockEntry } from '../config/types'
 import { convertNodeError, ErrorCode, FileSystemError, ManifestError, SkillError } from '../errors'
 import { extractSkillToDir } from '../install/extractSkillToDir'
 import { applySkillPatch, writePatchEditState } from '../patches/skillPatch'
+import { ResolveQueue } from '../pipeline/ResolveQueue'
+import { ConfigRepository } from '../repositories/ConfigRepository'
+import { LockEntry } from '../structures/LockEntry'
 
 async function ensureEditDirDoesNotExist(editDir: string) {
   try {
@@ -37,21 +31,6 @@ async function ensureEditDirDoesNotExist(editDir: string) {
   })
 }
 
-async function createBaseLock(
-  cwd: string,
-  manifest: NonNullable<Awaited<ReturnType<typeof readSkillsManifest>>>,
-  currentLock: SkillsLock | null,
-) {
-  if (currentLock && (await isLockInSync(cwd, manifest, currentLock))) {
-    return {
-      ...currentLock,
-      skills: { ...currentLock.skills },
-    }
-  }
-
-  return syncSkillsLock(cwd, manifest, currentLock)
-}
-
 function getUnpatchedBaseEntry(entry: SkillsLockEntry): SkillsLockEntry {
   if (!entry.patch) {
     return entry
@@ -71,8 +50,8 @@ async function resolveEditDir(cwd: string, skillName: string, editDir?: string):
 }
 
 export async function patchCommand(options: PatchCommandOptions): Promise<PatchCommandResult> {
-  const manifest = await readSkillsManifest(options.cwd)
-  if (!manifest) {
+  const config = await new ConfigRepository().load(options.cwd)
+  if (!config.manifest) {
     throw new ManifestError({
       code: ErrorCode.MANIFEST_NOT_FOUND,
       filePath: `${options.cwd}/skills.json`,
@@ -80,7 +59,7 @@ export async function patchCommand(options: PatchCommandOptions): Promise<PatchC
     })
   }
 
-  if (!(options.skillName in manifest.skills)) {
+  if (!config.manifest.hasSkill(options.skillName)) {
     throw new SkillError({
       code: ErrorCode.SKILL_NOT_FOUND,
       skillName: options.skillName,
@@ -88,9 +67,12 @@ export async function patchCommand(options: PatchCommandOptions): Promise<PatchC
     })
   }
 
-  const currentLock = await readSkillsLock(options.cwd)
-  const baseLock = await createBaseLock(options.cwd, manifest, currentLock)
-  const currentEntry = baseLock.skills[options.skillName]
+  const baseLock = await new ResolveQueue().ensureBaseLockfile({
+    rootDir: options.cwd,
+    manifest: config.manifest,
+    currentLock: config.lockfile,
+  })
+  const currentEntry = baseLock.getEntry(options.skillName)
 
   if (!currentEntry) {
     throw new SkillError({
@@ -105,10 +87,10 @@ export async function patchCommand(options: PatchCommandOptions): Promise<PatchC
     await ensureEditDirDoesNotExist(editDir)
   }
 
-  const baseEntry = getUnpatchedBaseEntry(currentEntry)
+  const baseEntry = getUnpatchedBaseEntry(currentEntry.toJSON())
   await extractSkillToDir(options.cwd, baseEntry, editDir)
 
-  const existingPatchPath = manifest.patchedSkills?.[options.skillName]
+  const existingPatchPath = config.manifest.normalize().patchedSkills?.[options.skillName]
   if (existingPatchPath && !options.ignoreExisting) {
     await applySkillPatch(editDir, path.resolve(options.cwd, existingPatchPath))
   }
@@ -116,8 +98,8 @@ export async function patchCommand(options: PatchCommandOptions): Promise<PatchC
   await writePatchEditState(editDir, {
     version: 1,
     skillName: options.skillName,
-    originalSpecifier: manifest.skills[options.skillName],
-    baseEntry,
+    originalSpecifier: config.manifest.getSkillSpecifier(options.skillName) ?? '',
+    baseEntry: new LockEntry(baseEntry).toJSON(),
   })
 
   console.info(editDir)
@@ -126,6 +108,6 @@ export async function patchCommand(options: PatchCommandOptions): Promise<PatchC
     status: 'patched',
     skillName: options.skillName,
     editDir,
-    originalSpecifier: manifest.skills[options.skillName],
+    originalSpecifier: config.manifest.getSkillSpecifier(options.skillName) ?? '',
   }
 }

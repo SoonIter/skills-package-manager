@@ -1,35 +1,10 @@
-import { writeFile } from 'node:fs/promises'
-import path from 'node:path'
-import pkg from '../../package.json'
-import { convertNodeError } from '../errors'
+import { ManifestRepository } from '../repositories/ManifestRepository'
+import { Manifest } from '../structures/Manifest'
 import type { SkillsManifest } from './types'
-
-const DEFAULT_SCHEMA_URL = `https://unpkg.com/skills-package-manager@${pkg.version}/skills.schema.json`
 
 export async function writeSkillsManifest(
   rootDir: string,
   manifest: SkillsManifest,
 ): Promise<void> {
-  const filePath = path.join(rootDir, 'skills.json')
-  const nextManifest: Record<string, unknown> = {
-    $schema: manifest.$schema ?? DEFAULT_SCHEMA_URL,
-    installDir: manifest.installDir ?? '.agents/skills',
-    linkTargets: manifest.linkTargets ?? [],
-    skills: manifest.skills,
-  }
-
-  // Only include selfSkill if it's explicitly set
-  if (manifest.selfSkill !== undefined) {
-    nextManifest.selfSkill = manifest.selfSkill
-  }
-
-  if (manifest.patchedSkills && Object.keys(manifest.patchedSkills).length > 0) {
-    nextManifest.patchedSkills = manifest.patchedSkills
-  }
-
-  try {
-    await writeFile(filePath, `${JSON.stringify(nextManifest, null, 2)}\n`, 'utf8')
-  } catch (error) {
-    throw convertNodeError(error as NodeJS.ErrnoException, { operation: 'write', path: filePath })
-  }
+  await new ManifestRepository().write(rootDir, Manifest.from(manifest))
 }

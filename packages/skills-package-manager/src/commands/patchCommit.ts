@@ -1,41 +1,19 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { isLockInSync } from '../config/compareSkillsLock'
-import { readSkillsLock } from '../config/readSkillsLock'
-import { readSkillsManifest } from '../config/readSkillsManifest'
-import { attachManifestPatchToEntry, syncSkillsLock } from '../config/syncSkillsLock'
-import type {
-  PatchCommitCommandOptions,
-  PatchCommitCommandResult,
-  SkillsLock,
-} from '../config/types'
-import { writeSkillsLock } from '../config/writeSkillsLock'
-import { writeSkillsManifest } from '../config/writeSkillsManifest'
+import type { PatchCommitCommandOptions, PatchCommitCommandResult } from '../config/types'
 import { ErrorCode, ManifestError, SkillError } from '../errors'
 import { extractSkillToDir } from '../install/extractSkillToDir'
-import {
-  fetchSkillsFromLock,
-  linkSkillsFromLock,
-  withBundledSelfSkillLock,
-} from '../install/installSkills'
+import { installStageHooks } from '../install/installSkills'
 import { generateSkillPatch, readPatchEditState } from '../patches/skillPatch'
+import { Installer } from '../pipeline/Installer'
+import { ResolveQueue } from '../pipeline/ResolveQueue'
+import { ConfigRepository } from '../repositories/ConfigRepository'
+import { LockfileRepository } from '../repositories/LockfileRepository'
+import { ManifestRepository } from '../repositories/ManifestRepository'
+import { LockEntry } from '../structures/LockEntry'
+import { Manifest } from '../structures/Manifest'
 import { toPortableRelativePath } from '../utils/path'
-
-async function createBaseLock(
-  cwd: string,
-  manifest: NonNullable<Awaited<ReturnType<typeof readSkillsManifest>>>,
-  currentLock: SkillsLock | null,
-) {
-  if (currentLock && (await isLockInSync(cwd, manifest, currentLock))) {
-    return {
-      ...currentLock,
-      skills: { ...currentLock.skills },
-    }
-  }
-
-  return syncSkillsLock(cwd, manifest, currentLock)
-}
 
 function resolvePatchFilePath(
   cwd: string,
@@ -57,8 +35,8 @@ function resolvePatchFilePath(
 export async function patchCommitCommand(
   options: PatchCommitCommandOptions,
 ): Promise<PatchCommitCommandResult> {
-  const manifest = await readSkillsManifest(options.cwd)
-  if (!manifest) {
+  const config = await new ConfigRepository().load(options.cwd)
+  if (!config.manifest) {
     throw new ManifestError({
       code: ErrorCode.MANIFEST_NOT_FOUND,
       filePath: `${options.cwd}/skills.json`,
@@ -69,7 +47,7 @@ export async function patchCommitCommand(
   const editDir = path.resolve(options.cwd, options.editDir)
   const editState = await readPatchEditState(editDir)
 
-  if (!(editState.skillName in manifest.skills)) {
+  if (!config.manifest.hasSkill(editState.skillName)) {
     throw new SkillError({
       code: ErrorCode.SKILL_NOT_FOUND,
       skillName: editState.skillName,
@@ -77,7 +55,7 @@ export async function patchCommitCommand(
     })
   }
 
-  if (manifest.skills[editState.skillName] !== editState.originalSpecifier) {
+  if (config.manifest.getSkillSpecifier(editState.skillName) !== editState.originalSpecifier) {
     throw new SkillError({
       code: ErrorCode.VALIDATION_ERROR,
       skillName: editState.skillName,
@@ -99,49 +77,64 @@ export async function patchCommitCommand(
       })
     }
 
+    const currentPatchedSkills = config.manifest.normalize().patchedSkills
     const patchFilePath = resolvePatchFilePath(
       options.cwd,
       editState.skillName,
-      manifest.patchedSkills?.[editState.skillName],
+      currentPatchedSkills?.[editState.skillName],
       options.patchesDir,
     )
     await mkdir(path.dirname(patchFilePath), { recursive: true })
     await writeFile(patchFilePath, patchContent, 'utf8')
 
     const relativePatchPath = toPortableRelativePath(options.cwd, patchFilePath)
-    const nextManifest = {
-      ...manifest,
+    const nextManifest = Manifest.from({
+      ...config.manifest.toJSON(),
       patchedSkills: {
-        ...(manifest.patchedSkills ?? {}),
+        ...(currentPatchedSkills ?? {}),
         [editState.skillName]: relativePatchPath,
       },
-    }
+    })
 
-    const currentLock = await readSkillsLock(options.cwd)
-    const baseLock = await createBaseLock(options.cwd, manifest, currentLock)
-    const patchedEntry = await attachManifestPatchToEntry(
+    const resolveQueue = new ResolveQueue()
+    const baseLock = await resolveQueue.ensureBaseLockfile({
+      rootDir: options.cwd,
+      manifest: config.manifest,
+      currentLock: config.lockfile,
+    })
+    const patchedEntry = await resolveQueue.attachManifestPatch(
       options.cwd,
       nextManifest,
       editState.skillName,
-      editState.baseEntry,
+      new LockEntry(editState.baseEntry),
     )
 
-    const nextLock: SkillsLock = {
-      ...baseLock,
-      installDir: nextManifest.installDir ?? '.agents/skills',
-      linkTargets: nextManifest.linkTargets ?? [],
-      skills: {
-        ...baseLock.skills,
-        [editState.skillName]: patchedEntry,
+    const nextLock = baseLock
+      .withManifest(nextManifest)
+      .withEntry(editState.skillName, patchedEntry)
+    const installer = new Installer({
+      hooks: {
+        beforeFetch: async (cwd, manifest, lockfile) =>
+          installStageHooks.beforeFetch(
+            cwd,
+            manifest.toJSON({ includeDefaults: true }),
+            lockfile.toJSON(),
+          ),
       },
-    }
+    })
+    const runtimeLock = await installer.resolveQueue.createRuntimeLockfile({
+      rootDir: options.cwd,
+      manifest: nextManifest,
+      lockfile: nextLock,
+    })
 
-    const runtimeLock = await withBundledSelfSkillLock(options.cwd, nextManifest, nextLock)
-
-    await fetchSkillsFromLock(options.cwd, nextManifest, runtimeLock)
-    await linkSkillsFromLock(options.cwd, nextManifest, runtimeLock)
-    await writeSkillsManifest(options.cwd, nextManifest)
-    await writeSkillsLock(options.cwd, nextLock)
+    await installer.materialize({
+      rootDir: options.cwd,
+      manifest: nextManifest,
+      lockfile: runtimeLock,
+    })
+    await new ManifestRepository().write(options.cwd, nextManifest)
+    await new LockfileRepository().write(options.cwd, nextLock)
 
     console.info(relativePatchPath)
 
