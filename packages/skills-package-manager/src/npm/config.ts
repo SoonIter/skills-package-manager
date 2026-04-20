@@ -86,16 +86,19 @@ function buildRegistryAuthEntries(settings: Map<string, string>): RegistryAuthEn
 
     const [, prefix, field] = match
     const config = registryAuthConfigs.get(prefix) ?? {}
-    registryAuthConfigs.set(prefix, {
-      ...config,
-      [field === '_authToken'
-        ? 'authToken'
-        : field === '_auth'
-          ? 'auth'
-          : field === 'username'
-            ? 'username'
-            : 'password']: value,
-    })
+    const fieldMap: Record<string, 'authToken' | 'auth' | 'username' | 'password'> = {
+      _authToken: 'authToken',
+      _auth: 'auth',
+      username: 'username',
+      _password: 'password',
+    }
+    const mappedField = fieldMap[field]
+    if (mappedField) {
+      registryAuthConfigs.set(prefix, {
+        ...config,
+        [mappedField]: value,
+      })
+    }
   }
 
   return [...registryAuthConfigs.entries()]

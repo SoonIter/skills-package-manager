@@ -41,22 +41,17 @@ export class Lockfile {
 
   withEntry(skillName: string, entry: LockEntry | LockEntryData): Lockfile {
     const nextEntry = entry instanceof LockEntry ? entry : new LockEntry(entry)
-    return new Lockfile({
-      ...this.toJSON(),
-      skills: {
-        ...this.toJSON().skills,
-        [skillName]: nextEntry.toJSON(),
-      },
-    })
+    const data = this.toJSON()
+    data.skills[skillName] = nextEntry.toJSON()
+    return new Lockfile(data)
   }
 
   withManifest(manifest: Manifest): Lockfile {
     const normalized = manifest.normalize()
-    return new Lockfile({
-      ...this.toJSON(),
-      installDir: normalized.installDir,
-      linkTargets: normalized.linkTargets,
-    })
+    const data = this.toJSON()
+    data.installDir = normalized.installDir
+    data.linkTargets = normalized.linkTargets
+    return new Lockfile(data)
   }
 
   skillNames(): string[] {
@@ -104,7 +99,7 @@ export class Lockfile {
       }
 
       const manifestParsed = Specifier.parse(manifestSpecifier)
-      const lockParsed = Specifier.parse(lockEntry.specifier)
+      const lockParsed = lockEntry.parsedSpecifier
       if (manifestParsed.source !== lockParsed.source || manifestParsed.path !== lockParsed.path) {
         return false
       }

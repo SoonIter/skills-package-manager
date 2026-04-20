@@ -1,7 +1,16 @@
 import type { InstallState } from '../install/installState'
-import { type NpmConfig, normalizeNpmConfig } from '../npm/config'
+import { type NormalizedNpmConfig, type NpmConfig, normalizeNpmConfig } from '../npm/config'
 import type { Lockfile } from './Lockfile'
 import type { Manifest } from './Manifest'
+import type { LockfileData, NormalizedManifestData } from './types'
+
+export type NormalizedConfig = {
+  rootDir: string
+  manifest: NormalizedManifestData | null
+  lockfile: LockfileData | null
+  npmConfig: NormalizedNpmConfig
+  installState: InstallState | null
+}
 
 export class Config {
   readonly rootDir: string
@@ -24,13 +33,7 @@ export class Config {
     this.installState = input.installState
   }
 
-  normalize(): {
-    rootDir: string
-    manifest: ReturnType<Manifest['normalize']> | null
-    lockfile: ReturnType<Lockfile['toJSON']> | null
-    npmConfig: ReturnType<typeof normalizeNpmConfig>
-    installState: InstallState | null
-  } {
+  normalize(): NormalizedConfig {
     return {
       rootDir: this.rootDir,
       manifest: this.manifest ? this.manifest.normalize() : null,

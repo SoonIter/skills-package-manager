@@ -1,4 +1,5 @@
 import type { InstallProgressListener, SkillsLock, SkillsManifest } from '../config/types'
+import type { InstallState } from '../install/installState'
 import type { Lockfile } from '../structures/Lockfile'
 import type { Manifest } from '../structures/Manifest'
 import { FetchQueue } from './FetchQueue'
@@ -12,7 +13,7 @@ export async function runFetchPipeline(options: {
   rootDir: string
   manifest: Manifest
   lockfile: Lockfile
-  currentInstallState?: import('../install/installState').InstallState | null
+  currentInstallState?: InstallState | null
   onProgress?: InstallProgressListener
   hooks?: PipelineHooks
 }) {
@@ -45,7 +46,7 @@ export async function runResolvedPipeline(options: {
   rootDir: string
   manifest: Manifest
   lockfile: Lockfile
-  currentInstallState?: import('../install/installState').InstallState | null
+  currentInstallState?: InstallState | null
   onProgress?: InstallProgressListener
   hooks?: PipelineHooks
 }) {

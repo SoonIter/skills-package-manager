@@ -1,3 +1,4 @@
+import { access } from 'node:fs/promises'
 import path from 'node:path'
 import type { InstallProgressListener } from '../config/types'
 import type { InstallState } from '../install/installState'
@@ -27,7 +28,6 @@ async function areManagedSkillsInstalled(
   installDir: string,
   skillNames: string[],
 ): Promise<boolean> {
-  const { access } = await import('node:fs/promises')
   for (const skillName of skillNames) {
     try {
       await access(path.join(rootDir, installDir, skillName, 'SKILL.md'))

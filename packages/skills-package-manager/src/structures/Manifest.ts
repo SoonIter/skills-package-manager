@@ -1,6 +1,7 @@
 import { accessSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { normalizeLinkSource } from '../specifiers/normalizeLinkSource'
 import { Specifier } from './Specifier'
 import type { ManifestData, NormalizedManifestData } from './types'
 
@@ -46,7 +47,7 @@ export class Manifest {
   }
 
   static getBundledSelfSkillSpecifier(): string {
-    return `link:${resolveBundledSelfSkillDir().replace(/\\/g, '/')}`
+    return normalizeLinkSource(`link:${resolveBundledSelfSkillDir()}`)
   }
 
   normalize(): NormalizedManifestData {

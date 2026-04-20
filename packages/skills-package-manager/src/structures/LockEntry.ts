@@ -1,4 +1,5 @@
 import { Resolution } from './Resolution'
+import { Specifier } from './Specifier'
 import type { LockEntryData, LockEntryPatchData } from './types'
 
 export class LockEntry {
@@ -6,6 +7,7 @@ export class LockEntry {
   readonly resolution: Resolution
   readonly digest: string
   readonly patch?: LockEntryPatchData
+  private _parsedSpecifier?: Specifier
 
   constructor(data: LockEntryData) {
     this.specifier = data.specifier
@@ -14,10 +16,20 @@ export class LockEntry {
     this.patch = data.patch ? { ...data.patch } : undefined
   }
 
+  get parsedSpecifier(): Specifier {
+    if (!this._parsedSpecifier) {
+      this._parsedSpecifier = Specifier.parse(this.specifier)
+    }
+    return this._parsedSpecifier
+  }
+
   withPatch(patch: LockEntryPatchData | undefined): LockEntry {
+    if (!patch) {
+      return this
+    }
     return new LockEntry({
       ...this.toJSON(),
-      ...(patch ? { patch } : {}),
+      patch,
     })
   }
 

@@ -121,21 +121,28 @@ export class ResolveQueue {
       : Lockfile.empty(options.manifest)
     nextLock = nextLock.withManifest(options.manifest)
 
-    for (const skillName of options.skillNames) {
-      const specifier = options.manifest.getSkillSpecifier(skillName)
-      if (!specifier) {
-        continue
-      }
+    const resolutions = await Promise.all(
+      options.skillNames.map(async (skillName) => {
+        const specifier = options.manifest.getSkillSpecifier(skillName)
+        if (!specifier) {
+          return null
+        }
+        const resolved = await this.resolveSkill(
+          options.rootDir,
+          options.manifest,
+          skillName,
+          specifier,
+          options.npmConfig,
+        )
+        options.onProgress?.({ type: 'resolved', skillName: resolved.skillName })
+        return resolved
+      }),
+    )
 
-      const resolved = await this.resolveSkill(
-        options.rootDir,
-        options.manifest,
-        skillName,
-        specifier,
-        options.npmConfig,
-      )
-      nextLock = nextLock.withEntry(resolved.skillName, resolved.entry)
-      options.onProgress?.({ type: 'resolved', skillName: resolved.skillName })
+    for (const resolved of resolutions) {
+      if (resolved) {
+        nextLock = nextLock.withEntry(resolved.skillName, resolved.entry)
+      }
     }
 
     return nextLock
@@ -150,18 +157,23 @@ export class ResolveQueue {
     const runtimeManifest = options.manifest.withBundledSelfSkill()
     let runtimeLock = options.lockfile.withManifest(runtimeManifest)
 
-    for (const [skillName, specifier] of Object.entries(runtimeManifest.normalize().skills)) {
-      if (runtimeLock.getEntry(skillName)) {
-        continue
-      }
+    const skillsToResolve = Object.entries(runtimeManifest.normalize().skills).filter(
+      ([skillName]) => !runtimeLock.getEntry(skillName),
+    )
 
-      const resolved = await this.resolveSkill(
-        options.rootDir,
-        runtimeManifest,
-        skillName,
-        specifier,
-        options.npmConfig,
-      )
+    const resolutions = await Promise.all(
+      skillsToResolve.map(async ([skillName, specifier]) =>
+        this.resolveSkill(
+          options.rootDir,
+          runtimeManifest,
+          skillName,
+          specifier,
+          options.npmConfig,
+        ),
+      ),
+    )
+
+    for (const resolved of resolutions) {
       runtimeLock = runtimeLock.withEntry(resolved.skillName, resolved.entry)
     }
 
