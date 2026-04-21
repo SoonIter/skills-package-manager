@@ -96,9 +96,10 @@ export function createInstallProgressReporter(
   }
 
   function render(): void {
-    if (useTTY) {
-      renderTTY()
+    if (!useTTY) {
+      return
     }
+    renderTTY()
   }
 
   return {
@@ -159,13 +160,13 @@ export function createInstallProgressReporter(
     complete(): void {
       snapshot.phase = 'done'
       snapshot.currentSkill = undefined
-      const line = formatProgressLine(snapshot)
+      const line = formatProgressLine(snapshot, pc.blue)
 
       if (useTTY) {
-        write(`\r${formatProgressLine(snapshot, pc.blue)}`)
+        write(`\r${line}`)
         write('\n')
       } else {
-        info(`spm install: ${line}`)
+        info(`spm install: ${formatProgressLine(snapshot)}`)
       }
     },
 

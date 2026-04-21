@@ -160,6 +160,29 @@ export function isSpmError(error: unknown): error is SpmError {
 }
 
 /**
+ * Extracts a human-readable message from an unknown error value
+ */
+export function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+/**
+ * Creates an INSTALL_ERROR SpmError for pipeline failures
+ */
+export function createInstallError(
+  phase: 'fetch' | 'link',
+  skillName: string,
+  error: unknown,
+): SpmError {
+  return new SpmError({
+    code: ErrorCode.INSTALL_ERROR,
+    message: `Failed to ${phase} skill "${skillName}": ${getErrorMessage(error)}`,
+    cause: error instanceof Error ? error : undefined,
+    context: { skillName, phase },
+  })
+}
+
+/**
  * Gets the exit code for an error
  * Returns 1 for general errors, specific codes for known error types
  */

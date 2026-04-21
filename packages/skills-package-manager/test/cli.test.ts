@@ -393,9 +393,11 @@ describe('runCli dispatch', () => {
       }
     }
 
+    const ansiPattern = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
     const combinedWrites = writes.join('')
+    const stripped = combinedWrites.replace(ansiPattern, '')
     expect(combinedWrites).toContain('\r')
-    expect(combinedWrites).toContain('Progress: resolved 1, reused 0, downloaded 0, added 1, done')
+    expect(stripped).toContain('Progress: resolved 1, reused 0, downloaded 0, added 1, done')
     expect(infos).toHaveLength(0)
   })
 })

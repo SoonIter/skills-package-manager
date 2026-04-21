@@ -14,14 +14,15 @@ export function createPipelineBus(onProgress?: (event: InstallProgressEvent) => 
 
     emitFetched(result: FetchResult) {
       fetched.push(result)
-      if (!result.skipped) {
-        if (result.fromCache === true) {
-          onProgress?.({ type: 'reused', skillName: result.skillName })
-        } else if (result.fromCache === false) {
-          onProgress?.({ type: 'downloaded', skillName: result.skillName })
-        }
-        onProgress?.({ type: 'added', skillName: result.skillName })
+      if (result.skipped) {
+        return
       }
+      if (result.fromCache === true) {
+        onProgress?.({ type: 'reused', skillName: result.skillName })
+      } else if (result.fromCache === false) {
+        onProgress?.({ type: 'downloaded', skillName: result.skillName })
+      }
+      onProgress?.({ type: 'added', skillName: result.skillName })
     },
 
     emitLinked(result: LinkResult) {
