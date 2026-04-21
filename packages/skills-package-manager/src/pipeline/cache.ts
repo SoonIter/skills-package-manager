@@ -7,6 +7,7 @@ const CACHE_DIR = '.skills-pm-cache'
 
 export function createFileSystemCache(cwd: string): CacheManager {
   const cacheRoot = path.join(cwd, CACHE_DIR)
+  const inFlight = new Map<string, Promise<string>>()
 
   async function ensureCache() {
     await mkdir(cacheRoot, { recursive: true })
@@ -40,9 +41,21 @@ export function createFileSystemCache(cwd: string): CacheManager {
       if (cached !== null) {
         return cached as T
       }
-      const value = await factory()
-      await this.set(key, value)
-      return value
+
+      let inflight = inFlight.get(key)
+      if (inflight) {
+        return (await inflight) as T
+      }
+
+      inflight = factory()
+      inFlight.set(key, inflight)
+      try {
+        const value = await inflight
+        await this.set(key, value)
+        return value as T
+      } finally {
+        inFlight.delete(key)
+      }
     },
   }
 }

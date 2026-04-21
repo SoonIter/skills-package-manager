@@ -1,7 +1,7 @@
 import path from 'node:path'
 import type { SkillsLockEntry } from '../config/types'
 import { materializePackedSkill } from '../install/materializePackedSkill'
-import { cleanupPackedNpmPackage, downloadNpmPackageTarball } from '../npm/packPackage'
+import { downloadNpmPackageTarball } from '../npm/packPackage'
 import type { CacheManager } from '../pipeline/types'
 
 // In-flight deduplication for concurrent npm fetches (memory-level, faster than filesystem cache)
@@ -57,9 +57,10 @@ export async function fetchNpmSkill(
     return { installPath: path.join(rootDir, installDir, skillName), fromCache }
   } finally {
     inFlightDownloads.delete(cacheKey)
-    // Note: cleanupPackedNpmPackage is not called here because the tarball may still be
-    // needed by other concurrent in-flight consumers. In the old installSkills flow,
-    // cleanup happened at the end of fetchSkillsFromLock after all consumers settled.
-    // For now we rely on the OS to clean temp files, or a future persistent cache layer.
+    // Note: cleanupPackedNpmPackage is not called here because tarballs are stored
+    // in a persistent cache directory (see downloadNpmPackageTarball). The old
+    // installSkills flow cleaned up temp directories at the end of fetchSkillsFromLock,
+    // but the current implementation uses a deterministic persistent cache, so no
+    // per-run cleanup is required.
   }
 }

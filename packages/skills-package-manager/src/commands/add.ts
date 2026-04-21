@@ -54,7 +54,8 @@ async function runInstallPipeline(cwd: string) {
   const runtimeLock = ctx.lockfile
     ? await withBundledSelfSkillLock(cwd, ctx.manifest, ctx.lockfile)
     : null
-  await runPipeline({ ctx, entries: runtimeLock?.skills ?? ctx.lockfile?.skills ?? {} })
+  const entries = runtimeLock?.skills ?? ctx.lockfile?.skills ?? {}
+  await runPipeline({ ctx, entries, skipResolve: true })
 }
 
 function buildLinkSpecifier(sourceRoot: string, skillPath: string): string {

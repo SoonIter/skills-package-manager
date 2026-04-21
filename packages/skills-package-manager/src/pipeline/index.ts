@@ -1,4 +1,4 @@
-import { access } from 'node:fs/promises'
+import { access, lstat, readlink } from 'node:fs/promises'
 import path from 'node:path'
 import type { SkillsLock, SkillsLockEntry } from '../config/types'
 import { ErrorCode, getErrorMessage, SpmError } from '../errors'
@@ -34,6 +34,31 @@ async function areManagedSkillsInstalled(
   return true
 }
 
+async function areLinksUpToDate(
+  rootDir: string,
+  installDir: string,
+  linkTargets: string[],
+  skillNames: string[],
+): Promise<boolean> {
+  for (const linkTarget of linkTargets) {
+    const targetDir = path.resolve(rootDir, linkTarget)
+    for (const skillName of skillNames) {
+      try {
+        const linkPath = path.join(targetDir, skillName)
+        const stats = await lstat(linkPath)
+        if (!stats.isSymbolicLink()) return false
+        const target = await readlink(linkPath)
+        const resolvedTarget = path.resolve(path.dirname(linkPath), target)
+        const expectedTarget = path.resolve(rootDir, installDir, skillName)
+        if (resolvedTarget !== expectedTarget) return false
+      } catch {
+        return false
+      }
+    }
+  }
+  return true
+}
+
 export async function runPipeline(input: RunPipelineInput): Promise<PipelineResult> {
   const { ctx, entries, skipResolve = false, options = {} } = input
   const bus = createPipelineBus(options.onProgress)
@@ -43,19 +68,24 @@ export async function runPipeline(input: RunPipelineInput): Promise<PipelineResu
   const linkTargets = ctx.lockfile?.linkTargets ?? ctx.manifest.linkTargets ?? []
 
   // Fast path: skip all work when install state is up-to-date
+  const sortedSkillNames = Object.keys(entries).sort()
+  const sortedEntries = Object.fromEntries(
+    sortedSkillNames.map((skillName) => [skillName, entries[skillName]]),
+  ) as Record<string, SkillsLockEntry>
   const lockfileForDigest: SkillsLock = {
     lockfileVersion: '0.1',
     installDir,
     linkTargets,
-    skills: entries,
+    skills: sortedEntries,
   }
   const currentDigest = sha256(JSON.stringify(lockfileForDigest))
   if (
     ctx.installState?.lockDigest === currentDigest &&
-    (await areManagedSkillsInstalled(ctx.cwd, installDir, Object.keys(entries)))
+    (await areManagedSkillsInstalled(ctx.cwd, installDir, sortedSkillNames)) &&
+    (await areLinksUpToDate(ctx.cwd, installDir, linkTargets, sortedSkillNames))
   ) {
     // Emit progress events so callers (e.g. the CLI reporter) see consistent output
-    for (const skillName of Object.keys(entries)) {
+    for (const skillName of sortedSkillNames) {
       bus.emitLinked({ skillName })
     }
     return bus.getResults()
@@ -167,7 +197,12 @@ export async function runPipeline(input: RunPipelineInput): Promise<PipelineResu
       linkTargets,
       skills: skipResolve
         ? entries
-        : Object.fromEntries(results.resolved.map((r) => [r.skillName, r.entry])),
+        : Object.fromEntries(
+            results.resolved
+              .slice()
+              .sort((a, b) => a.skillName.localeCompare(b.skillName))
+              .map((r) => [r.skillName, r.entry]),
+          ),
     }
     const lockDigest = sha256(JSON.stringify(lockfile))
     await writeInstallState(ctx.cwd, installDir, {

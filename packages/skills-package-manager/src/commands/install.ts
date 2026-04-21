@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import YAML from 'yaml'
 import { isLockInSync, isSkillsLockEqual } from '../config/compareSkillsLock'
@@ -28,6 +28,7 @@ async function writeInstallDirLock(
   const dirPath = path.join(cwd, installDir)
   const filePath = path.join(dirPath, 'lock.yaml')
   try {
+    await mkdir(dirPath, { recursive: true })
     await writeFile(filePath, YAML.stringify(lockfile), 'utf8')
   } catch (error) {
     throw new Error(`Failed to write install-dir lock copy: ${(error as Error).message}`)

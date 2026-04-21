@@ -1,6 +1,6 @@
 # How it works
 
-The installation flow of skills-package-manager is built around a **unified pipeline** with three concurrent task queues: **resolve**, **fetch**, and **link**. These queues run in parallel with backpressure control, maximizing I/O throughput while keeping memory usage bounded.
+The installation flow of skills-package-manager is built around a **unified pipeline** with three concurrent task queues: **resolve**, **fetch**, and **link**. For `spm install`, the lockfile is resolved first (via `syncSkillsLock`) so that the pipeline can skip the resolve stage and stream fetch/link work directly. In programmatic use (e.g. `runPipeline` with `skipResolve: false`), the queues run concurrently with backpressure control, maximizing I/O throughput while keeping memory usage bounded.
 
 ## 1. Load configuration
 

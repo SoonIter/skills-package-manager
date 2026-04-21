@@ -360,9 +360,7 @@ export async function downloadNpmPackageTarball(
     // Cache miss
   }
 
-  // 2. Download to temp dir
-  const downloadRoot = await mkdtemp(path.join(tmpdir(), 'skills-pm-npm-download-'))
-
+  // 2. Download into memory and write to persistent cache
   try {
     const config = await loadNpmConfig(cwd)
     const response = await fetch(tarballUrl, {
@@ -382,7 +380,6 @@ export async function downloadNpmPackageTarball(
     await writeFile(cachePath, tarballBuffer)
     return { tarballPath: cachePath, fromCache: false }
   } catch (error) {
-    await rm(downloadRoot, { recursive: true, force: true }).catch(() => {})
     throw new Error(`Failed to download npm tarball ${tarballUrl}: ${(error as Error).message}`, {
       cause: error as Error,
     })

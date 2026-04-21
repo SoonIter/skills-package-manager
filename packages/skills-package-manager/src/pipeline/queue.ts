@@ -28,7 +28,7 @@ export function createTaskQueue<TTask, TResult>(
   let drainCallbacks: (() => void)[] = []
 
   function checkBackpressure() {
-    if (pending.length >= maxPending && !paused) {
+    if (pending.length >= maxPending) {
       backpressureCallbacks.forEach((cb) => {
         cb()
       })

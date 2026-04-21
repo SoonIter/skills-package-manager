@@ -302,7 +302,7 @@
 
 /* Hover Interaction Strategy - No scale, reduced movement */
 .spm-config-window:hover {
-  transform: translateZ(100px) translateY(-5px) rotateY(4deg);
+  transform: translateZ(100px) translateY(-5px) rotateY(4deg) !important;
   z-index: 100;
   opacity: 1;
   box-shadow:
@@ -312,7 +312,7 @@
 }
 
 .spm-terminal-window:hover {
-  transform: translateZ(100px) translateY(-5px) rotateY(4deg);
+  transform: translateZ(100px) translateY(-5px) rotateY(4deg) !important;
   z-index: 100;
   opacity: 1;
   box-shadow:
@@ -831,10 +831,10 @@
   .spm-terminal-window {
     width: 100%;
     position: relative;
-    animation: none;
-    transform: none;
-    opacity: 1;
-    filter: none;
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    filter: none !important;
     top: auto;
     left: auto;
     right: auto;

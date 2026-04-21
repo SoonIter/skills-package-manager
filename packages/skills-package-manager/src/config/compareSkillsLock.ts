@@ -113,16 +113,6 @@ export async function isLockInSync(
 ): Promise<boolean> {
   if (!lock) return false
 
-  // Fast path: if manifest file hasn't changed since last install, skip full check
-  if (
-    manifestStat &&
-    installState?.manifestStat &&
-    manifestStat.mtimeMs === installState.manifestStat.mtimeMs &&
-    manifestStat.size === installState.manifestStat.size
-  ) {
-    return true
-  }
-
   if (normalizeInstallDir(manifest.installDir) !== normalizeInstallDir(lock.installDir)) {
     return false
   }

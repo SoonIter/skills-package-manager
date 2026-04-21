@@ -48,7 +48,7 @@ export function createFetchTaskQueue(
   bus: PipelineBus,
   options: { concurrency: number; maxPending?: number },
 ): FetchQueue {
-  const installDir = ctx.manifest.installDir ?? '.agents/skills'
+  const installDir = ctx.lockfile?.installDir ?? ctx.manifest.installDir ?? '.agents/skills'
 
   async function processor(task: FetchTask): Promise<FetchResult> {
     if (await isSkillUpToDate(ctx.cwd, installDir, task.skillName, task.entry)) {
