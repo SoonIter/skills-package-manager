@@ -11,10 +11,12 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
 import YAML from 'yaml'
+import { installCommand } from '../src/commands/install'
 import type { SkillsLock, SkillsManifest } from '../src/config/types'
 import { writeSkillsLock } from '../src/config/writeSkillsLock'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
-import { fetchSkillsFromLock, installSkills } from '../src/install/installSkills'
+import { runPipeline } from '../src/pipeline'
+import { loadConfig } from '../src/pipeline/context'
 import { createSkillPackage, packDirectory, startMockNpmRegistry } from './helpers'
 
 describe('installSkills', () => {
@@ -43,7 +45,7 @@ describe('installSkills', () => {
       },
     })
 
-    await installSkills(root)
+    await installCommand({ cwd: root })
 
     const installedSkill = path.join(root, '.agents/skills/hello-skill/SKILL.md')
     const linkedSkill = path.join(root, '.claude/skills/hello-skill')
@@ -59,7 +61,7 @@ describe('installSkills', () => {
       JSON.stringify({ installDir: '.agents/skills', linkTargets: [], skills: {} }, null, 2),
     )
 
-    await installSkills(root)
+    await installCommand({ cwd: root })
 
     const installedSkill = path.join(root, '.agents/skills/skills-package-manager-cli/SKILL.md')
     const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
@@ -79,7 +81,7 @@ describe('installSkills', () => {
       ),
     )
 
-    await installSkills(root)
+    await installCommand({ cwd: root })
 
     const installedSkill = path.join(root, '.agents/skills/skills-package-manager-cli/SKILL.md')
     const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
@@ -105,7 +107,7 @@ describe('installSkills', () => {
       skills: {},
     })
 
-    await installSkills(root, { frozenLockfile: true })
+    await installCommand({ cwd: root, frozenLockfile: true })
 
     const installedSkill = path.join(root, '.agents/skills/skills-package-manager-cli/SKILL.md')
     const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
@@ -143,7 +145,7 @@ describe('installSkills', () => {
       },
     })
 
-    await installSkills(root)
+    await installCommand({ cwd: root })
 
     const installedSkill = path.join(root, '.agents/skills/hello-skill/SKILL.md')
     expect(existsSync(installedSkill)).toBe(true)
@@ -188,7 +190,7 @@ describe('installSkills', () => {
         },
       })
 
-      await installSkills(root, { frozenLockfile: true })
+      await installCommand({ cwd: root, frozenLockfile: true })
 
       const installedSkill = path.join(root, '.agents/skills/hello-skill/SKILL.md')
       expect(existsSync(installedSkill)).toBe(true)
@@ -233,7 +235,7 @@ describe('installSkills', () => {
         },
       })
 
-      await expect(installSkills(root, { frozenLockfile: true })).rejects.toThrow(
+      await expect(installCommand({ cwd: root, frozenLockfile: true })).rejects.toThrow(
         'Integrity check failed',
       )
     } finally {
@@ -287,7 +289,7 @@ describe('installSkills', () => {
       },
     })
 
-    await installSkills(root)
+    await installCommand({ cwd: root })
 
     const installedSkill = path.join(root, '.agents/skills/hello-git-skill/SKILL.md')
     expect(existsSync(installedSkill)).toBe(true)
@@ -363,7 +365,7 @@ describe('installSkills', () => {
       },
     }
 
-    await fetchSkillsFromLock(root, manifest, lockfile)
+    await runPipeline({ ctx: await loadConfig(root), entries: lockfile.skills, skipResolve: true })
 
     const installedSkill = path.join(root, '.agents/skills/hello-git-skill/SKILL.md')
     expect(existsSync(installedSkill)).toBe(true)
@@ -420,7 +422,7 @@ describe('installSkills', () => {
       }),
     )
 
-    await installSkills(root)
+    await installCommand({ cwd: root })
 
     const installedSkill = path.join(root, '.agents/skills/fixed-skill/SKILL.md')
     const rewrittenLock = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
@@ -445,7 +447,7 @@ describe('installSkills', () => {
       },
     })
 
-    await installSkills(root)
+    await installCommand({ cwd: root })
 
     await writeSkillsManifest(root, {
       installDir: '.agents/skills',
@@ -455,7 +457,7 @@ describe('installSkills', () => {
       },
     })
 
-    await installSkills(root)
+    await installCommand({ cwd: root })
 
     expect(existsSync(path.join(root, '.agents/skills/obsolete-skill'))).toBe(false)
     expect(existsSync(path.join(root, '.claude/skills/obsolete-skill'))).toBe(false)
@@ -464,20 +466,21 @@ describe('installSkills', () => {
 
   it('reinstalls missing managed skills even when the lock digest is unchanged', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-reinstall-missing-'))
-    const specifier = `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`
+    const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
+    const tarballPath = packDirectory(packageRoot)
 
     await writeSkillsManifest(root, {
       installDir: '.agents/skills',
       linkTargets: [],
       skills: {
-        'hello-skill': specifier,
+        'hello-skill': `file:${tarballPath}#path:/skills/hello-skill`,
       },
     })
 
-    await installSkills(root)
+    await installCommand({ cwd: root })
     unlinkSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))
 
-    await installSkills(root)
+    await installCommand({ cwd: root })
 
     expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
   })
@@ -499,10 +502,10 @@ describe('installSkills', () => {
       },
     })
 
-    await installSkills(root)
+    await installCommand({ cwd: root })
     rmSync(path.join(skillDir, 'legacy.txt'))
 
-    await installSkills(root)
+    await installCommand({ cwd: root })
 
     expect(existsSync(path.join(root, '.agents/skills/hello-skill/legacy.txt'))).toBe(false)
   })
@@ -535,7 +538,7 @@ describe('installSkills', () => {
         },
       })
 
-      const result = await installSkills(root, { frozenLockfile: true })
+      const result = await installCommand({ cwd: root, frozenLockfile: true })
 
       expect(result.status).toBe('installed')
       expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
@@ -552,7 +555,7 @@ describe('installSkills', () => {
         },
       })
 
-      await expect(installSkills(root, { frozenLockfile: true })).rejects.toThrow(
+      await expect(installCommand({ cwd: root, frozenLockfile: true })).rejects.toThrow(
         'Lockfile is required in frozen mode',
       )
     })
@@ -584,7 +587,7 @@ describe('installSkills', () => {
         },
       })
 
-      await expect(installSkills(root, { frozenLockfile: true })).rejects.toThrow(
+      await expect(installCommand({ cwd: root, frozenLockfile: true })).rejects.toThrow(
         'Lockfile is out of sync',
       )
     })
@@ -617,7 +620,7 @@ describe('installSkills', () => {
       })
 
       const lockBefore = readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8')
-      await installSkills(root, { frozenLockfile: true })
+      await installCommand({ cwd: root, frozenLockfile: true })
       const lockAfter = readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8')
 
       expect(lockBefore).toBe(lockAfter)
@@ -653,7 +656,7 @@ describe('installSkills', () => {
         },
       })
 
-      const result = await installSkills(root, { frozenLockfile: true })
+      const result = await installCommand({ cwd: root, frozenLockfile: true })
 
       expect(result.status).toBe('installed')
       expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
@@ -729,7 +732,7 @@ describe('installSkills', () => {
         },
       })
 
-      await expect(installSkills(root, { frozenLockfile: true })).rejects.toThrow(
+      await expect(installCommand({ cwd: root, frozenLockfile: true })).rejects.toThrow(
         'Lockfile is out of sync',
       )
     })
@@ -789,7 +792,7 @@ describe('installSkills', () => {
         },
       })
 
-      const result = await installSkills(root, { frozenLockfile: true })
+      const result = await installCommand({ cwd: root, frozenLockfile: true })
 
       expect(result.status).toBe('installed')
       expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
@@ -826,7 +829,8 @@ describe('installSkills', () => {
       })
 
       const events: string[] = []
-      await installSkills(root, {
+      await installCommand({
+        cwd: root,
         frozenLockfile: true,
         onProgress: (event) => {
           events.push(`${event.type}:${event.skillName}`)
@@ -834,6 +838,268 @@ describe('installSkills', () => {
       })
 
       expect(events).toEqual(['resolved:hello-skill', 'added:hello-skill', 'installed:hello-skill'])
+    })
+
+    it('short-circuits when install state is up-to-date', async () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-uptodate-'))
+      const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
+      const tarballPath = packDirectory(packageRoot)
+
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': `file:${tarballPath}#path:/skills/hello-skill`,
+        },
+      })
+
+      await writeSkillsLock(root, {
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `file:${tarballPath}#path:/skills/hello-skill`,
+            resolution: {
+              type: 'file',
+              tarball: path.relative(root, tarballPath),
+              path: '/skills/hello-skill',
+            },
+            digest: 'digest',
+          },
+        },
+      })
+
+      // First install to materialize files and install state
+      await installCommand({ cwd: root, frozenLockfile: true })
+      expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
+
+      // Second install should short-circuit: no added events, only resolved + installed
+      const events: string[] = []
+      await installCommand({
+        cwd: root,
+        frozenLockfile: true,
+        onProgress: (event) => {
+          events.push(`${event.type}:${event.skillName}`)
+        },
+      })
+
+      expect(events).toEqual(['resolved:hello-skill', 'installed:hello-skill'])
+    })
+
+    it('does not short-circuit when skill files are missing', async () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-missing-skill-'))
+      const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
+      const tarballPath = packDirectory(packageRoot)
+
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': `file:${tarballPath}#path:/skills/hello-skill`,
+        },
+      })
+
+      await writeSkillsLock(root, {
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier: `file:${tarballPath}#path:/skills/hello-skill`,
+            resolution: {
+              type: 'file',
+              tarball: path.relative(root, tarballPath),
+              path: '/skills/hello-skill',
+            },
+            digest: 'digest',
+          },
+        },
+      })
+
+      // First install
+      await installCommand({ cwd: root, frozenLockfile: true })
+
+      // Delete the installed skill to break the up-to-date check
+      rmSync(path.join(root, '.agents/skills/hello-skill'), { recursive: true, force: true })
+
+      // Second install should NOT short-circuit; it must re-fetch and re-link
+      const events: string[] = []
+      await installCommand({
+        cwd: root,
+        frozenLockfile: true,
+        onProgress: (event) => {
+          events.push(`${event.type}:${event.skillName}`)
+        },
+      })
+
+      expect(events).toEqual(['resolved:hello-skill', 'added:hello-skill', 'installed:hello-skill'])
+      expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
+    })
+
+    it('does not short-circuit when lockfile digest changes', async () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-frozen-digest-changed-'))
+      const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
+      const packageRoot2 = createSkillPackage('hello-skill', '# Updated content\n')
+      const tarballPath = packDirectory(packageRoot)
+      const tarballPath2 = packDirectory(packageRoot2)
+      const specifier = `file:${tarballPath}#path:/skills/hello-skill`
+
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': specifier,
+        },
+      })
+
+      await writeSkillsLock(root, {
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier,
+            resolution: {
+              type: 'file',
+              tarball: path.relative(root, tarballPath),
+              path: '/skills/hello-skill',
+            },
+            digest: 'digest',
+          },
+        },
+      })
+
+      // Install the old version
+      await installCommand({ cwd: root, frozenLockfile: true })
+      const oldContent = readFileSync(
+        path.join(root, '.agents/skills/hello-skill/SKILL.md'),
+        'utf8',
+      )
+      expect(oldContent).toContain('Hello from tgz')
+
+      // Update lockfile resolution while keeping specifier compatible
+      // (manifest specifier stays the same, so isLockInSync still passes)
+      await writeSkillsLock(root, {
+        lockfileVersion: '0.1',
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': {
+            specifier,
+            resolution: {
+              type: 'file',
+              tarball: path.relative(root, tarballPath2),
+              path: '/skills/hello-skill',
+            },
+            digest: 'digest2',
+          },
+        },
+      })
+
+      // Install again — should NOT short-circuit because lock digest changed
+      await installCommand({ cwd: root, frozenLockfile: true })
+      const newContent = readFileSync(
+        path.join(root, '.agents/skills/hello-skill/SKILL.md'),
+        'utf8',
+      )
+      expect(newContent).toContain('Updated content')
+    })
+  })
+
+  describe('install-dir lock copy', () => {
+    it('writes a skills-lock.yaml copy into installDir after install', async () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-dir-lock-'))
+      const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
+      const tarballPath = packDirectory(packageRoot)
+
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': `file:${tarballPath}#path:/skills/hello-skill`,
+        },
+      })
+
+      await installCommand({ cwd: root })
+
+      const installDirLockPath = path.join(root, '.agents/skills', 'lock.yaml')
+      expect(existsSync(installDirLockPath)).toBe(true)
+      const installDirLock = YAML.parse(readFileSync(installDirLockPath, 'utf8'))
+      expect(installDirLock.skills['hello-skill']).toBeDefined()
+    })
+
+    it('skips resolve when installDir lock copy matches root lockfile for npm skills', async () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-npm-fast-path-'))
+      const packageRoot = createSkillPackage('hello-skill', '# Hello npm\n')
+      const registry = await startMockNpmRegistry(packageRoot)
+
+      try {
+        writeFileSync(path.join(root, '.npmrc'), `registry=${registry.registryUrl}\n`)
+        await writeSkillsManifest(root, {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': `npm:${registry.packageName}@1.0.0#path:/skills/hello-skill`,
+          },
+        })
+
+        // First install (cold)
+        await installCommand({ cwd: root })
+        expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
+
+        // Second install should skip resolve entirely
+        const events: string[] = []
+        const logs: string[] = []
+        const originalInfo = console.info
+        console.info = (...args: unknown[]) => {
+          logs.push(args.join(' '))
+        }
+
+        await installCommand({
+          cwd: root,
+          onProgress: (event) => {
+            events.push(`${event.type}:${event.skillName}`)
+          },
+        })
+
+        console.info = originalInfo
+
+        expect(logs).toContain('Skills Lockfile is up to date, resolve skipped')
+        // No added event because runPipeline up-to-date short-circuit also kicks in
+        expect(events).toEqual(['resolved:hello-skill', 'installed:hello-skill'])
+      } finally {
+        await registry.close()
+      }
+    })
+
+    it('skips resolve for link skills when installDir copy matches', async () => {
+      const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-link-fast-path-'))
+      const skillDir = path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')
+
+      await writeSkillsManifest(root, {
+        installDir: '.agents/skills',
+        linkTargets: [],
+        skills: {
+          'hello-skill': `link:${skillDir}`,
+        },
+      })
+
+      // First install
+      await installCommand({ cwd: root })
+
+      // Second install — should skip resolve because link uses symlinks
+      const logs: string[] = []
+      const originalInfo = console.info
+      console.info = (...args: unknown[]) => {
+        logs.push(args.join(' '))
+      }
+
+      await installCommand({ cwd: root })
+
+      console.info = originalInfo
+
+      expect(logs).toContain('Skills Lockfile is up to date, resolve skipped')
     })
   })
 })

@@ -35,7 +35,7 @@ export async function extractSkillToDir(
   }
 
   if (entry.resolution.type === 'npm') {
-    const tarballPath = await downloadNpmPackageTarball(
+    const { tarballPath } = await downloadNpmPackageTarball(
       rootDir,
       entry.resolution.tarball,
       entry.resolution.integrity,

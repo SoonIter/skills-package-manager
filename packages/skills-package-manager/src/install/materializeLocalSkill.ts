@@ -26,11 +26,16 @@ export async function copyLocalSkillToDir(
   await replaceDir(absoluteSkillPath, targetDir)
 }
 
-export async function writeInstalledSkillMarker(targetDir: string, skillName: string) {
+export async function writeInstalledSkillMarker(
+  targetDir: string,
+  skillName: string,
+  digest?: string,
+) {
   await writeJson(path.join(targetDir, '.skills-pm.json'), {
     name: skillName,
     installedBy: 'skills-package-manager',
     version: '0.1.0',
+    digest,
   })
 }
 

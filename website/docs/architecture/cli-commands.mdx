@@ -74,15 +74,17 @@ Useful for:
 
 When you run `npx skills-package-manager install`, the following happens:
 
-1. **Read manifest** — Load `skills.json` to get the list of skills to install
-   - If `selfSkill` is enabled, install the bundled `skills-package-manager-cli` helper skill for this run without writing it to `skills-lock.yaml`
-2. **Read lockfile** — Load `skills-lock.yaml` if it exists
-3. **Sync lockfile** — Resolve each skill in the manifest to produce the lockfile entries for this install
+1. **Load configuration** — Build `WorkspaceContext` from `skills.json`, `skills-lock.yaml`, `.npmrc`, and install state
+   - If `selfSkill` is enabled, inject the bundled `skills-package-manager-cli` helper skill for this run without writing it to `skills-lock.yaml`
+2. **Resolve** — Run `ResolveTaskQueue` to resolve each skill specifier to a lock entry
    - This step may involve git/network requests, even when a corresponding entry already exists in `skills-lock.yaml`
-4. **Prune** — Remove skills that are no longer in the manifest
-5. **Fetch** — Download/copy skills to `installDir`
-6. **Link** — Create symlinks in `linkTargets`
-7. **Write lockfile** — Save updated `skills-lock.yaml`
+3. **Prune** — Remove skills that are no longer in the manifest
+4. **Fetch** — Run `FetchTaskQueue` to download/copy skills to `installDir`
+   - Uses the content-addressable KV cache for npm tarballs
+5. **Link** — Run `LinkTaskQueue` to create symlinks in `linkTargets`
+6. **Write lockfile** — Save updated `skills-lock.yaml`
+
+The resolve, fetch, and link stages operate as a **pipeline**: as soon as a skill is resolved it can begin fetching, and as soon as it is fetched it can begin linking. Backpressure pauses upstream queues when downstream queues exceed their pending limits.
 
 ### `--frozen-lockfile`
 

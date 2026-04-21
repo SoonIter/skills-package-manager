@@ -62,10 +62,10 @@ export type { SkillInfo } from './github/types'
 export {
   fetchSkillsFromLock,
   installSkills,
-  installStageHooks,
   linkSkillsFromLock,
 } from './install/installSkills'
 export { createInstallProgressReporter } from './install/progressReporter'
+export { installStageHooks, withBundledSelfSkillLock } from './install/withBundledSelfSkillLock'
 // Specifiers
 export { normalizeSpecifier } from './specifiers/normalizeSpecifier'
 export { parseSpecifier } from './specifiers/parseSpecifier'

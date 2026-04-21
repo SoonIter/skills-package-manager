@@ -2,10 +2,9 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { isLockInSync } from '../config/compareSkillsLock'
-import { readSkillsLock } from '../config/readSkillsLock'
-import { readSkillsManifest } from '../config/readSkillsManifest'
 import { attachManifestPatchToEntry, syncSkillsLock } from '../config/syncSkillsLock'
 import type {
+  NormalizedSkillsManifest,
   PatchCommitCommandOptions,
   PatchCommitCommandResult,
   SkillsLock,
@@ -14,17 +13,15 @@ import { writeSkillsLock } from '../config/writeSkillsLock'
 import { writeSkillsManifest } from '../config/writeSkillsManifest'
 import { ErrorCode, ManifestError, SkillError } from '../errors'
 import { extractSkillToDir } from '../install/extractSkillToDir'
-import {
-  fetchSkillsFromLock,
-  linkSkillsFromLock,
-  withBundledSelfSkillLock,
-} from '../install/installSkills'
+import { withBundledSelfSkillLock } from '../install/withBundledSelfSkillLock'
 import { generateSkillPatch, readPatchEditState } from '../patches/skillPatch'
+import { runPipeline } from '../pipeline'
+import { loadConfig } from '../pipeline/context'
 import { toPortableRelativePath } from '../utils/path'
 
 async function createBaseLock(
   cwd: string,
-  manifest: NonNullable<Awaited<ReturnType<typeof readSkillsManifest>>>,
+  manifest: NormalizedSkillsManifest,
   currentLock: SkillsLock | null,
 ) {
   if (currentLock && (await isLockInSync(cwd, manifest, currentLock))) {
@@ -57,8 +54,9 @@ function resolvePatchFilePath(
 export async function patchCommitCommand(
   options: PatchCommitCommandOptions,
 ): Promise<PatchCommitCommandResult> {
-  const manifest = await readSkillsManifest(options.cwd)
-  if (!manifest) {
+  const ctx = await loadConfig(options.cwd)
+
+  if (!ctx.manifest.skills || Object.keys(ctx.manifest.skills).length === 0) {
     throw new ManifestError({
       code: ErrorCode.MANIFEST_NOT_FOUND,
       filePath: `${options.cwd}/skills.json`,
@@ -69,7 +67,7 @@ export async function patchCommitCommand(
   const editDir = path.resolve(options.cwd, options.editDir)
   const editState = await readPatchEditState(editDir)
 
-  if (!(editState.skillName in manifest.skills)) {
+  if (!(editState.skillName in ctx.manifest.skills)) {
     throw new SkillError({
       code: ErrorCode.SKILL_NOT_FOUND,
       skillName: editState.skillName,
@@ -77,7 +75,7 @@ export async function patchCommitCommand(
     })
   }
 
-  if (manifest.skills[editState.skillName] !== editState.originalSpecifier) {
+  if (ctx.manifest.skills[editState.skillName] !== editState.originalSpecifier) {
     throw new SkillError({
       code: ErrorCode.VALIDATION_ERROR,
       skillName: editState.skillName,
@@ -102,7 +100,7 @@ export async function patchCommitCommand(
     const patchFilePath = resolvePatchFilePath(
       options.cwd,
       editState.skillName,
-      manifest.patchedSkills?.[editState.skillName],
+      ctx.manifest.patchedSkills?.[editState.skillName],
       options.patchesDir,
     )
     await mkdir(path.dirname(patchFilePath), { recursive: true })
@@ -110,15 +108,14 @@ export async function patchCommitCommand(
 
     const relativePatchPath = toPortableRelativePath(options.cwd, patchFilePath)
     const nextManifest = {
-      ...manifest,
+      ...ctx.manifest,
       patchedSkills: {
-        ...(manifest.patchedSkills ?? {}),
+        ...(ctx.manifest.patchedSkills ?? {}),
         [editState.skillName]: relativePatchPath,
       },
     }
 
-    const currentLock = await readSkillsLock(options.cwd)
-    const baseLock = await createBaseLock(options.cwd, manifest, currentLock)
+    const baseLock = await createBaseLock(options.cwd, ctx.manifest, ctx.lockfile)
     const patchedEntry = await attachManifestPatchToEntry(
       options.cwd,
       nextManifest,
@@ -138,8 +135,18 @@ export async function patchCommitCommand(
 
     const runtimeLock = await withBundledSelfSkillLock(options.cwd, nextManifest, nextLock)
 
-    await fetchSkillsFromLock(options.cwd, nextManifest, runtimeLock)
-    await linkSkillsFromLock(options.cwd, nextManifest, runtimeLock)
+    const pipelineCtx = {
+      ...ctx,
+      manifest: nextManifest,
+      lockfile: nextLock,
+    }
+
+    await runPipeline({
+      ctx: pipelineCtx,
+      entries: runtimeLock.skills,
+      skipResolve: true,
+    })
+
     await writeSkillsManifest(options.cwd, nextManifest)
     await writeSkillsLock(options.cwd, nextLock)
 

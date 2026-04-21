@@ -128,6 +128,14 @@ export function formatErrorForDisplay(error: unknown): string {
         output += `\n\nPlease fix the validation errors in "${error.filePath}".`
         output += `\nRefer to the JSON Schema at: https://unpkg.com/skills-package-manager@latest/skills.schema.json`
       }
+    } else if (error.code === ErrorCode.INSTALL_ERROR) {
+      const errorList = error.context.errors as string[] | undefined
+      if (errorList && errorList.length > 1) {
+        output += `\n\nFailed skills:`
+        for (const msg of errorList) {
+          output += `\n  - ${msg}`
+        }
+      }
     }
 
     if (error.cause && !(error instanceof GitError || error instanceof FileSystemError)) {
@@ -149,6 +157,29 @@ export function formatErrorForDisplay(error: unknown): string {
  */
 export function isSpmError(error: unknown): error is SpmError {
   return error instanceof SpmError
+}
+
+/**
+ * Extracts a human-readable message from an unknown error value
+ */
+export function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+/**
+ * Creates an INSTALL_ERROR SpmError for pipeline failures
+ */
+export function createInstallError(
+  phase: 'fetch' | 'link',
+  skillName: string,
+  error: unknown,
+): SpmError {
+  return new SpmError({
+    code: ErrorCode.INSTALL_ERROR,
+    message: `Failed to ${phase} skill "${skillName}": ${getErrorMessage(error)}`,
+    cause: error instanceof Error ? error : undefined,
+    context: { skillName, phase },
+  })
 }
 
 /**

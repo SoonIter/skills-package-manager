@@ -33,6 +33,9 @@ export enum ErrorCode {
   NETWORK_ERROR = 'ENETWORK',
   REPO_NOT_FOUND = 'EREPONOTFOUND',
 
+  // Install/Pipeline errors (6xx)
+  INSTALL_ERROR = 'EINSTALL',
+
   // General errors (9xx)
   UNKNOWN_ERROR = 'EUNKNOWN',
   NOT_IMPLEMENTED = 'ENOTIMPL',

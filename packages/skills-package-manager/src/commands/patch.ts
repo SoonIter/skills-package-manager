@@ -2,10 +2,9 @@ import { access, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { isLockInSync } from '../config/compareSkillsLock'
-import { readSkillsLock } from '../config/readSkillsLock'
-import { readSkillsManifest } from '../config/readSkillsManifest'
 import { syncSkillsLock } from '../config/syncSkillsLock'
 import type {
+  NormalizedSkillsManifest,
   PatchCommandOptions,
   PatchCommandResult,
   SkillsLock,
@@ -14,6 +13,7 @@ import type {
 import { convertNodeError, ErrorCode, FileSystemError, ManifestError, SkillError } from '../errors'
 import { extractSkillToDir } from '../install/extractSkillToDir'
 import { applySkillPatch, writePatchEditState } from '../patches/skillPatch'
+import { loadConfig } from '../pipeline/context'
 
 async function ensureEditDirDoesNotExist(editDir: string) {
   try {
@@ -39,7 +39,7 @@ async function ensureEditDirDoesNotExist(editDir: string) {
 
 async function createBaseLock(
   cwd: string,
-  manifest: NonNullable<Awaited<ReturnType<typeof readSkillsManifest>>>,
+  manifest: NormalizedSkillsManifest,
   currentLock: SkillsLock | null,
 ) {
   if (currentLock && (await isLockInSync(cwd, manifest, currentLock))) {
@@ -71,8 +71,9 @@ async function resolveEditDir(cwd: string, skillName: string, editDir?: string):
 }
 
 export async function patchCommand(options: PatchCommandOptions): Promise<PatchCommandResult> {
-  const manifest = await readSkillsManifest(options.cwd)
-  if (!manifest) {
+  const ctx = await loadConfig(options.cwd)
+
+  if (!ctx.manifest.skills || Object.keys(ctx.manifest.skills).length === 0) {
     throw new ManifestError({
       code: ErrorCode.MANIFEST_NOT_FOUND,
       filePath: `${options.cwd}/skills.json`,
@@ -80,7 +81,7 @@ export async function patchCommand(options: PatchCommandOptions): Promise<PatchC
     })
   }
 
-  if (!(options.skillName in manifest.skills)) {
+  if (!(options.skillName in ctx.manifest.skills)) {
     throw new SkillError({
       code: ErrorCode.SKILL_NOT_FOUND,
       skillName: options.skillName,
@@ -88,8 +89,7 @@ export async function patchCommand(options: PatchCommandOptions): Promise<PatchC
     })
   }
 
-  const currentLock = await readSkillsLock(options.cwd)
-  const baseLock = await createBaseLock(options.cwd, manifest, currentLock)
+  const baseLock = await createBaseLock(options.cwd, ctx.manifest, ctx.lockfile)
   const currentEntry = baseLock.skills[options.skillName]
 
   if (!currentEntry) {
@@ -108,7 +108,7 @@ export async function patchCommand(options: PatchCommandOptions): Promise<PatchC
   const baseEntry = getUnpatchedBaseEntry(currentEntry)
   await extractSkillToDir(options.cwd, baseEntry, editDir)
 
-  const existingPatchPath = manifest.patchedSkills?.[options.skillName]
+  const existingPatchPath = ctx.manifest.patchedSkills?.[options.skillName]
   if (existingPatchPath && !options.ignoreExisting) {
     await applySkillPatch(editDir, path.resolve(options.cwd, existingPatchPath))
   }
@@ -116,7 +116,7 @@ export async function patchCommand(options: PatchCommandOptions): Promise<PatchC
   await writePatchEditState(editDir, {
     version: 1,
     skillName: options.skillName,
-    originalSpecifier: manifest.skills[options.skillName],
+    originalSpecifier: ctx.manifest.skills[options.skillName],
     baseEntry,
   })
 
@@ -126,6 +126,6 @@ export async function patchCommand(options: PatchCommandOptions): Promise<PatchC
     status: 'patched',
     skillName: options.skillName,
     editDir,
-    originalSpecifier: manifest.skills[options.skillName],
+    originalSpecifier: ctx.manifest.skills[options.skillName],
   }
 }

@@ -3,11 +3,11 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
 import YAML from 'yaml'
+import { installCommand } from '../src/commands/install'
 import { patchCommand } from '../src/commands/patch'
 import { patchCommitCommand } from '../src/commands/patchCommit'
 import { readSkillsManifest } from '../src/config/readSkillsManifest'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
-import { installSkills } from '../src/install/installSkills'
 import { PATCH_EDIT_STATE_FILE } from '../src/patches/skillPatch'
 import { createSkillPackage, packDirectory } from './helpers'
 
@@ -87,7 +87,7 @@ describe('patch workflow', () => {
     )
 
     rmSync(path.join(root, '.agents/skills'), { recursive: true, force: true })
-    await installSkills(root, { frozenLockfile: true })
+    await installCommand({ cwd: root, frozenLockfile: true })
 
     expect(readFileSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'), 'utf8')).toContain(
       'Patched locally.',

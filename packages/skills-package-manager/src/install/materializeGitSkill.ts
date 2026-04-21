@@ -94,8 +94,9 @@ export async function materializeGitSkill(
   commit: string,
   sourcePath: string,
   installDir: string,
+  digest?: string,
 ) {
   const targetDir = path.join(rootDir, installDir, skillName)
   await extractGitSkillToDir(repoUrl, commit, sourcePath, targetDir)
-  await writeInstalledSkillMarker(targetDir, skillName)
+  await writeInstalledSkillMarker(targetDir, skillName, digest)
 }

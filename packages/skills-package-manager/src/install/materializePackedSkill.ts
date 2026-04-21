@@ -32,8 +32,9 @@ export async function materializePackedSkill(
   tarballPath: string,
   sourcePath: string,
   installDir: string,
+  digest?: string,
 ) {
   const targetDir = path.join(rootDir, installDir, skillName)
   await extractPackedSkillToDir(tarballPath, sourcePath, targetDir)
-  await writeInstalledSkillMarker(targetDir, skillName)
+  await writeInstalledSkillMarker(targetDir, skillName, digest)
 }

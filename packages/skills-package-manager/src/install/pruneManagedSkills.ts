@@ -1,4 +1,4 @@
-import { lstat, readdir, readFile, rm } from 'node:fs/promises'
+import { access, lstat, readdir, readFile, readlink, rm } from 'node:fs/promises'
 import path from 'node:path'
 
 function resolveTargetPath(rootDir: string, targetPath: string): string {
@@ -7,6 +7,13 @@ function resolveTargetPath(rootDir: string, targetPath: string): string {
 
 async function isManagedSkillDir(dirPath: string): Promise<boolean> {
   try {
+    const stats = await lstat(dirPath)
+    if (stats.isSymbolicLink()) {
+      const target = await readlink(dirPath)
+      const resolvedTarget = path.resolve(path.dirname(dirPath), target)
+      await access(path.join(resolvedTarget, 'SKILL.md'))
+      return true
+    }
     const marker = JSON.parse(await readFile(path.join(dirPath, '.skills-pm.json'), 'utf8'))
     return marker?.installedBy === 'skills-package-manager'
   } catch {

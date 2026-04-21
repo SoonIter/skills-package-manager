@@ -331,7 +331,9 @@ describe('runCli dispatch', () => {
 
     const combined = output.join('\n')
     expect(combined).toContain('spm install: starting (1 skill)')
-    expect(combined).toContain('spm install: resolved 1/1, added 1/1, installed 1/1')
+    expect(combined).toContain(
+      'spm install: Progress: resolved 1, reused 0, downloaded 0, added 1, done',
+    )
     expect(combined).not.toContain('\r')
   })
 
@@ -391,9 +393,11 @@ describe('runCli dispatch', () => {
       }
     }
 
+    const ansiPattern = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
     const combinedWrites = writes.join('')
+    const stripped = combinedWrites.replace(ansiPattern, '')
     expect(combinedWrites).toContain('\r')
-    expect(combinedWrites).toContain('resolved 1/1, added 1/1, installed 1/1')
-    expect(infos.at(-1)).toBe('spm install: resolved 1/1, added 1/1, installed 1/1')
+    expect(stripped).toContain('Progress: resolved 1, reused 0, downloaded 0, added 1, done')
+    expect(infos).toHaveLength(0)
   })
 })
