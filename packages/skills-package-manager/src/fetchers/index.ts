@@ -11,14 +11,14 @@ export async function fetchSkill(
   entry: SkillsLockEntry,
   installDir: string,
   cache: CacheManager,
-): Promise<string> {
+): Promise<{ installPath: string; fromCache?: boolean }> {
   switch (entry.resolution.type) {
     case 'link':
-      return fetchLinkSkill(rootDir, skillName, entry, installDir)
+      return { installPath: await fetchLinkSkill(rootDir, skillName, entry, installDir) }
     case 'file':
-      return fetchFileSkill(rootDir, skillName, entry, installDir)
+      return { installPath: await fetchFileSkill(rootDir, skillName, entry, installDir) }
     case 'git':
-      return fetchGitSkill(rootDir, skillName, entry, installDir)
+      return { installPath: await fetchGitSkill(rootDir, skillName, entry, installDir) }
     case 'npm':
       return fetchNpmSkill(rootDir, skillName, entry, installDir, cache)
     default: {

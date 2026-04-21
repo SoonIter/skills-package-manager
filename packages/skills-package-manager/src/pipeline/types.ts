@@ -70,6 +70,7 @@ export interface FetchResult {
   skillName: string
   entry: SkillsLockEntry
   installPath: string
+  fromCache?: boolean
 }
 
 export interface LinkTask {

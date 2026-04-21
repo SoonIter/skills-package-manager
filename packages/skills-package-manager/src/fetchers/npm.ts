@@ -5,7 +5,7 @@ import { cleanupPackedNpmPackage, downloadNpmPackageTarball } from '../npm/packP
 import type { CacheManager } from '../pipeline/types'
 
 // In-flight deduplication for concurrent npm fetches (memory-level, faster than filesystem cache)
-const inFlightDownloads = new Map<string, Promise<string>>()
+const inFlightDownloads = new Map<string, Promise<{ tarballPath: string; fromCache: boolean }>>()
 
 export async function fetchNpmSkill(
   rootDir: string,
@@ -13,7 +13,7 @@ export async function fetchNpmSkill(
   entry: SkillsLockEntry,
   installDir: string,
   _cache: CacheManager,
-): Promise<string> {
+): Promise<{ installPath: string; fromCache: boolean }> {
   if (entry.resolution.type !== 'npm') {
     throw new Error('Expected npm resolution')
   }
@@ -24,10 +24,10 @@ export async function fetchNpmSkill(
   // 1. Check memory in-flight first (atomic dedup for concurrent requests)
   let inFlight = inFlightDownloads.get(cacheKey)
   if (inFlight) {
-    const tarballPath = await inFlight
+    const { tarballPath, fromCache } = await inFlight
     try {
       await materializePackedSkill(rootDir, skillName, tarballPath, resolution.path, installDir)
-      return path.join(rootDir, installDir, skillName)
+      return { installPath: path.join(rootDir, installDir, skillName), fromCache }
     } finally {
       // cleanup is handled by the original downloader
     }
@@ -38,9 +38,9 @@ export async function fetchNpmSkill(
   inFlightDownloads.set(cacheKey, inFlight)
 
   try {
-    const tarballPath = await inFlight
+    const { tarballPath, fromCache } = await inFlight
     await materializePackedSkill(rootDir, skillName, tarballPath, resolution.path, installDir)
-    return path.join(rootDir, installDir, skillName)
+    return { installPath: path.join(rootDir, installDir, skillName), fromCache }
   } finally {
     inFlightDownloads.delete(cacheKey)
     // Note: cleanupPackedNpmPackage is not called here because the tarball may still be

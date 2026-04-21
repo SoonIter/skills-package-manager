@@ -5,6 +5,8 @@ type InstallPhase = 'resolving' | 'fetching' | 'linking' | 'finalizing' | 'done'
 type ProgressSnapshot = {
   total: number
   resolved: number
+  reused: number
+  downloaded: number
   added: number
   installed: number
   phase: InstallPhase
@@ -39,34 +41,17 @@ function clampCount(value: number, total: number): number {
   return value
 }
 
-function calculatePercent(snapshot: ProgressSnapshot): number {
+function formatProgressLine(snapshot: ProgressSnapshot): string {
+  const parts = [
+    `resolved ${snapshot.resolved}`,
+    `reused ${snapshot.reused}`,
+    `downloaded ${snapshot.downloaded}`,
+    `added ${snapshot.added}`,
+  ]
   if (snapshot.phase === 'done') {
-    return 100
+    parts.push('done')
   }
-
-  if (snapshot.total === 0) {
-    return 0
-  }
-
-  const maxSteps = snapshot.total * 3
-  const completed = snapshot.resolved + snapshot.added + snapshot.installed
-  return Math.floor((completed / maxSteps) * 100)
-}
-
-function formatSummary(snapshot: ProgressSnapshot): string {
-  const total = snapshot.total
-  return `resolved ${snapshot.resolved}/${total}, added ${snapshot.added}/${total}, installed ${snapshot.installed}/${total}`
-}
-
-function formatTTYLine(snapshot: ProgressSnapshot): string {
-  const percent = calculatePercent(snapshot)
-  const progress = Math.round((percent / 100) * 20)
-  const filled = '='.repeat(progress)
-  const empty = '-'.repeat(Math.max(0, 20 - progress))
-  const phase = phaseLabelMap[snapshot.phase]
-  const summary = formatSummary(snapshot)
-  const skill = snapshot.currentSkill ? `, skill: ${snapshot.currentSkill}` : ''
-  return `[${filled}${empty}] ${percent}% ${phase} ${summary}${skill}`
+  return `Progress: ${parts.join(', ')}`
 }
 
 export function createInstallProgressReporter(
@@ -79,6 +64,8 @@ export function createInstallProgressReporter(
   const snapshot: ProgressSnapshot = {
     total: 0,
     resolved: 0,
+    reused: 0,
+    downloaded: 0,
     added: 0,
     installed: 0,
     phase: 'resolving',
@@ -88,7 +75,7 @@ export function createInstallProgressReporter(
   let lastLineLength = 0
 
   function renderTTY(): void {
-    const line = formatTTYLine(snapshot)
+    const line = formatProgressLine(snapshot)
     const clearPadding =
       lastLineLength > line.length ? ' '.repeat(lastLineLength - line.length) : ''
     write(`\r${line}${clearPadding}`)
@@ -103,7 +90,6 @@ export function createInstallProgressReporter(
   function render(): void {
     if (useTTY) {
       renderTTY()
-      return
     }
   }
 
@@ -111,6 +97,8 @@ export function createInstallProgressReporter(
     start(total: number): void {
       snapshot.total = Math.max(0, total)
       snapshot.resolved = 0
+      snapshot.reused = 0
+      snapshot.downloaded = 0
       snapshot.added = 0
       snapshot.installed = 0
       snapshot.phase = 'resolving'
@@ -140,6 +128,12 @@ export function createInstallProgressReporter(
         case 'resolved':
           snapshot.resolved = clampCount(snapshot.resolved + 1, snapshot.total)
           break
+        case 'reused':
+          snapshot.reused = clampCount(snapshot.reused + 1, snapshot.total)
+          break
+        case 'downloaded':
+          snapshot.downloaded = clampCount(snapshot.downloaded + 1, snapshot.total)
+          break
         case 'added':
           snapshot.added = clampCount(snapshot.added + 1, snapshot.total)
           break
@@ -157,14 +151,14 @@ export function createInstallProgressReporter(
     complete(): void {
       snapshot.phase = 'done'
       snapshot.currentSkill = undefined
-      const summary = formatSummary(snapshot)
+      const line = formatProgressLine(snapshot)
 
       if (useTTY) {
-        renderTTY()
+        write(`\r${line}`)
         write('\n')
       }
 
-      info(`spm install: ${summary}`)
+      info(`spm install: ${line}`)
     },
 
     fail(): void {

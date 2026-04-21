@@ -14,7 +14,13 @@ export function createFetchTaskQueue(
   const installDir = ctx.manifest.installDir ?? '.agents/skills'
 
   async function processor(task: FetchTask): Promise<FetchResult> {
-    const installPath = await fetchSkill(ctx.cwd, task.skillName, task.entry, installDir, ctx.cache)
+    const { installPath, fromCache } = await fetchSkill(
+      ctx.cwd,
+      task.skillName,
+      task.entry,
+      installDir,
+      ctx.cache,
+    )
 
     if (task.entry.patch) {
       await applySkillPatch(installPath, path.resolve(ctx.cwd, task.entry.patch.path))
@@ -24,6 +30,7 @@ export function createFetchTaskQueue(
       skillName: task.skillName,
       entry: task.entry,
       installPath,
+      fromCache,
     }
     bus.emitFetched(result)
     return result

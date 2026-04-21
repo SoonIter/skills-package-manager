@@ -345,14 +345,14 @@ export async function downloadNpmPackageTarball(
   cwd: string,
   tarballUrl: string,
   expectedIntegrity?: string,
-): Promise<string> {
+): Promise<{ tarballPath: string; fromCache: boolean }> {
   const cachePath = getCachePath(tarballUrl)
 
   // 1. Check persistent cache
   try {
     const cached = await readFile(cachePath)
     if (!expectedIntegrity || verifyIntegrity(cached, expectedIntegrity)) {
-      return cachePath
+      return { tarballPath: cachePath, fromCache: true }
     }
     // Stale cache (integrity mismatch) — remove and re-download
     await rm(cachePath, { force: true }).catch(() => {})
@@ -380,7 +380,7 @@ export async function downloadNpmPackageTarball(
     // 3. Write to persistent cache and return
     await mkdir(getPersistentCacheDir(), { recursive: true })
     await writeFile(cachePath, tarballBuffer)
-    return cachePath
+    return { tarballPath: cachePath, fromCache: false }
   } catch (error) {
     await rm(downloadRoot, { recursive: true, force: true }).catch(() => {})
     throw new Error(`Failed to download npm tarball ${tarballUrl}: ${(error as Error).message}`, {

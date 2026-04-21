@@ -123,6 +123,8 @@ export type InstallCommandOptions = {
 
 export type InstallProgressEvent =
   | { type: 'resolved'; skillName: string }
+  | { type: 'reused'; skillName: string }
+  | { type: 'downloaded'; skillName: string }
   | { type: 'added'; skillName: string }
   | { type: 'installed'; skillName: string }
 
