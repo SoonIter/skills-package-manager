@@ -128,6 +128,14 @@ export function formatErrorForDisplay(error: unknown): string {
         output += `\n\nPlease fix the validation errors in "${error.filePath}".`
         output += `\nRefer to the JSON Schema at: https://unpkg.com/skills-package-manager@latest/skills.schema.json`
       }
+    } else if (error.code === ErrorCode.INSTALL_ERROR) {
+      const errorList = error.context.errors as string[] | undefined
+      if (errorList && errorList.length > 1) {
+        output += `\n\nFailed skills:`
+        for (const msg of errorList) {
+          output += `\n  - ${msg}`
+        }
+      }
     }
 
     if (error.cause && !(error instanceof GitError || error instanceof FileSystemError)) {

@@ -1,5 +1,6 @@
 import { access, lstat, readFile, readlink } from 'node:fs/promises'
 import path from 'node:path'
+import { ErrorCode, SpmError } from '../errors'
 import { fetchSkill } from '../fetchers'
 import { applySkillPatch } from '../patches/skillPatch'
 import { createTaskQueue, type TaskQueue } from './queue'
@@ -56,26 +57,35 @@ export function createFetchTaskQueue(
       return result
     }
 
-    const { installPath, fromCache } = await fetchSkill(
-      ctx.cwd,
-      task.skillName,
-      task.entry,
-      installDir,
-      ctx.cache,
-    )
+    try {
+      const { installPath, fromCache } = await fetchSkill(
+        ctx.cwd,
+        task.skillName,
+        task.entry,
+        installDir,
+        ctx.cache,
+      )
 
-    if (task.entry.patch) {
-      await applySkillPatch(installPath, path.resolve(ctx.cwd, task.entry.patch.path))
-    }
+      if (task.entry.patch) {
+        await applySkillPatch(installPath, path.resolve(ctx.cwd, task.entry.patch.path))
+      }
 
-    const result: FetchResult = {
-      skillName: task.skillName,
-      entry: task.entry,
-      installPath,
-      fromCache,
+      const result: FetchResult = {
+        skillName: task.skillName,
+        entry: task.entry,
+        installPath,
+        fromCache,
+      }
+      bus.emitFetched(result)
+      return result
+    } catch (error) {
+      throw new SpmError({
+        code: ErrorCode.INSTALL_ERROR,
+        message: `Failed to fetch skill "${task.skillName}": ${error instanceof Error ? error.message : String(error)}`,
+        cause: error instanceof Error ? error : undefined,
+        context: { skillName: task.skillName, phase: 'fetch' },
+      })
     }
-    bus.emitFetched(result)
-    return result
   }
 
   return createTaskQueue(processor, options)
