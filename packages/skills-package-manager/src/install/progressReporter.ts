@@ -1,3 +1,4 @@
+import pc from 'picocolors'
 import type { InstallProgressEvent } from '../config/types'
 
 type InstallPhase = 'resolving' | 'fetching' | 'linking' | 'finalizing' | 'done'
@@ -41,12 +42,19 @@ function clampCount(value: number, total: number): number {
   return value
 }
 
-function formatProgressLine(snapshot: ProgressSnapshot): string {
+const ansiPattern = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
+
+function stripAnsi(str: string): string {
+  return str.replace(ansiPattern, '')
+}
+
+function formatProgressLine(snapshot: ProgressSnapshot, colorNum?: (n: string) => string): string {
+  const num = colorNum ?? ((n: string) => n)
   const parts = [
-    `resolved ${snapshot.resolved}`,
-    `reused ${snapshot.reused}`,
-    `downloaded ${snapshot.downloaded}`,
-    `added ${snapshot.added}`,
+    `resolved ${num(String(snapshot.resolved))}`,
+    `reused ${num(String(snapshot.reused))}`,
+    `downloaded ${num(String(snapshot.downloaded))}`,
+    `added ${num(String(snapshot.added))}`,
   ]
   if (snapshot.phase === 'done') {
     parts.push('done')
@@ -75,11 +83,11 @@ export function createInstallProgressReporter(
   let lastLineLength = 0
 
   function renderTTY(): void {
-    const line = formatProgressLine(snapshot)
-    const clearPadding =
-      lastLineLength > line.length ? ' '.repeat(lastLineLength - line.length) : ''
+    const line = formatProgressLine(snapshot, pc.blue)
+    const visibleLen = stripAnsi(line).length
+    const clearPadding = lastLineLength > visibleLen ? ' '.repeat(lastLineLength - visibleLen) : ''
     write(`\r${line}${clearPadding}`)
-    lastLineLength = line.length
+    lastLineLength = visibleLen
     renderedTTY = true
   }
 
@@ -154,7 +162,7 @@ export function createInstallProgressReporter(
       const line = formatProgressLine(snapshot)
 
       if (useTTY) {
-        write(`\r${line}`)
+        write(`\r${formatProgressLine(snapshot, pc.blue)}`)
         write('\n')
       }
 
