@@ -1,7 +1,7 @@
 import { access } from 'node:fs/promises'
 import path from 'node:path'
 import type { SkillsLock, SkillsLockEntry } from '../config/types'
-import { ErrorCode, SpmError } from '../errors'
+import { ErrorCode, getErrorMessage, SpmError } from '../errors'
 import { writeInstallState } from '../install/installState'
 import { pruneManagedSkills } from '../install/pruneManagedSkills'
 import { installStageHooks } from '../install/withBundledSelfSkillLock'
@@ -155,7 +155,7 @@ export async function runPipeline(input: RunPipelineInput): Promise<PipelineResu
       code: ErrorCode.INSTALL_ERROR,
       message: `${errors.length} skills failed to install`,
       cause: first instanceof Error ? first : undefined,
-      context: { errors: errors.map((e) => (e instanceof Error ? e.message : String(e))) },
+      context: { errors: errors.map(getErrorMessage) },
     })
   }
 

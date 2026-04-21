@@ -1,6 +1,6 @@
 import { access, lstat, readFile, readlink } from 'node:fs/promises'
 import path from 'node:path'
-import { ErrorCode, SpmError } from '../errors'
+import { createInstallError } from '../errors'
 import { fetchSkill } from '../fetchers'
 import { applySkillPatch } from '../patches/skillPatch'
 import { createTaskQueue, type TaskQueue } from './queue'
@@ -17,9 +17,6 @@ async function isSkillUpToDate(
   const skillDir = path.join(rootDir, installDir, skillName)
 
   try {
-    // Verify SKILL.md exists — a stale marker alone is not sufficient
-    await access(path.join(skillDir, 'SKILL.md'))
-
     const stats = await lstat(skillDir)
 
     if (entry.resolution.type === 'link') {
@@ -30,8 +27,16 @@ async function isSkillUpToDate(
       return resolvedTarget === expectedTarget
     }
 
+    // A marker alone is not sufficient — verify the skill content is present
+    await access(path.join(skillDir, 'SKILL.md'))
+
     const markerPath = path.join(skillDir, '.skills-pm.json')
-    const marker = JSON.parse(await readFile(markerPath, 'utf8'))
+    let marker: { installedBy?: string; digest?: string } | undefined
+    try {
+      marker = JSON.parse(await readFile(markerPath, 'utf8'))
+    } catch {
+      return false
+    }
     return marker?.installedBy === 'skills-package-manager' && marker?.digest === entry.digest
   } catch {
     return false
@@ -79,12 +84,7 @@ export function createFetchTaskQueue(
       bus.emitFetched(result)
       return result
     } catch (error) {
-      throw new SpmError({
-        code: ErrorCode.INSTALL_ERROR,
-        message: `Failed to fetch skill "${task.skillName}": ${error instanceof Error ? error.message : String(error)}`,
-        cause: error instanceof Error ? error : undefined,
-        context: { skillName: task.skillName, phase: 'fetch' },
-      })
+      throw createInstallError('fetch', task.skillName, error)
     }
   }
 

@@ -1,4 +1,4 @@
-import { ErrorCode, SpmError } from '../errors'
+import { createInstallError } from '../errors'
 import { linkSkill } from '../install/links'
 import { createTaskQueue, type TaskQueue } from './queue'
 import type { LinkResult, LinkTask, PipelineBus, WorkspaceContext } from './types'
@@ -23,12 +23,7 @@ export function createLinkTaskQueue(
       bus.emitLinked(result)
       return result
     } catch (error) {
-      throw new SpmError({
-        code: ErrorCode.INSTALL_ERROR,
-        message: `Failed to link skill "${task.skillName}": ${error instanceof Error ? error.message : String(error)}`,
-        cause: error instanceof Error ? error : undefined,
-        context: { skillName: task.skillName, phase: 'link' },
-      })
+      throw createInstallError('link', task.skillName, error)
     }
   }
 
