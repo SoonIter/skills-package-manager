@@ -58,14 +58,9 @@ export {
   parseOwnerRepo,
 } from './github/listSkills'
 export type { SkillInfo } from './github/types'
-// Install
-export {
-  fetchSkillsFromLock,
-  installSkills,
-  installStageHooks,
-  linkSkillsFromLock,
-} from './install/installSkills'
 export { createInstallProgressReporter } from './install/progressReporter'
+// Install
+export { installStageHooks, withBundledSelfSkillLock } from './install/withBundledSelfSkillLock'
 // Specifiers
 export { normalizeSpecifier } from './specifiers/normalizeSpecifier'
 export { parseSpecifier } from './specifiers/parseSpecifier'

@@ -118,6 +118,7 @@ export type UpdateCommandResult = {
 export type InstallCommandOptions = {
   cwd: string
   frozenLockfile?: boolean
+  onProgress?: InstallProgressListener
 }
 
 export type InstallProgressEvent =

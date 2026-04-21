@@ -27,12 +27,12 @@ type RegistryPackageMetadata = {
   >
 }
 
-type NpmConfig = {
+export type NpmConfig = {
   settings: Map<string, string>
   authEntries: RegistryAuthEntry[]
 }
 
-type RegistryAuthEntry = {
+export type RegistryAuthEntry = {
   prefix: string
   authorization: string
 }
@@ -152,7 +152,7 @@ function buildRegistryAuthEntries(settings: Map<string, string>): RegistryAuthEn
     .sort((a, b) => b.prefix.length - a.prefix.length)
 }
 
-async function loadNpmConfig(cwd: string): Promise<NpmConfig> {
+export async function loadNpmConfig(cwd: string): Promise<NpmConfig> {
   const configs = new Map<string, string>()
 
   for (const [key, value] of await readNpmRc(path.join(homedir(), '.npmrc'))) {

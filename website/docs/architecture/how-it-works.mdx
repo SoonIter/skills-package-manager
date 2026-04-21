@@ -1,10 +1,21 @@
 # How it works
 
-The installation flow of skills-package-manager can be understood as three stages: resolve, materialize, and link.
+The installation flow of skills-package-manager is built around a **unified pipeline** with three concurrent task queues: **resolve**, **fetch**, and **link**. These queues run in parallel with backpressure control, maximizing I/O throughput while keeping memory usage bounded.
 
-## 1. Resolve specifiers
+## 1. Load configuration
 
-The installer first reads `skills.json` and resolves each skill specifier:
+The pipeline starts by loading all configuration into a single `WorkspaceContext`:
+
+- `skills.json` (manifest)
+- `skills-lock.yaml` (lockfile)
+- `.npmrc` (npm registry config)
+- `.skills-pm-install-state.json` (install state, if present)
+
+This context is passed through every stage, eliminating redundant file reads and giving each queue access to shared state and cache.
+
+## 2. Resolve specifiers
+
+The `ResolveTaskQueue` resolves each skill specifier in parallel (default concurrency: 8):
 
 - GitHub shorthand: `owner/repo`
 - Git URL: `https://github.com/owner/repo.git`
@@ -14,79 +25,108 @@ The installer first reads `skills.json` and resolves each skill specifier:
 - Local `file:` tarballs
 - `npm:` package sources
 
-## 2. Generate resolutions
+Resolvers are pluggable: each specifier type has its own resolver module under `src/resolvers/`.
 
-Different sources produce different resolution records:
+## 3. Fetch into installDir
 
-- `git`: resolved to repository URL, commit, and skill path
-- `link`: resolved to a local path and content digest
-- `file`: resolved to a local tarball path and skill path
-- `npm`: resolved to a package name, version, registry, tarball URL, integrity, and skill path
+As soon as a skill is resolved, it is pushed to the `FetchTaskQueue` (default concurrency: 4). Fetching does **not** wait for all resolutions to finish — the pipeline streams results forward.
 
-These results are written to the lockfile for reuse and auditing.
+The fetch stage includes a **content-addressable KV cache** for npm tarballs and other downloadable assets, avoiding redundant network requests across installs.
 
-## 3. Materialize into installDir
-
-The installer copies skill files into a managed directory under `installDir`, ensuring the agent can reliably read the installed skill content.
+Fetchers are also pluggable, living under `src/fetchers/`.
 
 ## 4. Link to target directories
 
-The system then syncs links to `linkTargets`, for example:
-
-- `.claude/skills`
-- Other agent-specific skill directories
+Once a skill is fetched, it flows into the `LinkTaskQueue` (default concurrency: 16), which creates symlinks from `installDir` to each `linkTarget` directory (e.g., `.claude/skills`).
 
 ## 5. Prune old skills
 
-For skills no longer managed by the manifest, the installation flow performs cleanup to avoid stale content remaining in `installDir`.
+Before any fetch begins, the system prunes skills in `installDir` that are no longer in the manifest or lockfile, preventing stale content from accumulating.
+
+## Pipeline architecture
 
 ```mermaid
-graph TD
-    subgraph Input ["1. Declaration"]
-        A["skills.json (Manifest)"]
+flowchart LR
+    subgraph Config ["1. Config Loader"]
+        A["skills.json"]
+        B["skills-lock.yaml"]
+        C[".npmrc"]
+        D["install state"]
     end
 
-    subgraph Core ["2. SPM Core Engine"]
-        B["Specifier Parser"]
-        C{"Resolver"}
-        D["Git Resolver"]
-        E["NPM Resolver"]
-        F["Link/File Resolver"]
-        G["Lockfile Generator"]
+    subgraph Context ["WorkspaceContext"]
+        E["manifest + lock + npmConfig + cache"]
     end
 
-    subgraph Output ["3. Materialization"]
-        H["skills-lock.yaml"]
-        I[".agents/skills/ (Physical Files)"]
-        J[".claude/skills/ (Symlinks)"]
-        K[".cursor/skills/ (Symlinks)"]
+    subgraph Resolve ["2. ResolveTaskQueue"]
+        F["GitResolver"]
+        G["NpmResolver"]
+        H["FileResolver"]
+        I["LinkResolver"]
     end
 
-    A --> B
-    B --> C
-    C -->|git:| D
-    C -->|npm:| E
-    C -->|link/file:| F
-    
-    D & E & F --> G
-    G --> H
-    G --> I
-    I --> J
-    I --> K
+    subgraph Fetch ["3. FetchTaskQueue"]
+        J["KV Cache"]
+        K["Git Fetcher"]
+        L["Npm Fetcher"]
+        M["File Fetcher"]
+        N["Link Fetcher"]
+    end
 
-    style A fill:#2dd4bf,stroke:#14b8a6,color:#000
-    style H fill:#5eead4,stroke:#14b8a6,color:#000
-    style I fill:#f1fa8c,stroke:#d1d100,color:#000
-    style J fill:#bd93f9,stroke:#9b6dff,color:#000
-    style K fill:#bd93f9,stroke:#9b6dff,color:#000
+    subgraph Link ["4. LinkTaskQueue"]
+        O["symlink to linkTargets"]
+    end
+
+    subgraph Output ["5. Output"]
+        P["installDir/ (physical files)"]
+        Q["linkTargets/ (symlinks)"]
+        R["updated lockfile"]
+    end
+
+    A & B & C & D --> E
+    E --> Resolve
+    F & G & H & I -->|emit FetchTask| Fetch
+    J --> K & L & M & N
+    K & L & M & N -->|emit LinkTask| O
+    O --> P & Q
+    Fetch --> R
+
+    style E fill:#2dd4bf,stroke:#14b8a6,color:#000
+    style P fill:#f1fa8c,stroke:#d1d100,color:#000
+    style Q fill:#bd93f9,stroke:#9b6dff,color:#000
 ```
+
+## Pipelining & backpressure
+
+```mermaid
+sequenceDiagram
+    participant R as ResolveTaskQueue
+    participant B as PipelineBus
+    participant F as FetchTaskQueue
+    participant L as LinkTaskQueue
+
+    R->>B: emitResolved(skillA)
+    B->>F: enqueue FetchTask(skillA)
+    R->>B: emitResolved(skillB)
+    B->>F: enqueue FetchTask(skillB)
+    F->>B: emitFetched(skillA)
+    B->>L: enqueue LinkTask(skillA)
+    F->>B: emitFetched(skillB)
+    B->>L: enqueue LinkTask(skillB)
+    L->>B: emitLinked(skillA)
+    L->>B: emitLinked(skillB)
+```
+
+- **Backpressure**: If `FetchTaskQueue` exceeds 20 pending tasks, `ResolveTaskQueue` pauses. If `LinkTaskQueue` exceeds 20 pending tasks, `FetchTaskQueue` pauses.
+- **Concurrency limits**: Resolve (8), Fetch (4), Link (16). These can be tuned per command.
 
 ## Design goals
 
-The goal of this flow is not to treat skills as ordinary npm packages, but to bring “AI agent capability units” into an engineering workflow:
+The goal of this flow is not to treat skills as ordinary npm packages, but to bring "AI agent capability units" into an engineering workflow:
 
-- Declarative
-- Reproducible
-- Linkable
-- Updatable
-- Auditable
+- **Declarative**: `skills.json` is the single source of truth.
+- **Reproducible**: `skills-lock.yaml` pins exact versions and digests.
+- **Linkable**: One install, many agent directories.
+- **Updatable**: Selective updates with `spm update`.
+- **Auditable**: Every resolution and fetch is recorded.
+- **Concurrent**: Pipeline parallelism minimizes install time.

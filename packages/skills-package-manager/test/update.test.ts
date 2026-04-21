@@ -8,11 +8,9 @@ import YAML from 'yaml'
 import { updateCommand } from '../src/commands/update'
 import { resolveLockEntry } from '../src/config/syncSkillsLock'
 import type { SkillsLock, SkillsManifest } from '../src/config/types'
-import {
-  fetchSkillsFromLock,
-  installStageHooks,
-  linkSkillsFromLock,
-} from '../src/install/installSkills'
+import { installStageHooks } from '../src/install/withBundledSelfSkillLock'
+import { runPipeline } from '../src/pipeline'
+import { loadConfig } from '../src/pipeline/context'
 import { sha256 } from '../src/utils/hash'
 import { createSkillPackage, packDirectory, startMockNpmRegistry } from './helpers'
 
@@ -233,13 +231,20 @@ describe('install stages', () => {
     mkdirSync(path.join(sourceRoot, 'skills/hello-skill'), { recursive: true })
     writeFileSync(path.join(sourceRoot, 'skills/hello-skill/SKILL.md'), '# Hello stage\n')
 
-    const manifest: SkillsManifest = {
-      installDir: '.agents/skills',
-      linkTargets: ['.claude/skills'],
-      skills: {
-        'hello-skill': `link:${path.join(sourceRoot, 'skills/hello-skill')}`,
-      },
-    }
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: ['.claude/skills'],
+          skills: {
+            'hello-skill': `link:${path.join(sourceRoot, 'skills/hello-skill')}`,
+          },
+        },
+        null,
+        2,
+      ),
+    )
 
     const lockfile: SkillsLock = {
       lockfileVersion: '0.1',
@@ -254,8 +259,11 @@ describe('install stages', () => {
       },
     }
 
-    await fetchSkillsFromLock(root, manifest, lockfile)
-    await linkSkillsFromLock(root, manifest, lockfile)
+    await runPipeline({
+      ctx: await loadConfig(root),
+      entries: lockfile.skills,
+      skipResolve: true,
+    })
 
     const installed = readFileSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'), 'utf8')
     expect(installed).toContain('Hello stage')

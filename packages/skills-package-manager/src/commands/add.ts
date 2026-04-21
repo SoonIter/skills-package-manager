@@ -17,7 +17,9 @@ import { writeSkillsManifest } from '../config/writeSkillsManifest'
 import { ErrorCode, ParseError, SkillError } from '../errors'
 import { cloneAndDiscover, discoverSkillsInDir, parseGitHubUrl } from '../github/listSkills'
 import type { SkillInfo } from '../github/types'
-import { installSkills } from '../install/installSkills'
+import { withBundledSelfSkillLock } from '../install/withBundledSelfSkillLock'
+import { runPipeline } from '../pipeline'
+import { loadConfig } from '../pipeline/context'
 import { normalizeLinkSource } from '../specifiers/normalizeLinkSource'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { ensureDir } from '../utils/fs'
@@ -45,6 +47,14 @@ type ExtractedAddSource = {
 
 function buildGitSpecifier(repoUrl: string, skillPath: string, ref?: string): string {
   return ref ? `${repoUrl}#${ref}&path:${skillPath}` : `${repoUrl}#path:${skillPath}`
+}
+
+async function runInstallPipeline(cwd: string) {
+  const ctx = await loadConfig(cwd)
+  const runtimeLock = ctx.lockfile
+    ? await withBundledSelfSkillLock(cwd, ctx.manifest, ctx.lockfile)
+    : null
+  await runPipeline({ ctx, entries: runtimeLock?.skills ?? ctx.lockfile?.skills ?? {} })
 }
 
 function buildLinkSpecifier(sourceRoot: string, skillPath: string): string {
@@ -617,7 +627,7 @@ export async function addCommand(options: AddCommandOptions) {
     }
 
     spinner.start('Installing skills...')
-    await installSkills(cwd)
+    await runInstallPipeline(cwd)
     spinner.stop('Installed skills')
 
     if (results.length === 1) {
@@ -633,7 +643,7 @@ export async function addCommand(options: AddCommandOptions) {
   const result = await addSingleSkill(cwd, specifier, manifestContext)
   const spinner = p.spinner()
   spinner.start('Installing skills...')
-  await installSkills(cwd)
+  await runInstallPipeline(cwd)
   spinner.stop('Installed skills')
   return result
 }
