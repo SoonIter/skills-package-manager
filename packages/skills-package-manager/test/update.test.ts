@@ -15,7 +15,7 @@ import { sha256 } from '../src/utils/hash'
 import { createSkillPackage, packDirectory, startMockNpmRegistry } from './helpers'
 
 describe('resolveLockEntry', () => {
-  it('recomputes link digests from skill directory contents', async () => {
+  it('uses empty digest for link resolutions', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-resolve-link-'))
     const skillDir = mkdtempSync(path.join(tmpdir(), 'skills-pm-resolve-link-source-'))
 
@@ -27,7 +27,9 @@ describe('resolveLockEntry', () => {
 
     expect(first.entry.resolution.type).toBe('link')
     expect(second.entry.resolution.type).toBe('link')
-    expect(first.entry.digest).not.toBe(second.entry.digest)
+    expect(first.entry.digest).toBe('')
+    expect(second.entry.digest).toBe('')
+    expect(first.entry.digest).toBe(second.entry.digest)
   })
 
   it('resolves git specifiers to the current commit', async () => {

@@ -5,6 +5,7 @@ import { resolveEntry } from '../resolvers'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { sha256File } from '../utils/hash'
 import { toPortableRelativePath } from '../utils/path'
+import { isLockInSync } from './compareSkillsLock'
 import type {
   InstallProgressListener,
   NormalizedSkillsManifest,
@@ -59,13 +60,31 @@ export async function attachManifestPatchToEntry(
 export async function syncSkillsLock(
   cwd: string,
   manifest: NormalizedSkillsManifest,
-  _existingLock: SkillsLock | null,
+  existingLock: SkillsLock | null,
   options?: {
     onProgress?: InstallProgressListener
   },
 ): Promise<SkillsLock> {
+  // Fast path: if existingLock is in sync with manifest, reuse npm/git entries
+  // and only re-resolve link/file entries to detect local source changes.
+  const reuseEntries = new Map<string, SkillsLockEntry>()
+  if (existingLock && (await isLockInSync(cwd, manifest, existingLock))) {
+    for (const [name, entry] of Object.entries(existingLock.skills)) {
+      if (entry.resolution.type === 'npm' || entry.resolution.type === 'git') {
+        reuseEntries.set(name, entry)
+      }
+    }
+  }
+
   const entries = await Promise.all(
     Object.entries(manifest.skills).map(async ([skillName, specifier]) => {
+      const reused = reuseEntries.get(skillName)
+      if (reused) {
+        const entryWithPatch = await attachManifestPatchToEntry(cwd, manifest, skillName, reused)
+        options?.onProgress?.({ type: 'resolved', skillName })
+        return [skillName, entryWithPatch] as const
+      }
+
       const { skillName: resolvedName, entry } = await resolveLockEntry(cwd, specifier, skillName)
       const entryWithPatch = await attachManifestPatchToEntry(cwd, manifest, resolvedName, entry)
       options?.onProgress?.({ type: 'resolved', skillName: resolvedName })

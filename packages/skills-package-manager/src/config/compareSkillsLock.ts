@@ -83,6 +83,26 @@ async function isPatchInSync(
   return lockEntry.patch.digest === (await sha256File(absolutePatchPath))
 }
 
+export function isSkillsLockEqual(a: SkillsLock, b: SkillsLock): boolean {
+  if (a.lockfileVersion !== b.lockfileVersion) return false
+  if (normalizeInstallDir(a.installDir) !== normalizeInstallDir(b.installDir)) return false
+  if (!arraysEqual(normalizeLinkTargets(a.linkTargets), normalizeLinkTargets(b.linkTargets))) {
+    return false
+  }
+
+  const aSkills = Object.entries(a.skills)
+  const bSkills = Object.entries(b.skills)
+  if (aSkills.length !== bSkills.length) return false
+
+  for (const [name, aEntry] of aSkills) {
+    const bEntry = b.skills[name]
+    if (!bEntry) return false
+    if (JSON.stringify(aEntry) !== JSON.stringify(bEntry)) return false
+  }
+
+  return true
+}
+
 export async function isLockInSync(
   rootDir: string,
   manifest: NormalizedSkillsManifest,

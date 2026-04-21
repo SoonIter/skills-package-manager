@@ -1,6 +1,5 @@
 import path from 'node:path'
 import type { SkillsLockEntry } from '../config/types'
-import { sha256Directory } from '../utils/hash'
 import { toPortableRelativePath } from '../utils/path'
 
 export async function resolveLinkEntry(
@@ -18,7 +17,7 @@ export async function resolveLinkEntry(
         type: 'link',
         path: toPortableRelativePath(cwd, sourceRoot),
       },
-      digest: await sha256Directory(sourceRoot),
+      digest: '',
     },
   }
 }

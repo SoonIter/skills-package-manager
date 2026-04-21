@@ -1,3 +1,5 @@
+import { access } from 'node:fs/promises'
+import path from 'node:path'
 import type { SkillsLock, SkillsLockEntry } from '../config/types'
 import { writeInstallState } from '../install/installState'
 import { pruneManagedSkills } from '../install/pruneManagedSkills'
@@ -16,6 +18,21 @@ export interface RunPipelineInput {
   options?: PipelineOptions
 }
 
+async function areManagedSkillsInstalled(
+  rootDir: string,
+  installDir: string,
+  skillNames: string[],
+): Promise<boolean> {
+  for (const skillName of skillNames) {
+    try {
+      await access(path.join(rootDir, installDir, skillName, 'SKILL.md'))
+    } catch {
+      return false
+    }
+  }
+  return true
+}
+
 export async function runPipeline(input: RunPipelineInput): Promise<PipelineResult> {
   const { ctx, entries, skipResolve = false, options = {} } = input
   const bus = createPipelineBus(options.onProgress)
@@ -23,6 +40,25 @@ export async function runPipeline(input: RunPipelineInput): Promise<PipelineResu
 
   const installDir = ctx.lockfile?.installDir ?? ctx.manifest.installDir ?? '.agents/skills'
   const linkTargets = ctx.lockfile?.linkTargets ?? ctx.manifest.linkTargets ?? []
+
+  // Fast path: skip all work when install state is up-to-date
+  const lockfileForDigest: SkillsLock = {
+    lockfileVersion: '0.1',
+    installDir,
+    linkTargets,
+    skills: entries,
+  }
+  const currentDigest = sha256(JSON.stringify(lockfileForDigest))
+  if (
+    ctx.installState?.lockDigest === currentDigest &&
+    (await areManagedSkillsInstalled(ctx.cwd, installDir, Object.keys(entries)))
+  ) {
+    // Emit progress events so callers (e.g. the CLI reporter) see consistent output
+    for (const skillName of Object.keys(entries)) {
+      bus.emitLinked({ skillName })
+    }
+    return bus.getResults()
+  }
 
   const resolveQueue = createResolveTaskQueue(ctx, bus, {
     concurrency: options.resolveConcurrency ?? 8,

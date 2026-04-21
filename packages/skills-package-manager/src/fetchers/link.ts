@@ -1,6 +1,7 @@
+import { rm, symlink } from 'node:fs/promises'
 import path from 'node:path'
 import type { SkillsLockEntry } from '../config/types'
-import { materializeLocalSkill } from '../install/materializeLocalSkill'
+import { ensureDir } from '../utils/fs'
 
 export async function fetchLinkSkill(
   rootDir: string,
@@ -13,6 +14,11 @@ export async function fetchLinkSkill(
   }
 
   const sourceRoot = path.resolve(rootDir, entry.resolution.path)
-  await materializeLocalSkill(rootDir, skillName, sourceRoot, '/', installDir)
-  return path.join(rootDir, installDir, skillName)
+  const targetDir = path.join(rootDir, installDir, skillName)
+
+  await ensureDir(path.dirname(targetDir))
+  await rm(targetDir, { recursive: true, force: true }).catch(() => {})
+  await symlink(sourceRoot, targetDir)
+
+  return targetDir
 }
