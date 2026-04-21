@@ -1,3 +1,4 @@
+import { access, lstat, readFile, readlink } from 'node:fs/promises'
 import path from 'node:path'
 import { fetchSkill } from '../fetchers'
 import { applySkillPatch } from '../patches/skillPatch'
@@ -5,6 +6,36 @@ import { createTaskQueue, type TaskQueue } from './queue'
 import type { FetchResult, FetchTask, PipelineBus, WorkspaceContext } from './types'
 
 export type FetchQueue = TaskQueue<FetchTask, FetchResult>
+
+async function isSkillUpToDate(
+  rootDir: string,
+  installDir: string,
+  skillName: string,
+  entry: FetchTask['entry'],
+): Promise<boolean> {
+  const skillDir = path.join(rootDir, installDir, skillName)
+
+  try {
+    // Verify SKILL.md exists — a stale marker alone is not sufficient
+    await access(path.join(skillDir, 'SKILL.md'))
+
+    const stats = await lstat(skillDir)
+
+    if (entry.resolution.type === 'link') {
+      if (!stats.isSymbolicLink()) return false
+      const target = await readlink(skillDir)
+      const resolvedTarget = path.resolve(path.dirname(skillDir), target)
+      const expectedTarget = path.resolve(rootDir, entry.resolution.path)
+      return resolvedTarget === expectedTarget
+    }
+
+    const markerPath = path.join(skillDir, '.skills-pm.json')
+    const marker = JSON.parse(await readFile(markerPath, 'utf8'))
+    return marker?.installedBy === 'skills-package-manager' && marker?.digest === entry.digest
+  } catch {
+    return false
+  }
+}
 
 export function createFetchTaskQueue(
   ctx: WorkspaceContext,
@@ -14,6 +45,17 @@ export function createFetchTaskQueue(
   const installDir = ctx.manifest.installDir ?? '.agents/skills'
 
   async function processor(task: FetchTask): Promise<FetchResult> {
+    if (await isSkillUpToDate(ctx.cwd, installDir, task.skillName, task.entry)) {
+      const result: FetchResult = {
+        skillName: task.skillName,
+        entry: task.entry,
+        installPath: path.join(ctx.cwd, installDir, task.skillName),
+        skipped: true,
+      }
+      bus.emitFetched(result)
+      return result
+    }
+
     const { installPath, fromCache } = await fetchSkill(
       ctx.cwd,
       task.skillName,

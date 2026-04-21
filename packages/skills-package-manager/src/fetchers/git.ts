@@ -20,6 +20,7 @@ export async function fetchGitSkill(
     entry.resolution.commit,
     entry.resolution.path,
     installDir,
+    entry.digest,
   )
   return targetDir
 }

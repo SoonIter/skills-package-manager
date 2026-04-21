@@ -26,7 +26,14 @@ export async function fetchNpmSkill(
   if (inFlight) {
     const { tarballPath, fromCache } = await inFlight
     try {
-      await materializePackedSkill(rootDir, skillName, tarballPath, resolution.path, installDir)
+      await materializePackedSkill(
+        rootDir,
+        skillName,
+        tarballPath,
+        resolution.path,
+        installDir,
+        entry.digest,
+      )
       return { installPath: path.join(rootDir, installDir, skillName), fromCache }
     } finally {
       // cleanup is handled by the original downloader
@@ -39,7 +46,14 @@ export async function fetchNpmSkill(
 
   try {
     const { tarballPath, fromCache } = await inFlight
-    await materializePackedSkill(rootDir, skillName, tarballPath, resolution.path, installDir)
+    await materializePackedSkill(
+      rootDir,
+      skillName,
+      tarballPath,
+      resolution.path,
+      installDir,
+      entry.digest,
+    )
     return { installPath: path.join(rootDir, installDir, skillName), fromCache }
   } finally {
     inFlightDownloads.delete(cacheKey)

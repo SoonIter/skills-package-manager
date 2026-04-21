@@ -13,6 +13,13 @@ export async function fetchFileSkill(
   }
 
   const tarballPath = path.resolve(rootDir, entry.resolution.tarball)
-  await materializePackedSkill(rootDir, skillName, tarballPath, entry.resolution.path, installDir)
+  await materializePackedSkill(
+    rootDir,
+    skillName,
+    tarballPath,
+    entry.resolution.path,
+    installDir,
+    entry.digest,
+  )
   return path.join(rootDir, installDir, skillName)
 }

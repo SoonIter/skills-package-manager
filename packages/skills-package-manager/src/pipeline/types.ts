@@ -71,6 +71,7 @@ export interface FetchResult {
   entry: SkillsLockEntry
   installPath: string
   fromCache?: boolean
+  skipped?: boolean
 }
 
 export interface LinkTask {
