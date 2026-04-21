@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { homedir, tmpdir } from 'node:os'
 import path from 'node:path'
 import semver from 'semver'
@@ -323,11 +323,44 @@ function verifyIntegrity(buffer: Buffer, integrity: string): boolean {
   return false
 }
 
+// ---------------------------------------------------------------------------
+// Persistent tarball cache
+// ---------------------------------------------------------------------------
+
+function getPersistentCacheDir(): string {
+  return path.join(homedir(), '.spm', 'cache')
+}
+
+function getCachePath(tarballUrl: string): string {
+  const cacheKey = createHash('sha256').update(tarballUrl).digest('hex').slice(0, 16)
+  const basename = path.basename(new URL(tarballUrl).pathname) || 'package.tgz'
+  return path.join(getPersistentCacheDir(), `${cacheKey}-${basename}`)
+}
+
+function isCachePath(filePath: string): boolean {
+  return filePath.startsWith(getPersistentCacheDir())
+}
+
 export async function downloadNpmPackageTarball(
   cwd: string,
   tarballUrl: string,
   expectedIntegrity?: string,
 ): Promise<string> {
+  const cachePath = getCachePath(tarballUrl)
+
+  // 1. Check persistent cache
+  try {
+    const cached = await readFile(cachePath)
+    if (!expectedIntegrity || verifyIntegrity(cached, expectedIntegrity)) {
+      return cachePath
+    }
+    // Stale cache (integrity mismatch) — remove and re-download
+    await rm(cachePath, { force: true }).catch(() => {})
+  } catch {
+    // Cache miss
+  }
+
+  // 2. Download to temp dir
   const downloadRoot = await mkdtemp(path.join(tmpdir(), 'skills-pm-npm-download-'))
 
   try {
@@ -344,12 +377,10 @@ export async function downloadNpmPackageTarball(
       throw new Error(`Integrity check failed for npm tarball ${tarballUrl}`)
     }
 
-    const tarballPath = path.join(
-      downloadRoot,
-      path.basename(new URL(tarballUrl).pathname) || 'package.tgz',
-    )
-    await writeFile(tarballPath, tarballBuffer)
-    return tarballPath
+    // 3. Write to persistent cache and return
+    await mkdir(getPersistentCacheDir(), { recursive: true })
+    await writeFile(cachePath, tarballBuffer)
+    return cachePath
   } catch (error) {
     await rm(downloadRoot, { recursive: true, force: true }).catch(() => {})
     throw new Error(`Failed to download npm tarball ${tarballUrl}: ${(error as Error).message}`, {
@@ -359,5 +390,9 @@ export async function downloadNpmPackageTarball(
 }
 
 export async function cleanupPackedNpmPackage(tarballPath: string): Promise<void> {
+  // Skip cleanup for persistent cache paths
+  if (isCachePath(tarballPath)) {
+    return
+  }
   await rm(path.dirname(tarballPath), { recursive: true, force: true }).catch(() => {})
 }

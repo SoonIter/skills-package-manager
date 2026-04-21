@@ -22,6 +22,11 @@ export interface CacheManager {
 // WorkspaceContext
 // ---------------------------------------------------------------------------
 
+export interface ManifestStat {
+  mtimeMs: number
+  size: number
+}
+
 export interface WorkspaceContext {
   cwd: string
   manifest: NormalizedSkillsManifest
@@ -29,11 +34,13 @@ export interface WorkspaceContext {
   lockfile: SkillsLock | null
   npmConfig: NpmConfig
   installState: InstallState | null
+  manifestStat: ManifestStat | null
   cache: CacheManager
 }
 
 export interface InstallState {
   lockDigest: string
+  manifestStat?: ManifestStat
   installDir: string
   linkTargets: string[]
   installerVersion: string

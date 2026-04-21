@@ -1,3 +1,4 @@
+import { lstat } from 'node:fs/promises'
 import path from 'node:path'
 import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
@@ -5,7 +6,7 @@ import type { NormalizedSkillsManifest } from '../config/types'
 import { readInstallState } from '../install/installState'
 import { loadNpmConfig } from '../npm/packPackage'
 import { createFileSystemCache } from './cache'
-import type { InstallState, WorkspaceContext } from './types'
+import type { InstallState, ManifestStat, WorkspaceContext } from './types'
 
 export async function loadConfig(cwd: string): Promise<WorkspaceContext> {
   const manifest = await readSkillsManifest(cwd)
@@ -15,6 +16,14 @@ export async function loadConfig(cwd: string): Promise<WorkspaceContext> {
   const installState = await readInstallState(cwd, installDir)
   const cache = createFileSystemCache(cwd)
 
+  let manifestStat: ManifestStat | null = null
+  try {
+    const stats = await lstat(path.join(cwd, 'skills.json'))
+    manifestStat = { mtimeMs: stats.mtimeMs, size: stats.size }
+  } catch {
+    // manifest file may not exist
+  }
+
   return {
     cwd: path.resolve(cwd),
     manifest: normalizeManifest(manifest),
@@ -22,6 +31,7 @@ export async function loadConfig(cwd: string): Promise<WorkspaceContext> {
     lockfile,
     npmConfig,
     installState: installState as InstallState | null,
+    manifestStat,
     cache,
   }
 }

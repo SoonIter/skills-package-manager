@@ -162,6 +162,7 @@ export async function runPipeline(input: RunPipelineInput): Promise<PipelineResu
     const lockDigest = sha256(JSON.stringify(lockfile))
     await writeInstallState(ctx.cwd, installDir, {
       lockDigest,
+      manifestStat: ctx.manifestStat ?? undefined,
       installDir,
       linkTargets,
       installerVersion: '0.1.0',

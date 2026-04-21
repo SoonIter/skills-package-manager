@@ -1,6 +1,7 @@
 import path from 'node:path'
 import type { NormalizedSpecifier } from '../config/types'
 import { ErrorCode, ParseError } from '../errors'
+import type { ManifestStat } from '../pipeline/types'
 import { resolveEntry } from '../resolvers'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { sha256File } from '../utils/hash'
@@ -63,12 +64,17 @@ export async function syncSkillsLock(
   existingLock: SkillsLock | null,
   options?: {
     onProgress?: InstallProgressListener
+    manifestStat?: ManifestStat | null
+    installState?: { manifestStat?: ManifestStat } | null
   },
 ): Promise<SkillsLock> {
   // Fast path: if existingLock is in sync with manifest, reuse npm/git entries
   // and only re-resolve link/file entries to detect local source changes.
   const reuseEntries = new Map<string, SkillsLockEntry>()
-  if (existingLock && (await isLockInSync(cwd, manifest, existingLock))) {
+  if (
+    existingLock &&
+    (await isLockInSync(cwd, manifest, existingLock, options?.manifestStat, options?.installState))
+  ) {
     for (const [name, entry] of Object.entries(existingLock.skills)) {
       if (entry.resolution.type === 'npm' || entry.resolution.type === 'git') {
         reuseEntries.set(name, entry)

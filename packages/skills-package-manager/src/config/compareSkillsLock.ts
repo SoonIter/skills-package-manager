@@ -1,4 +1,5 @@
 import path from 'node:path'
+import type { ManifestStat } from '../pipeline/types'
 import { normalizeLinkSource } from '../specifiers/normalizeLinkSource'
 import { parseSpecifier } from '../specifiers/parseSpecifier'
 import { sha256File } from '../utils/hash'
@@ -107,8 +108,20 @@ export async function isLockInSync(
   rootDir: string,
   manifest: NormalizedSkillsManifest,
   lock: SkillsLock | null,
+  manifestStat?: ManifestStat | null,
+  installState?: { manifestStat?: ManifestStat } | null,
 ): Promise<boolean> {
   if (!lock) return false
+
+  // Fast path: if manifest file hasn't changed since last install, skip full check
+  if (
+    manifestStat &&
+    installState?.manifestStat &&
+    manifestStat.mtimeMs === installState.manifestStat.mtimeMs &&
+    manifestStat.size === installState.manifestStat.size
+  ) {
+    return true
+  }
 
   if (normalizeInstallDir(manifest.installDir) !== normalizeInstallDir(lock.installDir)) {
     return false
