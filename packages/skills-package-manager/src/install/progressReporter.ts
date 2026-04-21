@@ -164,9 +164,9 @@ export function createInstallProgressReporter(
       if (useTTY) {
         write(`\r${formatProgressLine(snapshot, pc.blue)}`)
         write('\n')
+      } else {
+        info(`spm install: ${line}`)
       }
-
-      info(`spm install: ${line}`)
     },
 
     fail(): void {

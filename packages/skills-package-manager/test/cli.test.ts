@@ -396,8 +396,6 @@ describe('runCli dispatch', () => {
     const combinedWrites = writes.join('')
     expect(combinedWrites).toContain('\r')
     expect(combinedWrites).toContain('Progress: resolved 1, reused 0, downloaded 0, added 1, done')
-    expect(infos.at(-1)).toBe(
-      'spm install: Progress: resolved 1, reused 0, downloaded 0, added 1, done',
-    )
+    expect(infos).toHaveLength(0)
   })
 })

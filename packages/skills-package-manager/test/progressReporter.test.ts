@@ -33,9 +33,7 @@ describe('createInstallProgressReporter', () => {
     expect(combinedWrites).toContain('Progress: resolved 2, reused 1, downloaded 1, added 2')
     expect(combinedWrites).toContain('done')
     expect(combinedWrites).toContain('\n')
-    expect(infos.at(-1)).toBe(
-      'spm install: Progress: resolved 2, reused 1, downloaded 1, added 2, done',
-    )
+    expect(infos).toHaveLength(0)
   })
 
   it('logs concise stage output in non-tty mode', () => {
