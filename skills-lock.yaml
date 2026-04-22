@@ -24,4 +24,4 @@ skills:
     resolution:
       type: link
       path: packages/skills-package-manager/skills/skills-package-manager-cli
-    digest: ""
+    digest: sha256-c155d72bb339ff6a4590469460e16a579c46294f3f4a9d90416b22201e3fadea
