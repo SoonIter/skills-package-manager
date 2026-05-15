@@ -292,7 +292,7 @@ function Terminal() {
         <span className="t-success">✔</span> Extracting npm-skill (npm)
       </span>,
       <span key="5">
-        <span className="t-success">✔</span> Linking local-dev (link)
+        <span className="t-success">✔</span> Linking local-dev (local)
       </span>,
       <span key="6">
         <span className="t-success">✔</span> Extracting legacy-v1 (file)
@@ -379,7 +379,7 @@ function ConfigViewer() {
       text: '    "pr-creator": "https://github.com/rstackjs/agent-skills.git#89bd10a...&path:/skills/pr-creator",',
     },
     { line: 8, text: '    "npm-skill": "npm:@scope/agent-logic@^1.2.0",' },
-    { line: 9, text: '    "local-dev": "link:./packages/my-custom-skill",' },
+    { line: 9, text: '    "local-dev": "local:./packages/my-custom-skill",' },
     { line: 10, text: '    "legacy-v1": "file:./backups/old-agent.tgz"' },
     { line: 11, text: '  }' },
     { line: 12, text: '}' },
