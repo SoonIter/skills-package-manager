@@ -25,7 +25,7 @@ export type NormalizedSkillsManifest = {
 }
 
 export type NormalizedSpecifier = {
-  type: 'git' | 'link' | 'file' | 'npm'
+  type: 'git' | 'link' | 'local' | 'file' | 'npm'
   source: string
   ref: string | null
   path: string
@@ -37,6 +37,7 @@ export type SkillsLockEntry = {
   specifier: string
   resolution:
     | { type: 'link'; path: string }
+    | { type: 'local'; path: string }
     | { type: 'file'; tarball: string; path: string }
     | { type: 'git'; url: string; commit: string; path: string }
     | {
@@ -111,7 +112,7 @@ export type UpdateCommandResult = {
   status: 'updated' | 'skipped' | 'failed'
   updated: string[]
   unchanged: string[]
-  skipped: Array<{ name: string; reason: 'link-specifier' }>
+  skipped: Array<{ name: string; reason: 'link-specifier' | 'local-specifier' }>
   failed: Array<{ name: string; reason: string }>
 }
 

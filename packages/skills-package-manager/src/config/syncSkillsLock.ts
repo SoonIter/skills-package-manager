@@ -48,6 +48,10 @@ export async function attachManifestPatchToEntry(
     return entry
   }
 
+  if (entry.resolution.type === 'local') {
+    throw new Error(`local: skill ${skillName} cannot be patched because its source is user-owned`)
+  }
+
   const absolutePatchPath = path.resolve(cwd, patchPath)
   return {
     ...entry,

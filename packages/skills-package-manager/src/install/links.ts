@@ -10,8 +10,9 @@ export async function linkSkill(
   installDir: string,
   linkTarget: string,
   skillName: string,
+  sourcePath?: string,
 ) {
-  const absoluteTarget = path.join(rootDir, installDir, skillName)
+  const absoluteTarget = sourcePath ?? path.join(rootDir, installDir, skillName)
   const absoluteLink = path.join(resolveTargetPath(rootDir, linkTarget), skillName)
   await ensureDir(path.dirname(absoluteLink))
   await replaceSymlink(absoluteTarget, absoluteLink)

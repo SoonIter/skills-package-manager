@@ -16,7 +16,7 @@ export function createLinkTaskQueue(
   async function processor(task: LinkTask): Promise<LinkResult> {
     try {
       for (const linkTarget of linkTargets) {
-        await linkSkill(ctx.cwd, installDir, linkTarget, task.skillName)
+        await linkSkill(ctx.cwd, installDir, linkTarget, task.skillName, task.installPath)
       }
 
       const result: LinkResult = { skillName: task.skillName }

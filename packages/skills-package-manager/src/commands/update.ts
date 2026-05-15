@@ -70,6 +70,10 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
         result.skipped.push({ name: skillName, reason: 'link-specifier' })
         continue
       }
+      if (normalized.type === 'local') {
+        result.skipped.push({ name: skillName, reason: 'local-specifier' })
+        continue
+      }
 
       const { entry } = await resolveLockEntry(options.cwd, specifier)
       const nextEntry = await attachManifestPatchToEntry(

@@ -3,6 +3,7 @@ import {
   lstatSync,
   mkdtempSync,
   readFileSync,
+  readlinkSync,
   rmSync,
   unlinkSync,
   writeFileSync,
@@ -52,6 +53,108 @@ describe('installSkills', () => {
     expect(existsSync(installedSkill)).toBe(true)
     expect(lstatSync(linkedSkill).isSymbolicLink()).toBe(true)
     expect(readFileSync(installedSkill, 'utf8')).toContain('Hello skill')
+  })
+
+  it('uses an existing local skill directory without replacing it', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-local-'))
+    const skillDir = path.join(root, '.agents/skills/my-skill')
+
+    require('node:fs').mkdirSync(skillDir, { recursive: true })
+    writeFileSync(path.join(skillDir, 'SKILL.md'), '# My skill\n')
+    writeFileSync(path.join(skillDir, 'notes.md'), 'keep me\n')
+    writeFileSync(path.join(root, '.gitignore'), '.agents/**\n')
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: ['.claude/skills'],
+      skills: {
+        'my-skill': 'local:./.agents/skills/my-skill',
+      },
+    })
+
+    await installCommand({ cwd: root })
+    await installCommand({ cwd: root })
+
+    const linkedSkill = path.join(root, '.claude/skills/my-skill')
+    const gitignore = readFileSync(path.join(root, '.gitignore'), 'utf8')
+
+    expect(readFileSync(path.join(skillDir, 'SKILL.md'), 'utf8')).toBe('# My skill\n')
+    expect(readFileSync(path.join(skillDir, 'notes.md'), 'utf8')).toBe('keep me\n')
+    expect(lstatSync(linkedSkill).isSymbolicLink()).toBe(true)
+    expect(path.resolve(path.dirname(linkedSkill), readlinkSync(linkedSkill))).toBe(skillDir)
+    expect(gitignore.match(/!\.agents\/skills\/my-skill\/\*\*/g)).toHaveLength(1)
+  })
+
+  it('throws when a local skill directory is missing SKILL.md', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-local-invalid-'))
+    require('node:fs').mkdirSync(path.join(root, '.agents/skills/my-skill'), { recursive: true })
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'my-skill': 'local:./.agents/skills/my-skill',
+      },
+    })
+
+    await expect(installCommand({ cwd: root })).rejects.toThrow('missing SKILL.md')
+  })
+
+  it('throws when a local skill has a patch configured', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-local-patch-'))
+    const skillDir = path.join(root, '.agents/skills/my-skill')
+
+    require('node:fs').mkdirSync(skillDir, { recursive: true })
+    require('node:fs').mkdirSync(path.join(root, 'patches'), { recursive: true })
+    writeFileSync(path.join(skillDir, 'SKILL.md'), '# My skill\n')
+    writeFileSync(path.join(root, 'patches/my-skill.patch'), 'diff --git a/SKILL.md b/SKILL.md\n')
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'my-skill': 'local:./.agents/skills/my-skill',
+      },
+      patchedSkills: {
+        'my-skill': 'patches/my-skill.patch',
+      },
+    })
+
+    await expect(installCommand({ cwd: root })).rejects.toThrow('cannot be patched')
+  })
+
+  it('does not prune a previously local skill after it is removed from the manifest', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-local-prune-'))
+    const skillDir = path.join(root, '.agents/skills/my-skill')
+
+    require('node:fs').mkdirSync(skillDir, { recursive: true })
+    writeFileSync(path.join(skillDir, 'SKILL.md'), '# My skill\n')
+    writeFileSync(
+      path.join(skillDir, '.skills-pm.json'),
+      JSON.stringify({ installedBy: 'skills-package-manager' }),
+    )
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {},
+    })
+    await writeSkillsLock(root, {
+      lockfileVersion: '0.1',
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'my-skill': {
+          specifier: 'local:./.agents/skills/my-skill',
+          resolution: { type: 'local', path: '.agents/skills/my-skill' },
+          digest: '',
+        },
+      },
+    })
+
+    await installCommand({ cwd: root })
+
+    expect(existsSync(path.join(skillDir, 'SKILL.md'))).toBe(true)
   })
 
   it('does not install the bundled self skill when selfSkill is omitted', async () => {

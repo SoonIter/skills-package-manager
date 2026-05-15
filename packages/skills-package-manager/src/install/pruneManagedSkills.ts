@@ -26,9 +26,11 @@ export async function pruneManagedSkills(
   installDir: string,
   linkTargets: string[],
   wantedSkillNames: string[],
+  protectedSkillDirs: string[] = [],
 ) {
   const wanted = new Set(wantedSkillNames)
   const absoluteInstallDir = path.join(rootDir, installDir)
+  const protectedDirs = new Set(protectedSkillDirs.map((dir) => path.resolve(dir)))
 
   try {
     const entries = await readdir(absoluteInstallDir)
@@ -38,6 +40,10 @@ export async function pruneManagedSkills(
       }
 
       const skillDir = path.join(absoluteInstallDir, entry)
+      if (protectedDirs.has(path.resolve(skillDir))) {
+        continue
+      }
+
       if (!(await isManagedSkillDir(skillDir))) {
         continue
       }

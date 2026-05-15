@@ -7,6 +7,7 @@ skills-package-manager uses specifiers to describe where skills come from.
 ```text
 git/file/npm: <source>#[ref&]path:<skill-path>
 link: link:<path-to-skill-dir>
+local: local:<path-to-existing-skill-dir>
 ```
 
 ## Supported forms
@@ -19,19 +20,21 @@ link: link:<path-to-skill-dir>
 | Git + ref + path | `https://github.com/owner/repo.git#main&path:/skills/my-skill` |
 | Git + commit SHA + path | `https://github.com/owner/repo.git#6cb0992a176f2ca142e19f64dca8ac12025b035e&path:/skills/my-skill` |
 | Local link | `link:./local-dir/skills/my-skill` |
+| Existing local skill | `local:./.agents/skills/my-skill` |
 | Local tarball | `file:./skills-package.tgz#path:/skills/my-skill` |
 | npm package | `npm:@scope/skills-package#path:/skills/my-skill` |
 
 ## Notes
 
-- `source`: A Git repository URL, a local `link:` path, a local `file:` tarball, or an `npm:` package name
+- `source`: A Git repository URL, a local `link:` path, a user-owned `local:` path, a local `file:` tarball, or an `npm:` package name
 - `ref`: An optional git ref, such as `main`, a tag, a full commit SHA, or a short commit SHA
 - `path`: The directory of the skill inside the source repository or package
 
 ## Resolution types
 
 - `git`: Clone the repository, resolve the commit, and copy the skill files
-- `link`: Read the local directory and copy the skill files
+- `link`: Symlink a local skill directory into `installDir`
+- `local`: Use an existing user-owned skill directory in place, without copying or replacing it
 - `file`: Extract the local `tgz` package and copy the skill files
 - `npm`: Resolve the package from the configured registry, lock the tarball URL/version/integrity, and copy the skill files
 

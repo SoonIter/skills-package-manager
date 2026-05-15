@@ -292,21 +292,24 @@ function Terminal() {
         <span className="t-success">✔</span> Extracting npm-skill (npm)
       </span>,
       <span key="5">
-        <span className="t-success">✔</span> Linking local-dev (link)
+        <span className="t-success">✔</span> Linking custom-dev (link)
       </span>,
       <span key="6">
-        <span className="t-success">✔</span> Extracting legacy-v1 (file)
+        <span className="t-success">✔</span> Linking local-dev (local)
       </span>,
       <span key="7">
-        <span className="t-success">✔</span> Linking .claude/skills
+        <span className="t-success">✔</span> Extracting legacy-v1 (file)
       </span>,
       <span key="8">
-        <span className="t-success">✔</span> Linking .cursor/skills
+        <span className="t-success">✔</span> Linking .claude/skills
       </span>,
       <span key="9">
+        <span className="t-success">✔</span> Linking .cursor/skills
+      </span>,
+      <span key="10">
         <span className="t-success">✔</span> Updating skills-lock.yaml
       </span>,
-      <span key="10" className="t-done">
+      <span key="11" className="t-done">
         ✨ Done in 1.2s
       </span>,
     ]
@@ -379,10 +382,11 @@ function ConfigViewer() {
       text: '    "pr-creator": "https://github.com/rstackjs/agent-skills.git#89bd10a...&path:/skills/pr-creator",',
     },
     { line: 8, text: '    "npm-skill": "npm:@scope/agent-logic@^1.2.0",' },
-    { line: 9, text: '    "local-dev": "link:./packages/my-custom-skill",' },
-    { line: 10, text: '    "legacy-v1": "file:./backups/old-agent.tgz"' },
-    { line: 11, text: '  }' },
-    { line: 12, text: '}' },
+    { line: 9, text: '    "custom-dev": "link:./packages/my-custom-skill",' },
+    { line: 10, text: '    "local-dev": "local:./.agents/skills/local-dev",' },
+    { line: 11, text: '    "legacy-v1": "file:./backups/old-agent.tgz"' },
+    { line: 12, text: '  }' },
+    { line: 13, text: '}' },
   ]
 
   const lockCode = [

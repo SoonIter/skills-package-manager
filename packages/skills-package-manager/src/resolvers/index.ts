@@ -2,6 +2,7 @@ import type { NormalizedSpecifier, SkillsLockEntry } from '../config/types'
 import { resolveFileEntry } from './file'
 import { resolveGitEntry } from './git'
 import { resolveLinkEntry } from './link'
+import { resolveLocalEntry } from './local'
 import { resolveNpmEntry } from './npm'
 
 export async function resolveEntry(
@@ -14,6 +15,8 @@ export async function resolveEntry(
   switch (normalized.type) {
     case 'link':
       return resolveLinkEntry(cwd, normalized.source, finalSkillName, normalized.normalized)
+    case 'local':
+      return resolveLocalEntry(cwd, normalized.source, finalSkillName, normalized.normalized)
     case 'file':
       return resolveFileEntry(
         cwd,
