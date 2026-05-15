@@ -5,7 +5,6 @@ export default defineConfig({
     {
       bundle: true,
       format: 'cjs',
-      autoExternal: false,
       source: {
         entry: {
           index: './src/index.ts',
@@ -19,7 +18,6 @@ export default defineConfig({
     {
       bundle: true,
       format: 'esm',
-      autoExternal: false,
       source: {
         entry: {
           index: './src/index.ts',
