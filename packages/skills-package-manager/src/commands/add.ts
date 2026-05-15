@@ -66,6 +66,7 @@ function buildLinkSpecifier(sourceRoot: string, skillPath: string): string {
 function isDirectSkillSpecifier(specifier: string): boolean {
   return (
     specifier.startsWith('link:') ||
+    specifier.startsWith('local:') ||
     specifier.startsWith('file:') ||
     specifier.startsWith('npm:') ||
     specifier.includes('#path:') ||

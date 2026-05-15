@@ -40,7 +40,7 @@ Use this skill for repositories that already use `skills-package-manager`, or wh
 
 4. `npx skills-package-manager update [skill...]`
    - Refreshes resolvable entries in `skills-lock.yaml`.
-   - Skips `link:` skills, including the bundled `skills-package-manager-cli` self skill.
+   - Skips local `link:` and `local:` skills, including the bundled `skills-package-manager-cli` self skill.
 
 ## How To Triage User Questions
 
@@ -59,6 +59,7 @@ Use this skill for repositories that already use `skills-package-manager`, or wh
 ## Specifier Reminders
 
 - `link:./path/to/skill-dir` points to a local skill directory.
+- `local:./path/to/existing-skill-dir` keeps an existing user-owned skill directory in place.
 - `file:./pkg.tgz#path:/skills/name` points to a packaged tarball plus skill path.
 - `npm:@scope/pkg#path:/skills/name` resolves a package from the configured registry.
 - GitHub shorthand or Git URLs resolve remote repositories and may need `--skill` when multiple skills are available.

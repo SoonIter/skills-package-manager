@@ -1,14 +1,18 @@
 import path from 'node:path'
 import type { NormalizedSpecifier } from '../config/types'
 import { ErrorCode, ParseError } from '../errors'
-import { normalizeLinkSource } from './normalizeLinkSource'
+import { normalizeLinkSource, normalizeLocalSource } from './normalizeLinkSource'
 import { parseSpecifier } from './parseSpecifier'
 
 export function normalizeSpecifier(specifier: string): NormalizedSpecifier {
-  if (specifier.startsWith('link:') && specifier.includes('#')) {
+  if (
+    (specifier.startsWith('link:') || specifier.startsWith('local:')) &&
+    specifier.includes('#')
+  ) {
+    const protocol = specifier.startsWith('link:') ? 'link' : 'local'
     throw new ParseError({
       code: ErrorCode.INVALID_SPECIFIER,
-      message: 'Invalid link specifier: link: must point directly to a skill directory',
+      message: `Invalid ${protocol} specifier: ${protocol}: must point directly to a skill directory`,
       content: specifier,
     })
   }
@@ -30,23 +34,28 @@ export function normalizeSpecifier(specifier: string): NormalizedSpecifier {
 
   const type = parsed.sourcePart.startsWith('link:')
     ? 'link'
-    : parsed.sourcePart.startsWith('file:')
-      ? 'file'
-      : parsed.sourcePart.startsWith('npm:')
-        ? 'npm'
-        : 'git'
+    : parsed.sourcePart.startsWith('local:')
+      ? 'local'
+      : parsed.sourcePart.startsWith('file:')
+        ? 'file'
+        : parsed.sourcePart.startsWith('npm:')
+          ? 'npm'
+          : 'git'
 
-  if (type === 'link') {
-    const linkSource = normalizeLinkSource(parsed.sourcePart)
-    const linkPath = linkSource.slice('link:'.length)
-    const skillName = path.posix.basename(linkPath)
+  if (type === 'link' || type === 'local') {
+    const localSource =
+      type === 'link'
+        ? normalizeLinkSource(parsed.sourcePart)
+        : normalizeLocalSource(parsed.sourcePart)
+    const localPath = localSource.slice(`${type}:`.length)
+    const skillName = path.posix.basename(localPath)
 
     return {
       type,
-      source: linkSource,
+      source: localSource,
       ref: null,
       path: '/',
-      normalized: linkSource,
+      normalized: localSource,
       skillName,
     }
   }

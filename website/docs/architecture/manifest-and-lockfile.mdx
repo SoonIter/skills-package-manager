@@ -17,6 +17,7 @@ skills-package-manager uses two files to describe and lock the installed state o
   "skills": {
     "find-skills": "https://github.com/vercel-labs/skills.git#path:/skills/find-skills",
     "my-local-skill": "link:./local-source/skills/my-local-skill",
+    "my-existing-skill": "local:./.agents/skills/my-existing-skill",
     "my-packed-skill": "file:./skills-package.tgz#path:/skills/my-packed-skill",
     "my-npm-skill": "npm:@scope/skills-package#path:/skills/my-npm-skill"
   }
@@ -25,7 +26,7 @@ skills-package-manager uses two files to describe and lock the installed state o
 
 Field descriptions:
 
-- `installDir`: The directory where materialized skills are written.
+- `installDir`: The directory where managed skills are written.
 - `linkTargets`: A list of target directories where symbolic links should be created.
 - `selfSkill`: Whether to auto-install the bundled `skills-package-manager-cli` skill during install. It is not written to `skills-lock.yaml`. Defaults to `false`.
 - `patchedSkills`: Optional mapping from skill name to a committed patch file path.
@@ -54,7 +55,7 @@ skills:
 
 It typically contains:
 
-- The resolved source type: `git`, `link`, `file`, or `npm`
+- The resolved source type: `git`, `link`, `local`, `file`, or `npm`
 - A specific commit, local content digest, tarball reference, or resolved package version and integrity
 - The skill path
 - The final content digest
@@ -72,7 +73,7 @@ The former is suitable for review; the latter is suitable for reproducibility.
 1. Always commit both `skills.json` and `skills-lock.yaml`
 2. Standardize `installDir` and `linkTargets` across the team
 3. Prefer explicit GitHub specifiers with `path:` for external skills
-4. When using local `link:` skills for internal development, keep the lockfile as well to track digest changes
+4. Use `local:` for existing user-owned skill directories that should not be copied or replaced
 
 ## Specifier Compatibility
 

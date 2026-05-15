@@ -42,10 +42,38 @@ describe('normalizeSpecifier', () => {
     })
   })
 
+  it('parses local specifier that points directly to a user-owned skill directory', () => {
+    expect(normalizeSpecifier('local:./.agents/skills/hello-skill')).toEqual({
+      type: 'local',
+      source: 'local:./.agents/skills/hello-skill',
+      ref: null,
+      path: '/',
+      normalized: 'local:./.agents/skills/hello-skill',
+      skillName: 'hello-skill',
+    })
+  })
+
+  it('canonicalizes local specifiers for stable comparisons', () => {
+    expect(normalizeSpecifier('local:.\\.agents\\skills\\hello-skill/')).toEqual({
+      type: 'local',
+      source: 'local:./.agents/skills/hello-skill',
+      ref: null,
+      path: '/',
+      normalized: 'local:./.agents/skills/hello-skill',
+      skillName: 'hello-skill',
+    })
+  })
+
   it('rejects link specifiers with path fragments', () => {
     expect(() =>
       normalizeSpecifier('link:./fixtures/local-source#path:/skills/hello-skill'),
     ).toThrow('Invalid link specifier')
+  })
+
+  it('rejects local specifiers with path fragments', () => {
+    expect(() => normalizeSpecifier('local:./.agents/skills#path:/hello-skill')).toThrow(
+      'Invalid local specifier',
+    )
   })
 
   it('parses file tarball specifier', () => {
@@ -112,6 +140,36 @@ describe('normalizeSpecifier', () => {
                 path: './fixtures/local-source/skills/hello-skill',
               },
               digest: 'sha256-test',
+            },
+          },
+        },
+      ),
+    ).resolves.toBe(true)
+  })
+
+  it('treats equivalent local specifiers as in sync', async () => {
+    await expect(
+      isLockInSync(
+        process.cwd(),
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': 'local:.\\.agents\\skills\\hello-skill/',
+          },
+        },
+        {
+          lockfileVersion: '0.1',
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'hello-skill': {
+              specifier: 'local:./.agents/skills/hello-skill',
+              resolution: {
+                type: 'local',
+                path: './.agents/skills/hello-skill',
+              },
+              digest: '',
             },
           },
         },

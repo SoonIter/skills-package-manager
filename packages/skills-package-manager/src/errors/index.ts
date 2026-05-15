@@ -117,6 +117,7 @@ export function formatErrorForDisplay(error: unknown): string {
         output += `\n  - owner/repo (GitHub shorthand)`
         output += `\n  - https://github.com/owner/repo.git`
         output += `\n  - link:./path/to/skill-dir`
+        output += `\n  - local:./path/to/existing-skill-dir`
         output += `\n  - file:./path/to/skill-package.tgz#path:/skills/my-skill`
         output += `\n  - npm:@scope/skill-package#path:/skills/my-skill`
       }

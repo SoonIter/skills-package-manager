@@ -83,8 +83,8 @@ export async function installCommand(options: InstallCommandOptions) {
     } else {
       // Normal mode: check install-dir lock copy for fast-path skip.
       // Only skip when there are no file: skills, because tarball contents
-      // may change without the lockfile being modified. link: skills use
-      // symlinks so they always reflect the current source.
+      // may change without the lockfile being modified. link: and local:
+      // skills always reflect the current source.
       const hasLocalSource = Object.values(ctx.manifest.skills).some((s) => s.startsWith('file:'))
       const installDirLock = await readInstallDirLock(options.cwd, installDir)
       if (

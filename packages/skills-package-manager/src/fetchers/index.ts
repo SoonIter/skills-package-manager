@@ -3,6 +3,7 @@ import type { CacheManager } from '../pipeline/types'
 import { fetchFileSkill } from './file'
 import { fetchGitSkill } from './git'
 import { fetchLinkSkill } from './link'
+import { fetchLocalSkill } from './local'
 import { fetchNpmSkill } from './npm'
 
 export async function fetchSkill(
@@ -15,6 +16,8 @@ export async function fetchSkill(
   switch (entry.resolution.type) {
     case 'link':
       return { installPath: await fetchLinkSkill(rootDir, skillName, entry, installDir) }
+    case 'local':
+      return { installPath: await fetchLocalSkill(rootDir, entry) }
     case 'file':
       return { installPath: await fetchFileSkill(rootDir, skillName, entry, installDir) }
     case 'git':

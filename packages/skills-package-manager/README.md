@@ -50,12 +50,13 @@ npx skills-package-manager add https://github.com/owner/repo/tree/main/skills/my
 # Direct specifier — skip discovery
 npx skills-package-manager add https://github.com/owner/repo.git#path:/skills/my-skill
 npx skills-package-manager add link:./local-source/skills/my-skill
+npx skills-package-manager add local:./.agents/skills/my-skill
 npx skills-package-manager add ./local-source
 npx skills-package-manager add file:./skills-package.tgz#path:/skills/my-skill
 npx skills-package-manager add npm:@scope/skills-package#path:/skills/my-skill
 ```
 
-After `npx skills-package-manager add`, the newly added skills are resolved, materialized into `installDir`, and linked to each configured `linkTarget` immediately.
+After `npx skills-package-manager add`, the newly added skills are resolved, installed or registered according to their protocol, and linked to each configured `linkTarget` immediately.
 
 #### How it works
 
@@ -104,9 +105,9 @@ Install all skills declared in `skills.json`:
 npx skills-package-manager install
 ```
 
-This resolves each skill from its specifier, materializes it into `installDir` (default `.agents/skills/`), and creates symlinks for each `linkTarget`.
+This resolves each skill from its specifier, installs managed skills into `installDir` (default `.agents/skills/`), registers `local:` skills in place, and creates symlinks for each `linkTarget`.
 When `selfSkill` is `true`, `npx skills-package-manager install` also installs the bundled `skills-package-manager-cli` skill so users get guidance for `skills.json`, `skills-lock.yaml`, and `npx skills-package-manager` commands. This helper skill is not written to `skills-lock.yaml`.
-If `patchedSkills` contains an entry for a skill, the corresponding patch file is applied after the skill is materialized.
+If `patchedSkills` contains an entry for a managed skill, the corresponding patch file is applied after the skill is materialized. `local:` skills cannot be patched because their source directories are user-owned.
 
 ### `npx skills-package-manager patch`
 
@@ -154,7 +155,7 @@ Behavior:
 
 - Uses `skills.json` as the source of truth
 - Re-resolves git refs and npm package targets
-- Skips `link:` skills, including the bundled self skill
+- Skips local `link:` and `local:` skills, including the bundled self skill
 - Fails immediately for unknown skill names
 - Writes `skills-lock.yaml` only after fetch and link succeed
 
@@ -183,11 +184,12 @@ const skills = await listRepoSkills('vercel-labs', 'skills')
 ```text
 git/file/npm: <source>#[ref&]path:<skill-path>
 link: link:<path-to-skill-dir>
+local: local:<path-to-existing-skill-dir>
 ```
 
 | Part | Description | Example |
 |------|-------------|---------|
-| `source` | Git URL, direct `link:` skill path, `file:` tarball, or `npm:` package name | `https://github.com/o/r.git`, `link:./local/skills/my-skill`, `file:./skills.tgz`, `npm:@scope/pkg` |
+| `source` | Git URL, direct `link:` or `local:` skill path, `file:` tarball, or `npm:` package name | `https://github.com/o/r.git`, `link:./local/skills/my-skill`, `local:./.agents/skills/my-skill`, `file:./skills.tgz`, `npm:@scope/pkg` |
 | `ref` | Optional git ref | `main`, `v1.0.0`, `HEAD`, `6cb0992`, `6cb0992a176f2ca142e19f64dca8ac12025b035e` |
 | `path` | Path to skill directory within source | `/skills/my-skill` |
 
@@ -196,7 +198,8 @@ link: link:<path-to-skill-dir>
 ### Resolution Types
 
 - **`git`** — Clones the repo, resolves commit hash, copies skill files
-- **`link`** — Reads from a local directory and copies the selected skill
+- **`link`** — Symlinks a local skill directory into `installDir`
+- **`local`** — Uses an existing user-owned skill directory in place
 - **`file`** — Extracts a local `tgz` package and copies the selected skill
 - **`npm`** — Resolves a package from the configured npm registry, locks the tarball URL/version/integrity, and installs from the downloaded tarball
 

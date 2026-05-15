@@ -3,6 +3,7 @@ import path from 'node:path'
 import type { SkillsLock, SkillsLockEntry } from '../config/types'
 import { ErrorCode, getErrorMessage, SpmError } from '../errors'
 import { writeInstallState } from '../install/installState'
+import { ensureLocalSkillGitignoreRules, getLocalSkillDirs } from '../install/localSkills'
 import { pruneManagedSkills } from '../install/pruneManagedSkills'
 import { installStageHooks } from '../install/withBundledSelfSkillLock'
 import { sha256 } from '../utils/hash'
@@ -152,7 +153,20 @@ export async function runPipeline(input: RunPipelineInput): Promise<PipelineResu
     skills: entries,
   })
 
-  await pruneManagedSkills(ctx.cwd, installDir, linkTargets, skillNames)
+  const runtimeLockfile: SkillsLock = {
+    lockfileVersion: '0.1',
+    installDir,
+    linkTargets,
+    skills: entries,
+  }
+  await ensureLocalSkillGitignoreRules(ctx.cwd, runtimeLockfile)
+  await pruneManagedSkills(
+    ctx.cwd,
+    installDir,
+    linkTargets,
+    skillNames,
+    getLocalSkillDirs(ctx.cwd, [runtimeLockfile, ctx.lockfile]),
+  )
 
   if (skipResolve) {
     for (const [skillName, entry] of Object.entries(entries)) {

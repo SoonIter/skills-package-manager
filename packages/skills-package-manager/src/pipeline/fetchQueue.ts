@@ -2,6 +2,7 @@ import { access, lstat, readFile, readlink } from 'node:fs/promises'
 import path from 'node:path'
 import { createInstallError } from '../errors'
 import { fetchSkill } from '../fetchers'
+import { getSkillInstallPath } from '../install/localSkills'
 import { applySkillPatch } from '../patches/skillPatch'
 import { createTaskQueue, type TaskQueue } from './queue'
 import type { FetchResult, FetchTask, PipelineBus, WorkspaceContext } from './types'
@@ -17,6 +18,11 @@ async function isSkillUpToDate(
   const skillDir = path.join(rootDir, installDir, skillName)
 
   try {
+    if (entry.resolution.type === 'local') {
+      await access(path.join(path.resolve(rootDir, entry.resolution.path), 'SKILL.md'))
+      return true
+    }
+
     const stats = await lstat(skillDir)
 
     if (entry.resolution.type === 'link') {
@@ -55,7 +61,7 @@ export function createFetchTaskQueue(
       const result: FetchResult = {
         skillName: task.skillName,
         entry: task.entry,
-        installPath: path.join(ctx.cwd, installDir, task.skillName),
+        installPath: getSkillInstallPath(ctx.cwd, installDir, task.skillName, task.entry),
         skipped: true,
       }
       bus.emitFetched(result)

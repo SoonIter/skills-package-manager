@@ -17,6 +17,11 @@ import { createFileSystemCache } from '../pipeline/cache'
 import { sha256 } from '../utils/hash'
 import { readInstallState, writeInstallState } from './installState'
 import { linkSkill } from './links'
+import {
+  ensureLocalSkillGitignoreRules,
+  getLocalSkillDirs,
+  getSkillInstallPath,
+} from './localSkills'
 import { pruneManagedSkills } from './pruneManagedSkills'
 
 async function areManagedSkillsInstalled(
@@ -65,7 +70,14 @@ export async function fetchSkillsFromLock(
   const installDir = manifest.installDir ?? '.agents/skills'
   const linkTargets = manifest.linkTargets ?? []
 
-  await pruneManagedSkills(rootDir, installDir, linkTargets, Object.keys(lockfile.skills))
+  await ensureLocalSkillGitignoreRules(rootDir, lockfile)
+  await pruneManagedSkills(
+    rootDir,
+    installDir,
+    linkTargets,
+    Object.keys(lockfile.skills),
+    getLocalSkillDirs(rootDir, [lockfile]),
+  )
 
   const lockDigest = sha256(JSON.stringify(lockfile))
   const state = await readInstallState(rootDir, installDir)
@@ -114,7 +126,13 @@ export async function linkSkillsFromLock(
 
   for (const skillName of Object.keys(lockfile.skills)) {
     for (const linkTarget of linkTargets) {
-      await linkSkill(rootDir, installDir, linkTarget, skillName)
+      await linkSkill(
+        rootDir,
+        installDir,
+        linkTarget,
+        skillName,
+        getSkillInstallPath(rootDir, installDir, skillName, lockfile.skills[skillName]),
+      )
     }
     options?.onProgress?.({ type: 'installed', skillName })
   }

@@ -1,6 +1,6 @@
 import path from 'node:path'
 import type { ManifestStat } from '../pipeline/types'
-import { normalizeLinkSource } from '../specifiers/normalizeLinkSource'
+import { normalizeLinkSource, normalizeLocalSource } from '../specifiers/normalizeLinkSource'
 import { parseSpecifier } from '../specifiers/parseSpecifier'
 import { sha256File } from '../utils/hash'
 import { toPortableRelativePath } from '../utils/path'
@@ -15,10 +15,15 @@ interface ParsedSpecifier {
 function parseForComparison(specifier: string): ParsedSpecifier {
   const parsed = parseSpecifier(specifier)
   const isLink = parsed.sourcePart.startsWith('link:')
+  const isLocal = parsed.sourcePart.startsWith('local:')
   return {
-    sourcePart: isLink ? normalizeLinkSource(parsed.sourcePart) : parsed.sourcePart,
-    ref: isLink ? null : parsed.ref,
-    path: isLink ? '/' : parsed.path || '/',
+    sourcePart: isLink
+      ? normalizeLinkSource(parsed.sourcePart)
+      : isLocal
+        ? normalizeLocalSource(parsed.sourcePart)
+        : parsed.sourcePart,
+    ref: isLink || isLocal ? null : parsed.ref,
+    path: isLink || isLocal ? '/' : parsed.path || '/',
   }
 }
 

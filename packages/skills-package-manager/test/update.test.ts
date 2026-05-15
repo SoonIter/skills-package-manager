@@ -309,6 +309,8 @@ describe('updateCommand resolve', () => {
 
     mkdirSync(path.join(fileRepo, 'local-skill'), { recursive: true })
     writeFileSync(path.join(fileRepo, 'local-skill/SKILL.md'), '# Local\n')
+    mkdirSync(path.join(root, '.agents/skills/owned-skill'), { recursive: true })
+    writeFileSync(path.join(root, '.agents/skills/owned-skill/SKILL.md'), '# Owned\n')
 
     writeFileSync(
       path.join(root, 'skills.json'),
@@ -319,6 +321,7 @@ describe('updateCommand resolve', () => {
           skills: {
             'hello-skill': `${gitRepo}#HEAD&path:/skills/hello-skill`,
             'local-skill': `link:${fileRepo}/local-skill`,
+            'owned-skill': 'local:./.agents/skills/owned-skill',
           },
         },
         null,
@@ -348,6 +351,11 @@ describe('updateCommand resolve', () => {
             resolution: { type: 'link', path: `${fileRepo}/local-skill` },
             digest: 'sha256-local',
           },
+          'owned-skill': {
+            specifier: 'local:./.agents/skills/owned-skill',
+            resolution: { type: 'local', path: '.agents/skills/owned-skill' },
+            digest: '',
+          },
         },
       }),
     )
@@ -355,7 +363,10 @@ describe('updateCommand resolve', () => {
     const result = await updateCommand({ cwd: root })
 
     expect(result.updated).toEqual(['hello-skill'])
-    expect(result.skipped).toEqual([{ name: 'local-skill', reason: 'link-specifier' }])
+    expect(result.skipped).toEqual([
+      { name: 'local-skill', reason: 'link-specifier' },
+      { name: 'owned-skill', reason: 'local-specifier' },
+    ])
     expect(result.failed).toEqual([])
     expect(result.unchanged).toEqual([])
     const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
