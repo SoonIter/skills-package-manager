@@ -8,12 +8,10 @@ export { installCommand } from './commands/install'
 export { patchCommand } from './commands/patch'
 export { patchCommitCommand } from './commands/patchCommit'
 export { updateCommand } from './commands/update'
-export { isLockInSync } from './config/compareSkillsLock'
-export { readSkillsLock } from './config/readSkillsLock'
 export { readSkillsManifest } from './config/readSkillsManifest'
+export { resolveSkillEntry, resolveSkillsPlan } from './config/resolveSkillsPlan'
 export { expandSkillsManifest, normalizeSkillsManifest } from './config/skillsManifest'
 // Config
-export { resolveLockEntry } from './config/syncSkillsLock'
 export type {
   AddCommandOptions,
   InitCommandOptions,
@@ -25,13 +23,12 @@ export type {
   PatchCommandResult,
   PatchCommitCommandOptions,
   PatchCommitCommandResult,
-  SkillsLock,
-  SkillsLockEntry,
+  ResolvedSkillsPlan,
+  ResolvedSkillEntry,
   SkillsManifest,
   UpdateCommandOptions,
   UpdateCommandResult,
 } from './config/types'
-export { writeSkillsLock } from './config/writeSkillsLock'
 export { writeSkillsManifest } from './config/writeSkillsManifest'
 // Errors
 export {
@@ -59,13 +56,9 @@ export {
 } from './github/listSkills'
 export type { SkillInfo } from './github/types'
 // Install
-export {
-  fetchSkillsFromLock,
-  installSkills,
-  linkSkillsFromLock,
-} from './install/installSkills'
+export { installSkills } from './install/installSkills'
+export { installStageHooks } from './install/installPlan'
 export { createInstallProgressReporter } from './install/progressReporter'
-export { installStageHooks, withBundledSelfSkillLock } from './install/withBundledSelfSkillLock'
 // Specifiers
 export { normalizeSpecifier } from './specifiers/normalizeSpecifier'
 export { parseSpecifier } from './specifiers/parseSpecifier'

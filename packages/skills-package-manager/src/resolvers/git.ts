@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
-import type { SkillsLockEntry } from '../config/types'
+import type { ResolvedSkillEntry } from '../config/types'
 import { ErrorCode, GitError } from '../errors'
 import { sha256 } from '../utils/hash'
 
@@ -71,7 +71,7 @@ export async function resolveGitEntry(
   path: string,
   skillName: string,
   specifier: string,
-): Promise<{ skillName: string; entry: SkillsLockEntry }> {
+): Promise<{ skillName: string; entry: ResolvedSkillEntry }> {
   const commit = await resolveGitCommit(source, ref)
   return {
     skillName,

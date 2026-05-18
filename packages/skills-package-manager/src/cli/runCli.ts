@@ -38,6 +38,50 @@ function formatFlagName(name: string): string {
   return name.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`)
 }
 
+function collectOptionValues(argv: string[], optionNames: string[]): string[] | undefined {
+  const values: string[] = []
+
+  for (let index = 3; index < argv.length; index += 1) {
+    const token = argv[index]
+    const equalsName = optionNames.find((name) => token.startsWith(`${name}=`))
+    if (equalsName) {
+      const value = token.slice(equalsName.length + 1)
+      if (value) {
+        values.push(value)
+      }
+      continue
+    }
+
+    const shortName = optionNames.find(
+      (name) =>
+        name.startsWith('-') && !name.startsWith('--') && token.startsWith(name) && token !== name,
+    )
+    if (shortName) {
+      values.push(token.slice(shortName.length))
+      continue
+    }
+
+    if (!optionNames.includes(token)) {
+      continue
+    }
+
+    while (index + 1 < argv.length && !argv[index + 1].startsWith('-')) {
+      values.push(argv[index + 1])
+      index += 1
+    }
+  }
+
+  return values.length > 0 ? values : undefined
+}
+
+function toSingleOrArray(values: string[] | undefined, fallback?: string[] | string) {
+  if (!values) {
+    return fallback
+  }
+
+  return values.length === 1 ? values[0] : values
+}
+
 const packageVersion = packageJson.version
 
 export function runCli(argv: string[], context?: { cwd?: string }): Promise<unknown>
@@ -54,41 +98,56 @@ export async function runCli(argv: string[], context: InternalRunCliContext = {}
     .command('add [...positionals]')
     .option('-a, --agent <name>', 'Target agent')
     .option('-g, --global', 'Install into the global skills workspace')
-    .option('--skill <name>', 'Select a skill')
+    .option('-s, --skill <name>', 'Select a skill')
+    .option('-l, --list', 'List available skills without installing')
+    .option('--copy', 'Accept skills CLI copy-mode flag')
+    .option('--all', 'Install all discovered skills to all known project agents')
     .option('-y, --yes', 'Skip prompts and select defaults')
     .action(
       async (
         positionals: string[] = [],
-        options: { agent?: string[] | string; global?: boolean; skill?: string; yes?: boolean },
+        options: {
+          agent?: string[] | string
+          global?: boolean
+          skill?: string[] | string
+          list?: boolean
+          copy?: boolean
+          all?: boolean
+          yes?: boolean
+        },
       ) => {
         const specifier = positionals[0]
         if (!specifier) {
           throw new Error('Missing required specifier')
         }
 
-        const agent = Array.isArray(options.agent)
-          ? options.agent
-          : options.agent
-            ? [options.agent]
-            : undefined
+        const collectedAgents = collectOptionValues(argv, ['-a', '--agent'])
+        const agent = collectedAgents
+          ? collectedAgents
+          : Array.isArray(options.agent)
+            ? options.agent
+            : options.agent
+              ? [options.agent]
+              : undefined
+        const skill = toSingleOrArray(collectOptionValues(argv, ['-s', '--skill']), options.skill)
 
         return handlers.addCommand({
           cwd,
           specifier,
-          skill: options.skill,
+          skill,
           global: options.global,
           yes: options.yes,
           agent,
+          list: options.list,
+          copy: options.copy,
+          all: options.all,
         })
       },
     )
 
-  cli
-    .command('install [...args]')
-    .option('--frozen-lockfile', 'Fail if lockfile is out of sync')
-    .action(async (_args: string[], options: { frozenLockfile?: boolean }) => {
-      return handlers.installCommand({ cwd, frozenLockfile: options.frozenLockfile })
-    })
+  cli.command('install [...args]').action(async () => {
+    return handlers.installCommand({ cwd })
+  })
 
   cli
     .command('patch <skill>')

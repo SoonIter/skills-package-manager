@@ -1,10 +1,5 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
-import { isLockInSync } from '../src/config/compareSkillsLock'
 import { normalizeSpecifier } from '../src/specifiers/normalizeSpecifier'
-import { sha256File } from '../src/utils/hash'
 
 describe('normalizeSpecifier', () => {
   it('parses git path specifier', () => {
@@ -20,6 +15,17 @@ describe('normalizeSpecifier', () => {
     })
   })
 
+  it('parses github: protocol specifiers for skills.json', () => {
+    expect(normalizeSpecifier('github:acme/skills#abc123&path:/skills/hello')).toEqual({
+      type: 'git',
+      source: 'https://github.com/acme/skills.git',
+      ref: 'abc123',
+      path: '/skills/hello',
+      normalized: 'github:acme/skills#abc123&path:/skills/hello',
+      skillName: 'hello',
+    })
+  })
+
   it('parses link specifier that points directly to a skill directory', () => {
     expect(normalizeSpecifier('link:./fixtures/local-source/skills/hello-skill')).toEqual({
       type: 'link',
@@ -31,7 +37,7 @@ describe('normalizeSpecifier', () => {
     })
   })
 
-  it('canonicalizes link specifiers for stable comparisons', () => {
+  it('canonicalizes link and local specifiers for stable comparisons', () => {
     expect(normalizeSpecifier('link:.\\fixtures\\local-source\\skills\\hello-skill/')).toEqual({
       type: 'link',
       source: 'link:./fixtures/local-source/skills/hello-skill',
@@ -40,20 +46,6 @@ describe('normalizeSpecifier', () => {
       normalized: 'link:./fixtures/local-source/skills/hello-skill',
       skillName: 'hello-skill',
     })
-  })
-
-  it('parses local specifier that points directly to a user-owned skill directory', () => {
-    expect(normalizeSpecifier('local:./.agents/skills/hello-skill')).toEqual({
-      type: 'local',
-      source: 'local:./.agents/skills/hello-skill',
-      ref: null,
-      path: '/',
-      normalized: 'local:./.agents/skills/hello-skill',
-      skillName: 'hello-skill',
-    })
-  })
-
-  it('canonicalizes local specifiers for stable comparisons', () => {
     expect(normalizeSpecifier('local:.\\.agents\\skills\\hello-skill/')).toEqual({
       type: 'local',
       source: 'local:./.agents/skills/hello-skill',
@@ -64,48 +56,61 @@ describe('normalizeSpecifier', () => {
     })
   })
 
-  it('rejects link specifiers with path fragments', () => {
+  it('expands local:* using the manifest skill name and installDir', () => {
+    expect(
+      normalizeSpecifier('local:*', {
+        installDir: '.agents/skills',
+        skillName: 'docs-en-improvement',
+      }),
+    ).toEqual({
+      type: 'local',
+      source: 'local:.agents/skills/docs-en-improvement',
+      ref: null,
+      path: '/',
+      normalized: 'local:.agents/skills/docs-en-improvement',
+      skillName: 'docs-en-improvement',
+    })
+  })
+
+  it('rejects link and local specifiers with path fragments', () => {
     expect(() =>
       normalizeSpecifier('link:./fixtures/local-source#path:/skills/hello-skill'),
     ).toThrow('Invalid link specifier')
-  })
-
-  it('rejects local specifiers with path fragments', () => {
     expect(() => normalizeSpecifier('local:./.agents/skills#path:/hello-skill')).toThrow(
       'Invalid local specifier',
     )
   })
 
-  it('parses file tarball specifier', () => {
+  it('parses file tarball specifiers and preserves old #path syntax', () => {
     expect(normalizeSpecifier('file:./fixtures/skills.tgz#path:/skills/hello-skill')).toEqual({
       type: 'file',
       source: 'file:./fixtures/skills.tgz',
       ref: null,
       path: '/skills/hello-skill',
-      normalized: 'file:./fixtures/skills.tgz#path:/skills/hello-skill',
+      normalized: 'file:./fixtures/skills.tgz&path:/skills/hello-skill',
       skillName: 'hello-skill',
     })
   })
 
-  it('parses npm specifier', () => {
-    expect(normalizeSpecifier('npm:@acme/skills#path:/skills/hello-skill')).toEqual({
+  it('parses npm specifiers with version and &path syntax', () => {
+    expect(normalizeSpecifier('npm:@acme/skills@1.2.3&path:skills/hello-skill')).toEqual({
       type: 'npm',
-      source: 'npm:@acme/skills',
+      source: 'npm:@acme/skills@1.2.3',
       ref: null,
       path: '/skills/hello-skill',
-      normalized: 'npm:@acme/skills#path:/skills/hello-skill',
+      normalized: 'npm:@acme/skills@1.2.3&path:/skills/hello-skill',
       skillName: 'hello-skill',
     })
   })
 
-  it('parses git specifier without ref', () => {
-    expect(normalizeSpecifier('https://github.com/acme/skills.git#path:/skills/world')).toEqual({
-      type: 'git',
-      source: 'https://github.com/acme/skills.git',
+  it('infers a root npm skill name from the package name', () => {
+    expect(normalizeSpecifier('npm:@acme/hello-skill@1.2.3')).toEqual({
+      type: 'npm',
+      source: 'npm:@acme/hello-skill@1.2.3',
       ref: null,
-      path: '/skills/world',
-      normalized: 'https://github.com/acme/skills.git#path:/skills/world',
-      skillName: 'world',
+      path: '/',
+      normalized: 'npm:@acme/hello-skill@1.2.3',
+      skillName: 'hello-skill',
     })
   })
 
@@ -115,163 +120,5 @@ describe('normalizeSpecifier', () => {
         'https://github.com/acme/skills.git#path:/skills/world#path:/skills/world',
       ),
     ).toThrow('Invalid specifier: multiple # fragments are not supported')
-  })
-
-  it('treats equivalent link specifiers as in sync', async () => {
-    await expect(
-      isLockInSync(
-        process.cwd(),
-        {
-          installDir: '.agents/skills',
-          linkTargets: [],
-          skills: {
-            'hello-skill': 'link:.\\fixtures\\local-source\\skills\\hello-skill/',
-          },
-        },
-        {
-          lockfileVersion: '0.1',
-          installDir: '.agents/skills',
-          linkTargets: [],
-          skills: {
-            'hello-skill': {
-              specifier: 'link:./fixtures/local-source/skills/hello-skill',
-              resolution: {
-                type: 'link',
-                path: './fixtures/local-source/skills/hello-skill',
-              },
-              digest: 'sha256-test',
-            },
-          },
-        },
-      ),
-    ).resolves.toBe(true)
-  })
-
-  it('treats equivalent local specifiers as in sync', async () => {
-    await expect(
-      isLockInSync(
-        process.cwd(),
-        {
-          installDir: '.agents/skills',
-          linkTargets: [],
-          skills: {
-            'hello-skill': 'local:.\\.agents\\skills\\hello-skill/',
-          },
-        },
-        {
-          lockfileVersion: '0.1',
-          installDir: '.agents/skills',
-          linkTargets: [],
-          skills: {
-            'hello-skill': {
-              specifier: 'local:./.agents/skills/hello-skill',
-              resolution: {
-                type: 'local',
-                path: './.agents/skills/hello-skill',
-              },
-              digest: '',
-            },
-          },
-        },
-      ),
-    ).resolves.toBe(true)
-  })
-
-  it('ignores selfSkill when checking whether a lockfile is in sync', async () => {
-    await expect(
-      isLockInSync(
-        process.cwd(),
-        {
-          installDir: '.agents/skills',
-          linkTargets: [],
-          selfSkill: true,
-          skills: {},
-        },
-        {
-          lockfileVersion: '0.1',
-          installDir: '.agents/skills',
-          linkTargets: [],
-          skills: {},
-        },
-      ),
-    ).resolves.toBe(true)
-  })
-
-  it('treats stale patch metadata as out of sync', async () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-lock-patch-sync-'))
-    const patchPath = path.join(root, 'patches', 'hello-skill.patch')
-
-    mkdirSync(path.dirname(patchPath), { recursive: true })
-    writeFileSync(patchPath, 'diff --git a/SKILL.md b/SKILL.md\n', 'utf8')
-
-    await expect(
-      isLockInSync(
-        root,
-        {
-          installDir: '.agents/skills',
-          linkTargets: [],
-          skills: {
-            'hello-skill': 'link:./fixtures/local-source/skills/hello-skill',
-          },
-          patchedSkills: {
-            'hello-skill': 'patches/hello-skill.patch',
-          },
-        },
-        {
-          lockfileVersion: '0.1',
-          installDir: '.agents/skills',
-          linkTargets: [],
-          skills: {
-            'hello-skill': {
-              specifier: 'link:./fixtures/local-source/skills/hello-skill',
-              resolution: {
-                type: 'link',
-                path: './fixtures/local-source/skills/hello-skill',
-              },
-              digest: 'sha256-test',
-              patch: {
-                path: 'patches/hello-skill.patch',
-                digest: 'sha256-stale',
-              },
-            },
-          },
-        },
-      ),
-    ).resolves.toBe(false)
-
-    await expect(
-      isLockInSync(
-        root,
-        {
-          installDir: '.agents/skills',
-          linkTargets: [],
-          skills: {
-            'hello-skill': 'link:./fixtures/local-source/skills/hello-skill',
-          },
-          patchedSkills: {
-            'hello-skill': 'patches/hello-skill.patch',
-          },
-        },
-        {
-          lockfileVersion: '0.1',
-          installDir: '.agents/skills',
-          linkTargets: [],
-          skills: {
-            'hello-skill': {
-              specifier: 'link:./fixtures/local-source/skills/hello-skill',
-              resolution: {
-                type: 'link',
-                path: './fixtures/local-source/skills/hello-skill',
-              },
-              digest: 'sha256-test',
-              patch: {
-                path: 'patches/hello-skill.patch',
-                digest: await sha256File(patchPath),
-              },
-            },
-          },
-        },
-      ),
-    ).resolves.toBe(true)
   })
 })

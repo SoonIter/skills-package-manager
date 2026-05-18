@@ -10,7 +10,7 @@
 
 <p>
   <strong>The Next-Gen Package Manager for <a href="https://skills-package-manager.site">Agent Skills</a></strong><br>
-  Manage, install, and link SKILL.md-based skills with lockfile-driven reproducibility.
+  Manage, install, and link SKILL.md-based skills from a single `skills.json` manifest.
 </p>
 
 <p>
@@ -40,7 +40,7 @@
 
 ## ✨ Features
 
-- 🔒 **Lockfile-Driven Versioning** — Ditch heavy git commits. `skills-lock.yaml` ensures every team member runs on identical skill versions.
+- 📌 **Single-File Pins** — Keep exact git commits and npm versions directly in `skills.json`.
 - 🌐 **Any Source, Any Skill** — Mix local `link:`, versioned `npm:`, or direct `git:` repos with ease—even sub-folders within `.tgz` archives.
 - 🚀 **npx skills compatible** — A seamless, drop-in replacement. Swap `npx skills` for `npx skills-package-manager` and unlock more power.
 - 🔌 **Native pnpm Integration** — The `pnpm-plugin-skills` hooks directly into your install lifecycle for zero-effort synchronization.
@@ -64,6 +64,10 @@ npx skills-package-manager add rstackjs/agent-skills
 
 # 🎯 Direct — specify skill by name
 npx skills-package-manager add rstackjs/agent-skills --skill pr-creator
+npx skills-package-manager add rstackjs/agent-skills -s pr-creator -s rspress-custom-theme
+
+# 🔎 List without installing
+npx skills-package-manager add rstackjs/agent-skills --list
 
 # 📁 Local skill directory
 npx skills-package-manager add link:./my-skills/my-skill
@@ -75,14 +79,11 @@ npx skills-package-manager add link:./my-skills/my-skill
 npx skills-package-manager install
 ```
 
-> 💡 **Tip:** Use `--frozen-lockfile` in CI/CD to ensure reproducible installs without modifying the lockfile.
-
 ## 🏗️ How It Works
 
-SPM uses two simple files to manage your agent's capabilities:
+SPM uses one manifest file to manage your agent's capabilities:
 
-1.  **`skills.json` (The Manifest)**: The single source of truth where you declare your requirements across any protocol.
-2.  **`skills-lock.yaml` (The Lockfile)**: Deterministically locks every dependency to ensure every installation is identical.
+1.  **`skills.json`**: The single source of truth where you declare pinned skill specifiers, `installDir`, and `linkTargets`.
 
 ## 📚 Documentation
 

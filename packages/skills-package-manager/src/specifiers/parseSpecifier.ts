@@ -13,8 +13,15 @@ export function parseSpecifier(specifier: string) {
   }
 
   const hashIndex = firstHashIndex
-  const sourcePart = hashIndex >= 0 ? specifier.slice(0, hashIndex) : specifier
+  let sourcePart = hashIndex >= 0 ? specifier.slice(0, hashIndex) : specifier
   const fragment = hashIndex >= 0 ? specifier.slice(hashIndex + 1) : ''
+  let sourcePath = ''
+
+  const sourcePathIndex = sourcePart.indexOf('&path:')
+  if (sourcePathIndex >= 0) {
+    sourcePath = sourcePart.slice(sourcePathIndex + '&path:'.length)
+    sourcePart = sourcePart.slice(0, sourcePathIndex)
+  }
 
   if (!sourcePart) {
     throw new ParseError({
@@ -28,7 +35,7 @@ export function parseSpecifier(specifier: string) {
     return {
       sourcePart,
       ref: null,
-      path: '',
+      path: sourcePath,
     }
   }
 
@@ -50,6 +57,6 @@ export function parseSpecifier(specifier: string) {
   return {
     sourcePart,
     ref,
-    path: parsedPath,
+    path: parsedPath || sourcePath,
   }
 }

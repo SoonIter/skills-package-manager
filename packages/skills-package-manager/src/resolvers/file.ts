@@ -1,5 +1,5 @@
 import path from 'node:path'
-import type { SkillsLockEntry } from '../config/types'
+import type { ResolvedSkillEntry } from '../config/types'
 import { sha256File } from '../utils/hash'
 import { toPortableRelativePath } from '../utils/path'
 
@@ -9,7 +9,7 @@ export async function resolveFileEntry(
   pathSegment: string,
   skillName: string,
   specifier: string,
-): Promise<{ skillName: string; entry: SkillsLockEntry }> {
+): Promise<{ skillName: string; entry: ResolvedSkillEntry }> {
   const tarballPath = path.resolve(cwd, source.slice('file:'.length))
   return {
     skillName,

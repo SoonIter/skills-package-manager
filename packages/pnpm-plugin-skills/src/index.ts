@@ -3,18 +3,18 @@ import { installCommand } from 'skills-package-manager'
 export async function preResolution(
   options: { lockfileDir?: string; workspaceRoot?: string } = {},
 ) {
-  const lockfileDir = options.lockfileDir
-  if (!lockfileDir) {
+  const projectRoot = options.lockfileDir
+  if (!projectRoot) {
     return undefined
   }
 
-  await installCommand({ cwd: lockfileDir })
+  await installCommand({ cwd: projectRoot })
   return undefined
 }
 
 export function afterAllResolved(
-  lockfile: Record<string, unknown>,
+  pnpmLockfile: Record<string, unknown>,
   _context: { log?: (message: string) => void } = {},
 ) {
-  return lockfile
+  return pnpmLockfile
 }

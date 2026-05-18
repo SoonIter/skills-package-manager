@@ -1,11 +1,11 @@
 import { access, lstat, readlink } from 'node:fs/promises'
 import path from 'node:path'
-import type { SkillsLock, SkillsLockEntry } from '../config/types'
+import type { ResolvedSkillsPlan, ResolvedSkillEntry } from '../config/types'
 import { ErrorCode, getErrorMessage, SpmError } from '../errors'
 import { writeInstallState } from '../install/installState'
 import { ensureLocalSkillGitignoreRules, getLocalSkillDirs } from '../install/localSkills'
+import { installStageHooks } from '../install/installPlan'
 import { pruneManagedSkills } from '../install/pruneManagedSkills'
-import { installStageHooks } from '../install/withBundledSelfSkillLock'
 import { sha256 } from '../utils/hash'
 import { createPipelineBus } from './bus'
 import { createFetchTaskQueue } from './fetchQueue'
@@ -15,7 +15,7 @@ import type { PipelineOptions, PipelineResult, WorkspaceContext } from './types'
 
 export interface RunPipelineInput {
   ctx: WorkspaceContext
-  entries: Record<string, SkillsLockEntry>
+  plan: ResolvedSkillsPlan
   skipResolve?: boolean
   options?: PipelineOptions
 }
@@ -61,27 +61,24 @@ async function areLinksUpToDate(
 }
 
 export async function runPipeline(input: RunPipelineInput): Promise<PipelineResult> {
-  const { ctx, entries, skipResolve = false, options = {} } = input
+  const { ctx, plan, skipResolve = false, options = {} } = input
+  const { skills: entries, installDir, linkTargets } = plan
   const bus = createPipelineBus(options.onProgress)
   const errors: unknown[] = []
-
-  const installDir = ctx.lockfile?.installDir ?? ctx.manifest.installDir ?? '.agents/skills'
-  const linkTargets = ctx.lockfile?.linkTargets ?? ctx.manifest.linkTargets ?? []
 
   // Fast path: skip all work when install state is up-to-date
   const sortedSkillNames = Object.keys(entries).sort()
   const sortedEntries = Object.fromEntries(
     sortedSkillNames.map((skillName) => [skillName, entries[skillName]]),
-  ) as Record<string, SkillsLockEntry>
-  const lockfileForDigest: SkillsLock = {
-    lockfileVersion: '0.1',
+  ) as Record<string, ResolvedSkillEntry>
+  const planForDigest: ResolvedSkillsPlan = {
     installDir,
     linkTargets,
     skills: sortedEntries,
   }
-  const currentDigest = sha256(JSON.stringify(lockfileForDigest))
+  const currentDigest = sha256(JSON.stringify(planForDigest))
   if (
-    ctx.installState?.lockDigest === currentDigest &&
+    ctx.installState?.planDigest === currentDigest &&
     (await areManagedSkillsInstalled(ctx.cwd, installDir, sortedSkillNames)) &&
     (await areLinksUpToDate(ctx.cwd, installDir, linkTargets, sortedSkillNames))
   ) {
@@ -100,11 +97,14 @@ export async function runPipeline(input: RunPipelineInput): Promise<PipelineResu
   const fetchQueue = createFetchTaskQueue(ctx, bus, {
     concurrency: options.fetchConcurrency ?? 4,
     maxPending: 20,
+    installDir,
   })
 
   const linkQueue = createLinkTaskQueue(ctx, bus, {
     concurrency: options.linkConcurrency ?? 16,
     maxPending: 20,
+    installDir,
+    linkTargets,
   })
 
   // Backpressure wiring
@@ -146,26 +146,15 @@ export async function runPipeline(input: RunPipelineInput): Promise<PipelineResu
 
   const skillNames = Object.keys(entries)
 
-  await installStageHooks.beforeFetch(ctx.cwd, ctx.manifest, {
-    lockfileVersion: '0.1',
-    installDir,
-    linkTargets,
-    skills: entries,
-  })
+  await installStageHooks.beforeFetch(ctx.cwd, ctx.manifest, plan)
 
-  const runtimeLockfile: SkillsLock = {
-    lockfileVersion: '0.1',
-    installDir,
-    linkTargets,
-    skills: entries,
-  }
-  await ensureLocalSkillGitignoreRules(ctx.cwd, runtimeLockfile)
+  await ensureLocalSkillGitignoreRules(ctx.cwd, plan)
   await pruneManagedSkills(
     ctx.cwd,
     installDir,
     linkTargets,
     skillNames,
-    getLocalSkillDirs(ctx.cwd, [runtimeLockfile, ctx.lockfile]),
+    getLocalSkillDirs(ctx.cwd, [plan]),
   )
 
   if (skipResolve) {
@@ -205,12 +194,11 @@ export async function runPipeline(input: RunPipelineInput): Promise<PipelineResu
 
   const results = bus.getResults()
   if (results.resolved.length > 0 || results.fetched.length > 0 || skipResolve) {
-    const lockfile: SkillsLock = {
-      lockfileVersion: '0.1',
+    const installedPlan: ResolvedSkillsPlan = {
       installDir,
       linkTargets,
       skills: skipResolve
-        ? entries
+        ? sortedEntries
         : Object.fromEntries(
             results.resolved
               .slice()
@@ -218,9 +206,9 @@ export async function runPipeline(input: RunPipelineInput): Promise<PipelineResu
               .map((r) => [r.skillName, r.entry]),
           ),
     }
-    const lockDigest = sha256(JSON.stringify(lockfile))
+    const planDigest = sha256(JSON.stringify(installedPlan))
     await writeInstallState(ctx.cwd, installDir, {
-      lockDigest,
+      planDigest,
       manifestStat: ctx.manifestStat ?? undefined,
       installDir,
       linkTargets,

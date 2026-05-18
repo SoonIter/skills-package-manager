@@ -1,12 +1,16 @@
-import { attachManifestPatchToEntry, resolveLockEntry } from '../config/syncSkillsLock'
-import type { SkillsLock, UpdateCommandOptions, UpdateCommandResult } from '../config/types'
-import { writeSkillsLock } from '../config/writeSkillsLock'
+import { resolveSkillsPlan } from '../config/resolveSkillsPlan'
+import type {
+  NormalizedSkillsManifest,
+  UpdateCommandOptions,
+  UpdateCommandResult,
+} from '../config/types'
+import { writeSkillsManifest } from '../config/writeSkillsManifest'
 import { ErrorCode, ManifestError, SkillError } from '../errors'
-import { withBundledSelfSkillLock } from '../install/withBundledSelfSkillLock'
+import { resolveGitCommit } from '../resolvers/git'
+import { resolveNpmPackage } from '../npm/packPackage'
 import { runPipeline } from '../pipeline'
 import { loadConfig } from '../pipeline/context'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
-import { stableStringify } from '../utils/stableStringify'
 
 function createEmptyResult(): UpdateCommandResult {
   return {
@@ -18,19 +22,66 @@ function createEmptyResult(): UpdateCommandResult {
   }
 }
 
-function createBaseLock(_cwd: string, currentLock: SkillsLock | null): SkillsLock {
-  if (currentLock) {
+function formatPathSuffix(skillPath: string): string {
+  return skillPath === '/' ? '' : `&path:${skillPath}`
+}
+
+function toGitHubSpecifierSource(repoUrl: string): string {
+  const match = repoUrl.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?\/?$/)
+  if (!match) {
+    return repoUrl
+  }
+
+  const [, owner, repo] = match
+  return `github:${owner}/${repo.replace(/\.git$/, '')}`
+}
+
+function parseNpmPackageName(source: string): string {
+  const packageSpecifier = source.slice('npm:'.length)
+  const scopedMatch = packageSpecifier.match(/^(@[^/]+\/[^@]+)(?:@.+)?$/)
+  if (scopedMatch) {
+    return scopedMatch[1]
+  }
+
+  const unscopedMatch = packageSpecifier.match(/^([^@]+)(?:@.+)?$/)
+  if (unscopedMatch) {
+    return unscopedMatch[1]
+  }
+
+  throw new Error(`Unsupported npm specifier: ${packageSpecifier}`)
+}
+
+async function resolveUpdatedSpecifier(
+  cwd: string,
+  manifest: NormalizedSkillsManifest,
+  skillName: string,
+): Promise<{ specifier: string; skipped?: UpdateCommandResult['skipped'][number]['reason'] }> {
+  const currentSpecifier = manifest.skills[skillName]
+  const normalized = normalizeSpecifier(currentSpecifier, {
+    installDir: manifest.installDir,
+    skillName,
+  })
+
+  if (normalized.type === 'link') {
+    return { specifier: currentSpecifier, skipped: 'link-specifier' }
+  }
+  if (normalized.type === 'local') {
+    return { specifier: currentSpecifier, skipped: 'local-specifier' }
+  }
+  if (normalized.type === 'file') {
+    return { specifier: currentSpecifier, skipped: 'file-specifier' }
+  }
+  if (normalized.type === 'git') {
+    const commit = await resolveGitCommit(normalized.source, 'main')
     return {
-      ...currentLock,
-      skills: { ...currentLock.skills },
+      specifier: `${toGitHubSpecifierSource(normalized.source)}#${commit}${formatPathSuffix(normalized.path)}`,
     }
   }
 
+  const packageName = parseNpmPackageName(normalized.source)
+  const resolved = await resolveNpmPackage(cwd, packageName)
   return {
-    lockfileVersion: '0.1',
-    installDir: '.agents/skills',
-    linkTargets: [],
-    skills: {},
+    specifier: `npm:${resolved.name}@${resolved.version}${formatPathSuffix(normalized.path)}`,
   }
 }
 
@@ -57,38 +108,25 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
   }
 
   const result = createEmptyResult()
-  const candidateLock = createBaseLock(options.cwd, ctx.lockfile)
-  candidateLock.installDir = ctx.manifest.installDir ?? '.agents/skills'
-  candidateLock.linkTargets = ctx.manifest.linkTargets ?? []
+  const nextManifest: NormalizedSkillsManifest = {
+    ...ctx.manifest,
+    skills: { ...ctx.manifest.skills },
+  }
 
   for (const skillName of targetSkills) {
-    const specifier = ctx.manifest.skills[skillName]
-
     try {
-      const normalized = normalizeSpecifier(specifier)
-      if (normalized.type === 'link') {
-        result.skipped.push({ name: skillName, reason: 'link-specifier' })
-        continue
-      }
-      if (normalized.type === 'local') {
-        result.skipped.push({ name: skillName, reason: 'local-specifier' })
+      const update = await resolveUpdatedSpecifier(options.cwd, ctx.manifest, skillName)
+      if (update.skipped) {
+        result.skipped.push({ name: skillName, reason: update.skipped })
         continue
       }
 
-      const { entry } = await resolveLockEntry(options.cwd, specifier)
-      const nextEntry = await attachManifestPatchToEntry(
-        options.cwd,
-        ctx.manifest,
-        skillName,
-        entry,
-      )
-      const previous = ctx.lockfile?.skills[skillName]
-      if (previous && stableStringify(previous) === stableStringify(nextEntry)) {
+      if (ctx.manifest.skills[skillName] === update.specifier) {
         result.unchanged.push(skillName)
         continue
       }
 
-      candidateLock.skills[skillName] = nextEntry
+      nextManifest.skills[skillName] = update.specifier
       result.updated.push(skillName)
     } catch (error) {
       result.failed.push({ name: skillName, reason: (error as Error).message })
@@ -100,15 +138,19 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
     return result
   }
 
-  const runtimeLock = await withBundledSelfSkillLock(options.cwd, ctx.manifest, candidateLock)
-
+  const plan = await resolveSkillsPlan(options.cwd, nextManifest)
   await runPipeline({
-    ctx,
-    entries: runtimeLock.skills,
+    ctx: {
+      ...ctx,
+      manifest: nextManifest,
+    },
+    plan,
     skipResolve: true,
   })
 
-  await writeSkillsLock(options.cwd, candidateLock)
+  if (result.updated.length > 0) {
+    await writeSkillsManifest(options.cwd, nextManifest)
+  }
 
   result.status = result.updated.length > 0 ? 'updated' : 'skipped'
   return result

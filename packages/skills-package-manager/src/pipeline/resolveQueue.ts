@@ -15,7 +15,10 @@ export function createResolveTaskQueue(
   async function processor(task: ResolveTask): Promise<ResolveResult> {
     let normalized: NormalizedSpecifier
     try {
-      normalized = normalizeSpecifier(task.specifier)
+      normalized = normalizeSpecifier(task.specifier, {
+        installDir: _ctx.manifest.installDir,
+        skillName: task.skillName,
+      })
     } catch (error) {
       if (error instanceof ParseError) {
         throw error

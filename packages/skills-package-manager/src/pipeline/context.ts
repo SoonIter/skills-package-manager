@@ -1,6 +1,5 @@
 import { lstat } from 'node:fs/promises'
 import path from 'node:path'
-import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
 import type { NormalizedSkillsManifest } from '../config/types'
 import { readInstallState } from '../install/installState'
@@ -10,7 +9,6 @@ import type { InstallState, ManifestStat, WorkspaceContext } from './types'
 
 export async function loadConfig(cwd: string): Promise<WorkspaceContext> {
   const manifest = await readSkillsManifest(cwd)
-  const lockfile = await readSkillsLock(cwd)
   const npmConfig = await loadNpmConfig(cwd)
   const installDir = manifest?.installDir ?? '.agents/skills'
   const installState = await readInstallState(cwd, installDir)
@@ -28,7 +26,6 @@ export async function loadConfig(cwd: string): Promise<WorkspaceContext> {
     cwd: path.resolve(cwd),
     manifest: normalizeManifest(manifest),
     manifestExists: manifest !== null,
-    lockfile,
     npmConfig,
     installState: installState as InstallState | null,
     manifestStat,

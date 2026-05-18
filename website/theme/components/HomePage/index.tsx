@@ -136,7 +136,7 @@ function getConceptIcon(icon: string) {
       </Icon>
     )
   }
-  if (icon === 'lockfile') {
+  if (icon === 'lock') {
     return (
       <Icon>
         <path d="M12 11V7a3 3 0 0 1 6 0v4" />
@@ -307,7 +307,7 @@ function Terminal() {
         <span className="t-success">✔</span> Linking .cursor/skills
       </span>,
       <span key="10">
-        <span className="t-success">✔</span> Updating skills-lock.yaml
+        <span className="t-success">✔</span> Writing install state
       </span>,
       <span key="11" className="t-done">
         ✨ Done in 1.2s
@@ -365,8 +365,6 @@ function Terminal() {
 }
 
 function ConfigViewer() {
-  const [activeTab, setActiveTab] = useState<'manifest' | 'lock'>('manifest')
-
   const manifestCode = [
     { line: 1, text: '{' },
     {
@@ -379,27 +377,14 @@ function ConfigViewer() {
     { line: 6, text: '  "skills": {' },
     {
       line: 7,
-      text: '    "pr-creator": "https://github.com/rstackjs/agent-skills.git#89bd10a...&path:/skills/pr-creator",',
+      text: '    "pr-creator": "github:rstackjs/agent-skills#89bd10a&path:/skills/pr-creator",',
     },
-    { line: 8, text: '    "npm-skill": "npm:@scope/agent-logic@^1.2.0",' },
+    { line: 8, text: '    "npm-skill": "npm:@scope/agent-logic@1.2.0&path:skills/agent-logic",' },
     { line: 9, text: '    "custom-dev": "link:./packages/my-custom-skill",' },
-    { line: 10, text: '    "local-dev": "local:./.agents/skills/local-dev",' },
+    { line: 10, text: '    "local-dev": "local:*",' },
     { line: 11, text: '    "legacy-v1": "file:./backups/old-agent.tgz"' },
     { line: 12, text: '  }' },
     { line: 13, text: '}' },
-  ]
-
-  const lockCode = [
-    { line: 1, text: 'lockfileVersion: "0.1"' },
-    { line: 2, text: 'installDir: .agents/skills' },
-    { line: 3, text: 'linkTargets:' },
-    { line: 4, text: '  - .claude/skills' },
-    { line: 5, text: 'skills:' },
-    { line: 6, text: '  pr-creator:' },
-    { line: 7, text: '    specifier: https://github.com/rstackjs/agent-skills.git#89bd10a...' },
-    { line: 8, text: '    resolution:' },
-    { line: 9, text: '      type: git' },
-    { line: 10, text: '      commit: 89bd10a842356073382b281509b4c8af7f9eb5a8' },
   ]
 
   const highlightLine = (text: string) => {
@@ -426,14 +411,14 @@ function ConfigViewer() {
         )
         if (isKey) parts.push(':')
       } else if (match[3]) {
-        // JSON/YAML punctuation
+        // JSON punctuation
         parts.push(
           <span key={match.index} className="c-punc">
             {match[3]}
           </span>,
         )
       } else if (match[4]) {
-        // YAML key
+        // Object key
         parts.push(
           <span key={match.index} className="c-key">
             {match[4]}
@@ -451,8 +436,6 @@ function ConfigViewer() {
     return parts
   }
 
-  const code = activeTab === 'manifest' ? manifestCode : lockCode
-
   return (
     <div className="spm-hero-window spm-config-window">
       <div className="spm-hero-window__header">
@@ -464,24 +447,16 @@ function ConfigViewer() {
         <div className="spm-hero-window__tabs">
           <button
             type="button"
-            className={`t-tab ${activeTab === 'manifest' ? 't-tab--active' : ''}`}
-            onClick={() => setActiveTab('manifest')}
+            className="t-tab t-tab--active"
           >
             skills.json
-          </button>
-          <button
-            type="button"
-            className={`t-tab ${activeTab === 'lock' ? 't-tab--active' : ''}`}
-            onClick={() => setActiveTab('lock')}
-          >
-            skills-lock.yaml
           </button>
         </div>
       </div>
       <div className="spm-hero-window__body">
         <pre className="spm-config__code">
           <code>
-            {code.map((item) => (
+            {manifestCode.map((item) => (
               <div key={item.line} className="spm-config__line">
                 <span className="spm-config__line-num">{item.line}</span>
                 <span className="spm-config__line-content">{highlightLine(item.text)}</span>
@@ -598,7 +573,7 @@ export function HomePage() {
         <div className="spm-container">
           <div className="spm-section-header">
             <h2>Core Concepts</h2>
-            <p>Two simple files power your entire workflow.</p>
+            <p>One manifest powers your entire workflow.</p>
           </div>
           <div className="spm-concepts-grid">
             {concepts.map((c) => (

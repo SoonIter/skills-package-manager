@@ -1,5 +1,5 @@
 import path from 'node:path'
-import type { SkillsLockEntry } from '../config/types'
+import type { ResolvedSkillEntry } from '../config/types'
 import { toPortableRelativePath } from '../utils/path'
 
 export async function resolveLocalEntry(
@@ -7,7 +7,7 @@ export async function resolveLocalEntry(
   source: string,
   skillName: string,
   specifier: string,
-): Promise<{ skillName: string; entry: SkillsLockEntry }> {
+): Promise<{ skillName: string; entry: ResolvedSkillEntry }> {
   const sourceRoot = path.resolve(cwd, source.slice('local:'.length))
   return {
     skillName,

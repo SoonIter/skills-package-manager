@@ -1,194 +1,49 @@
 # CLI commands
 
-The documented CLI workflow centers on `npx skills-package-manager` for the six main actions of skill management: add, init, install, patch, patch-commit, and update.
+The CLI workflow centers on six actions: add, init, install, patch, patch-commit, and update.
 
 ## `npx skills-package-manager add`
 
-Add a skill to your project.
+`add` discovers or accepts a skill specifier, writes the selected skill to `skills.json`, and installs it immediately.
 
-```bash
-# Interactive discovery and selection
-npx skills-package-manager add owner/repo
-npx skills-package-manager add https://github.com/owner/repo
+For remote sources, `add` writes pinned specifiers:
 
-# Non-interactively add a specific skill
-npx skills-package-manager add owner/repo --skill find-skills
-npx skills-package-manager add owner/repo@find-skills
-npx skills-package-manager add owner/repo#main@find-skills
-
-# Direct repo subpath or local path
-npx skills-package-manager add owner/repo/skills/my-skill
-npx skills-package-manager add https://github.com/owner/repo/tree/main/skills/my-skill#main
-npx skills-package-manager add ./local-source
-
-# Use a full specifier directly
-npx skills-package-manager add https://github.com/owner/repo.git#path:/skills/my-skill
-npx skills-package-manager add link:./local-source/skills/my-skill
-npx skills-package-manager add local:./.agents/skills/my-skill
-npx skills-package-manager add file:./skills-package.tgz#path:/skills/my-skill
-npx skills-package-manager add npm:@scope/skills-package#path:/skills/my-skill
-```
-
-Behavior overview:
-
-1. Perform a shallow clone of the GitHub repository
-2. Scan `SKILL.md` files and discover candidate skills
-3. Select interactively or target a specific skill with `--skill`
-4. Write to `skills.json`
-5. Immediately install and link the new skill
+- GitHub and git sources are written with a resolved commit.
+- npm sources are written with a resolved version.
 
 ## `npx skills-package-manager init`
 
-Initialize `skills.json` in the current project.
-
-```bash
-# Interactive
-npx skills-package-manager init
-
-# Non-interactive defaults
-npx skills-package-manager init --yes
-```
-
-Init behavior:
-
-- `npx skills-package-manager init` prompts for `installDir` and additional `linkTargets`
-- `npx skills-package-manager init --yes` writes default values directly
-- The generated manifest sets `selfSkill` to `false`
-- Fails if `skills.json` already exists
-- Does not create `skills-lock.yaml`
+`init` creates `skills.json` in the current project. It prompts for `installDir` and `linkTargets` unless `--yes` is passed.
 
 ## `npx skills-package-manager install`
 
-Install all skills declared in `skills.json`.
+`install` restores everything declared in `skills.json`.
 
-```bash
-npx skills-package-manager install
-```
+Install process:
 
-Useful for:
+1. Load `skills.json`, `.npmrc`, cache, and install state.
+2. Resolve the manifest into an in-memory install plan.
+3. Inject the bundled helper skill when `selfSkill` is enabled.
+4. Prune managed skills that are no longer declared.
+5. Fetch managed skills into `installDir`.
+6. Link skills into `linkTargets`.
+7. Write `.skills-pm-install-state.json` for repeat-install fast paths.
 
-- Initializing a new environment
-- Restoring skill dependencies in CI
-- Re-syncing the managed skill directory after changing the manifest
-
-### Install Process
-
-When you run `npx skills-package-manager install`, the following happens:
-
-1. **Load configuration** — Build `WorkspaceContext` from `skills.json`, `skills-lock.yaml`, `.npmrc`, and install state
-   - If `selfSkill` is enabled, inject the bundled `skills-package-manager-cli` helper skill for this run without writing it to `skills-lock.yaml`
-2. **Resolve** — Run `ResolveTaskQueue` to resolve each skill specifier to a lock entry
-   - This step may involve git/network requests, even when a corresponding entry already exists in `skills-lock.yaml`
-3. **Prune** — Remove skills that are no longer in the manifest
-4. **Fetch** — Run `FetchTaskQueue` to download/copy skills to `installDir`
-   - Uses the content-addressable KV cache for npm tarballs
-5. **Link** — Run `LinkTaskQueue` to create symlinks in `linkTargets`
-6. **Write lockfile** — Save updated `skills-lock.yaml`
-
-The resolve, fetch, and link stages operate as a **pipeline**: as soon as a skill is resolved it can begin fetching, and as soon as it is fetched it can begin linking. Backpressure pauses upstream queues when downstream queues exceed their pending limits.
-
-### `--frozen-lockfile`
-
-Prevent lockfile modifications and fail if it's out of sync.
-
-```bash
-npx skills-package-manager install --frozen-lockfile
-```
-
-**When to use:**
-
-- CI/build environments where you want reproducible installs
-- When you want to ensure the lockfile is not accidentally modified
-- When you want faster installs (no git network requests to resolve refs)
-
-**Behavior differences from normal install:**
-
-| Aspect | Normal install | `--frozen-lockfile` |
-|--------|---------------|---------------------|
-| Lockfile updates | Yes, if manifest changed | No, fails if out of sync |
-| Git network requests | Yes, to resolve refs | No, uses locked commits |
-| First-time setup | Works without lockfile | Requires existing lockfile |
-| Use case | Development, updating deps | CI, reproducible builds |
-
-**Error scenarios:**
-
-| Error | Cause | Solution |
-|-------|-------|----------|
-| "Lockfile is required in frozen mode" | No `skills-lock.yaml` exists | Run `npx skills-package-manager install` without flag first |
-| "Lockfile is out of sync" | Manifest specifiers don't match lockfile | Run `npx skills-package-manager install` without flag to update lockfile |
-
-### Troubleshooting
-
-**Install fails with "Lockfile is out of sync"**
-
-This means the specifiers in `skills.json` don't match what's in `skills-lock.yaml`. Common causes:
-
-1. You edited `skills.json` manually without updating the lockfile
-2. Someone else committed a new lockfile and your manifest is outdated
-
-Solutions:
-
-- Run `npx skills-package-manager install` without `--frozen-lockfile` to update the lockfile
-- Or revert your manifest changes to match the lockfile
+No separate lock file is written.
 
 ## `npx skills-package-manager update`
 
-Refresh already-declared resolvable skills.
+`update` refreshes already-declared remote skills.
 
-```bash
-npx skills-package-manager update
-npx skills-package-manager update find-skills rspress-custom-theme
-```
-
-Update behavior:
-
-- Uses `skills.json` as the source of truth
-- Re-resolves git refs and npm package targets
-- Skips local `link:` and `local:` skills, including the bundled self skill
-- Fails immediately on unknown skill names
-- Writes back `skills-lock.yaml` only after fetch and link both succeed
+- Git and `github:` skills move to the latest `main` commit.
+- `npm:` skills move to the registry `latest` version.
+- `link:`, `local:`, and `file:` skills are skipped.
+- `skills.json` is written only after the updated install succeeds.
 
 ## `npx skills-package-manager patch`
 
-Prepare a skill for local editing.
-
-```bash
-npx skills-package-manager patch hello-skill
-npx skills-package-manager patch hello-skill --edit-dir ./tmp/hello-skill
-```
-
-Patch behavior:
-
-- Resolves the currently locked content of the target skill
-- Extracts an editable copy into a temporary directory by default
-- Reapplies the committed patch unless `--ignore-existing` is passed
-- Stores patch edit metadata for `patch-commit`
+`patch` resolves the current manifest content for a skill, extracts an editable copy, and records patch edit metadata.
 
 ## `npx skills-package-manager patch-commit`
 
-Commit an edited patch directory back into the project.
-
-```bash
-npx skills-package-manager patch-commit /tmp/skills-pm-patch-hello-skill-12345
-npx skills-package-manager patch-commit ./tmp/hello-skill --patches-dir ./custom-patches
-```
-
-Patch-commit behavior:
-
-- Reconstructs the original unpatched skill content from the edit metadata
-- Generates a unified diff patch file
-- Writes that patch file to `patches/` by default
-- Records the patch in `skills.json` under `patchedSkills`
-- Stores patch path and digest metadata in `skills-lock.yaml`
-- Reinstalls the patched skill immediately so `installDir` stays current
-
-## When to use which
-
-| Command | Typical scenario |
-| --- | --- |
-| `npx skills-package-manager add` | Introduce a new skill for the first time |
-| `npx skills-package-manager init` | Create the initial `skills.json` manifest |
-| `npx skills-package-manager install` | Restore all skills from the manifest |
-| `npx skills-package-manager patch` | Open an installed skill for patch editing |
-| `npx skills-package-manager patch-commit` | Save an edited patch and reapply it to the project |
-| `npx skills-package-manager update` | Refresh versions of resolvable git or npm skills |
+`patch-commit` generates a patch file, records it under `patchedSkills` in `skills.json`, and immediately reinstalls the patched skill.

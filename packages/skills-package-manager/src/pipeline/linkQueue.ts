@@ -8,10 +8,9 @@ export type LinkQueue = TaskQueue<LinkTask, LinkResult>
 export function createLinkTaskQueue(
   ctx: WorkspaceContext,
   bus: PipelineBus,
-  options: { concurrency: number; maxPending?: number },
+  options: { concurrency: number; maxPending?: number; installDir: string; linkTargets: string[] },
 ): LinkQueue {
-  const installDir = ctx.lockfile?.installDir ?? ctx.manifest.installDir ?? '.agents/skills'
-  const linkTargets = ctx.lockfile?.linkTargets ?? ctx.manifest.linkTargets ?? []
+  const { installDir, linkTargets } = options
 
   async function processor(task: LinkTask): Promise<LinkResult> {
     try {

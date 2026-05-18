@@ -1,8 +1,8 @@
 import type {
   InstallProgressEvent,
   NormalizedSkillsManifest,
-  SkillsLock,
-  SkillsLockEntry,
+  ResolvedSkillsPlan,
+  ResolvedSkillEntry,
 } from '../config/types'
 import type { NpmConfig } from '../npm/packPackage'
 
@@ -31,7 +31,6 @@ export interface WorkspaceContext {
   cwd: string
   manifest: NormalizedSkillsManifest
   manifestExists: boolean
-  lockfile: SkillsLock | null
   npmConfig: NpmConfig
   installState: InstallState | null
   manifestStat: ManifestStat | null
@@ -39,7 +38,7 @@ export interface WorkspaceContext {
 }
 
 export interface InstallState {
-  lockDigest: string
+  planDigest: string
   manifestStat?: ManifestStat
   installDir: string
   linkTargets: string[]
@@ -58,17 +57,17 @@ export interface ResolveTask {
 
 export interface ResolveResult {
   skillName: string
-  entry: SkillsLockEntry
+  entry: ResolvedSkillEntry
 }
 
 export interface FetchTask {
   skillName: string
-  entry: SkillsLockEntry
+  entry: ResolvedSkillEntry
 }
 
 export interface FetchResult {
   skillName: string
-  entry: SkillsLockEntry
+  entry: ResolvedSkillEntry
   installPath: string
   fromCache?: boolean
   skipped?: boolean
@@ -76,7 +75,7 @@ export interface FetchResult {
 
 export interface LinkTask {
   skillName: string
-  entry: SkillsLockEntry
+  entry: ResolvedSkillEntry
   installPath: string
 }
 

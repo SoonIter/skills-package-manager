@@ -33,14 +33,21 @@ npx skills-package-manager init --yes
 npx skills-package-manager add vercel-labs/skills
 npx skills-package-manager add https://github.com/rstackjs/agent-skills
 
-# Non-interactive — add a specific skill by name
+# Non-interactive — add one or more specific skills by name
 npx skills-package-manager add vercel-labs/skills --skill find-skills
+npx skills-package-manager add vercel-labs/skills -s frontend-design -s skill-creator
 npx skills-package-manager add vercel-labs/skills@find-skills
 
+# skills CLI-compatible inspection and broad install flags
+npx skills-package-manager add vercel-labs/skills --list
+npx skills-package-manager add vercel-labs/skills --all
+
 # Direct repo subpath or local path
-npx skills-package-manager add https://github.com/tool-belt/skills/tree/main/guides/design/landing-page-design#main
+npx skills-package-manager add https://github.com/tool-belt/skills/tree/main/guides/design/landing-page-design
 npx skills-package-manager add ./my-skills
 ```
+
+GitHub sources are written to `skills.json` using pinned `github:owner/repo#<commit>&path:<path>` specifiers.
 
 Example `skills.json`:
 
@@ -48,9 +55,8 @@ Example `skills.json`:
 {
   "installDir": ".agents/skills",
   "linkTargets": [".claude/skills"],
-  "selfSkill": false,
   "skills": {
-    "find-skills": "https://github.com/vercel-labs/skills.git#path:/skills/find-skills"
+    "find-skills": "github:vercel-labs/skills#abc1234&path:/skills/find-skills"
   }
 }
 ```
@@ -59,7 +65,7 @@ This manifest defines:
 
 - `installDir`: where managed skills are materialized
 - `linkTargets`: which agent-specific directories receive links
-- `selfSkill`: whether to auto-install the bundled `skills-package-manager-cli` skill for help with `skills.json`, `skills-lock.yaml`, and `npx skills-package-manager` commands. This helper skill is not written to `skills-lock.yaml`. Defaults to `false`
+- `selfSkill`: whether to auto-install the bundled `skills-package-manager-cli` skill for help with `skills.json` and `npx skills-package-manager` commands. Defaults to `false`
 - `skills`: which skills should be installed
 
 ### Run pnpm as usual
@@ -74,9 +80,8 @@ During this process, the plugin will:
 
 1. Read `skills.json`
 2. Resolve each skill source
-3. Generate or update `skills-lock.yaml`
-4. Materialize skills into `installDir`
-5. Link them into every directory listed in `linkTargets`
+3. Materialize skills into `installDir`
+4. Link them into every directory listed in `linkTargets`
 
 That means your regular pnpm bootstrap flow now also restores agent skill context.
 
@@ -99,12 +104,13 @@ When you want to introduce another skill, you can either edit `skills.json` dire
 ```bash
 npx skills-package-manager add vercel-labs/skills --skill find-skills
 npx skills-package-manager add https://github.com/rstackjs/agent-skills --skill rspress-custom-theme
+npx skills-package-manager add vercel-labs/skills --list
 ```
 
 
 ## 3. Refresh remote skill versions
 
-When remote git-based (URL) or `npm:` skills should move forward to newer resolved versions, run:
+When remote git-based (URL or `github:`) or `npm:` skills should move forward, run:
 
 ```bash
 npx skills-package-manager update
@@ -116,4 +122,4 @@ Then run:
 pnpm install
 ```
 
-This keeps the resolved lockfile state and linked directories aligned with the latest declared versions.
+`update` writes newer pins back to `skills.json`; `pnpm install` then restores the linked directories from that manifest.

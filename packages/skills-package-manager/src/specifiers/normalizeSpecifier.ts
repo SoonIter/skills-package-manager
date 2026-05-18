@@ -4,7 +4,55 @@ import { ErrorCode, ParseError } from '../errors'
 import { normalizeLinkSource, normalizeLocalSource } from './normalizeLinkSource'
 import { parseSpecifier } from './parseSpecifier'
 
-export function normalizeSpecifier(specifier: string): NormalizedSpecifier {
+type NormalizeSpecifierOptions = {
+  installDir?: string
+  skillName?: string
+}
+
+function normalizeSkillPath(skillPath: string): string {
+  if (!skillPath) {
+    return '/'
+  }
+  const normalized = skillPath.replace(/\\/g, '/')
+  return normalized.startsWith('/') ? normalized : `/${normalized}`
+}
+
+function normalizeGitHubSource(sourcePart: string): {
+  source: string
+  normalizedSource: string
+} | null {
+  const match = sourcePart.match(/^github:([^/]+)\/([^/]+?)(?:\.git)?\/?$/)
+  if (!match) {
+    return null
+  }
+
+  const [, owner, repo] = match
+  const cleanRepo = repo.replace(/\.git$/, '')
+  return {
+    source: `https://github.com/${owner}/${cleanRepo}.git`,
+    normalizedSource: `github:${owner}/${cleanRepo}`,
+  }
+}
+
+function inferRootSkillName(type: NormalizedSpecifier['type'], sourcePart: string): string {
+  if (type === 'npm') {
+    const packageName = sourcePart.slice('npm:'.length).replace(/@[^@/]+$/, '')
+    return path.posix.basename(packageName)
+  }
+
+  if (type === 'git') {
+    const githubSource = normalizeGitHubSource(sourcePart)
+    const source = githubSource?.normalizedSource ?? sourcePart.replace(/\.git\/?$/, '')
+    return path.posix.basename(source)
+  }
+
+  return ''
+}
+
+export function normalizeSpecifier(
+  specifier: string,
+  options: NormalizeSpecifierOptions = {},
+): NormalizedSpecifier {
   if (
     (specifier.startsWith('link:') || specifier.startsWith('local:')) &&
     specifier.includes('#')
@@ -46,7 +94,14 @@ export function normalizeSpecifier(specifier: string): NormalizedSpecifier {
     const localSource =
       type === 'link'
         ? normalizeLinkSource(parsed.sourcePart)
-        : normalizeLocalSource(parsed.sourcePart)
+        : parsed.sourcePart === 'local:*'
+          ? normalizeLocalSource(
+              `local:${path.posix.join(
+                options.installDir ?? '.agents/skills',
+                options.skillName ?? '*',
+              )}`,
+            )
+          : normalizeLocalSource(parsed.sourcePart)
     const localPath = localSource.slice(`${type}:`.length)
     const skillName = path.posix.basename(localPath)
 
@@ -60,17 +115,21 @@ export function normalizeSpecifier(specifier: string): NormalizedSpecifier {
     }
   }
 
-  const skillPath = parsed.path || '/'
-  const skillName = path.posix.basename(skillPath)
+  const skillPath = normalizeSkillPath(parsed.path)
+  const skillName =
+    skillPath === '/' ? options.skillName ?? inferRootSkillName(type, parsed.sourcePart) : path.posix.basename(skillPath)
+  const githubSource = type === 'git' ? normalizeGitHubSource(parsed.sourcePart) : null
+  const source = githubSource?.source ?? parsed.sourcePart
+  const normalizedSource = githubSource?.normalizedSource ?? parsed.sourcePart
   const normalized = parsed.ref
-    ? `${parsed.sourcePart}#${parsed.ref}&path:${skillPath}`
+    ? `${normalizedSource}#${parsed.ref}&path:${skillPath}`
     : parsed.path
-      ? `${parsed.sourcePart}#path:${skillPath}`
-      : parsed.sourcePart
+      ? `${normalizedSource}&path:${skillPath}`
+      : normalizedSource
 
   return {
     type,
-    source: parsed.sourcePart,
+    source,
     ref: parsed.ref,
     path: skillPath,
     normalized,

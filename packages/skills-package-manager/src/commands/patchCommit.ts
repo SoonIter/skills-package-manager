@@ -1,37 +1,26 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { isLockInSync } from '../config/compareSkillsLock'
-import { attachManifestPatchToEntry, syncSkillsLock } from '../config/syncSkillsLock'
+import { attachManifestPatchToEntry, resolveSkillsPlan } from '../config/resolveSkillsPlan'
 import type {
   NormalizedSkillsManifest,
   PatchCommitCommandOptions,
   PatchCommitCommandResult,
-  SkillsLock,
+  ResolvedSkillsPlan,
 } from '../config/types'
-import { writeSkillsLock } from '../config/writeSkillsLock'
 import { writeSkillsManifest } from '../config/writeSkillsManifest'
 import { ErrorCode, ManifestError, SkillError } from '../errors'
 import { extractSkillToDir } from '../install/extractSkillToDir'
-import { withBundledSelfSkillLock } from '../install/withBundledSelfSkillLock'
 import { generateSkillPatch, readPatchEditState } from '../patches/skillPatch'
 import { runPipeline } from '../pipeline'
 import { loadConfig } from '../pipeline/context'
 import { toPortableRelativePath } from '../utils/path'
 
-async function createBaseLock(
+async function createBasePlan(
   cwd: string,
   manifest: NormalizedSkillsManifest,
-  currentLock: SkillsLock | null,
 ) {
-  if (currentLock && (await isLockInSync(cwd, manifest, currentLock))) {
-    return {
-      ...currentLock,
-      skills: { ...currentLock.skills },
-    }
-  }
-
-  return syncSkillsLock(cwd, manifest, currentLock)
+  return resolveSkillsPlan(cwd, manifest)
 }
 
 function resolvePatchFilePath(
@@ -115,7 +104,7 @@ export async function patchCommitCommand(
       },
     }
 
-    const baseLock = await createBaseLock(options.cwd, ctx.manifest, ctx.lockfile)
+    const basePlan = await createBasePlan(options.cwd, ctx.manifest)
     const patchedEntry = await attachManifestPatchToEntry(
       options.cwd,
       nextManifest,
@@ -123,32 +112,28 @@ export async function patchCommitCommand(
       editState.baseEntry,
     )
 
-    const nextLock: SkillsLock = {
-      ...baseLock,
+    const nextPlan: ResolvedSkillsPlan = {
+      ...basePlan,
       installDir: nextManifest.installDir ?? '.agents/skills',
       linkTargets: nextManifest.linkTargets ?? [],
       skills: {
-        ...baseLock.skills,
+        ...basePlan.skills,
         [editState.skillName]: patchedEntry,
       },
     }
 
-    const runtimeLock = await withBundledSelfSkillLock(options.cwd, nextManifest, nextLock)
-
     const pipelineCtx = {
       ...ctx,
       manifest: nextManifest,
-      lockfile: nextLock,
     }
 
     await runPipeline({
       ctx: pipelineCtx,
-      entries: runtimeLock.skills,
+      plan: nextPlan,
       skipResolve: true,
     })
 
     await writeSkillsManifest(options.cwd, nextManifest)
-    await writeSkillsLock(options.cwd, nextLock)
 
     console.info(relativePatchPath)
 

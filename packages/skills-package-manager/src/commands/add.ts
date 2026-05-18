@@ -8,16 +8,13 @@ import {
   resolveCompatibleAddAgentTargets,
 } from '../cli/agentCompatibility'
 import { promptSkillSelection } from '../cli/prompt'
-import { readSkillsLock } from '../config/readSkillsLock'
 import { readSkillsManifest } from '../config/readSkillsManifest'
-import { syncSkillsLock } from '../config/syncSkillsLock'
-import type { AddCommandOptions, NormalizedSpecifier } from '../config/types'
-import { writeSkillsLock } from '../config/writeSkillsLock'
+import { resolveSkillEntry, resolveSkillsPlan } from '../config/resolveSkillsPlan'
+import type { AddCommandOptions, NormalizedSpecifier, ResolvedSkillEntry } from '../config/types'
 import { writeSkillsManifest } from '../config/writeSkillsManifest'
 import { ErrorCode, ParseError, SkillError } from '../errors'
 import { cloneAndDiscover, discoverSkillsInDir, parseGitHubUrl } from '../github/listSkills'
 import type { SkillInfo } from '../github/types'
-import { withBundledSelfSkillLock } from '../install/withBundledSelfSkillLock'
 import { runPipeline } from '../pipeline'
 import { loadConfig } from '../pipeline/context'
 import { normalizeLinkSource } from '../specifiers/normalizeLinkSource'
@@ -46,16 +43,13 @@ type ExtractedAddSource = {
 }
 
 function buildGitSpecifier(repoUrl: string, skillPath: string, ref?: string): string {
-  return ref ? `${repoUrl}#${ref}&path:${skillPath}` : `${repoUrl}#path:${skillPath}`
+  return ref ? `${repoUrl}#${ref}&path:${skillPath}` : `${repoUrl}&path:${skillPath}`
 }
 
 async function runInstallPipeline(cwd: string) {
   const ctx = await loadConfig(cwd)
-  const runtimeLock = ctx.lockfile
-    ? await withBundledSelfSkillLock(cwd, ctx.manifest, ctx.lockfile)
-    : null
-  const entries = runtimeLock?.skills ?? ctx.lockfile?.skills ?? {}
-  await runPipeline({ ctx, entries, skipResolve: true })
+  const plan = await resolveSkillsPlan(cwd, ctx.manifest)
+  await runPipeline({ ctx, plan, skipResolve: true })
 }
 
 function buildLinkSpecifier(sourceRoot: string, skillPath: string): string {
@@ -138,15 +132,12 @@ function parseTreeUrlSuffix(
     })
   }
 
-  if (normalizedTreeSuffix.includes('/')) {
-    throw new ParseError({
-      code: ErrorCode.INVALID_SPECIFIER,
-      message:
-        provider === 'GitHub'
-          ? `Ambiguous GitHub tree URL: ${input}. If the ref contains "/", specify it explicitly with "#<ref>" instead.`
-          : `Ambiguous GitLab tree URL: ${input}. GitLab refs can contain slashes, so provide the ref explicitly via #<ref>.`,
-      content: input,
-    })
+  const [treeRef, ...subpathParts] = normalizedTreeSuffix.split('/')
+  if (subpathParts.length > 0) {
+    return {
+      ref: treeRef,
+      subpath: sanitizeSourceSubpath(subpathParts.join('/')),
+    }
   }
 
   return { ref: normalizedTreeSuffix }
@@ -361,7 +352,7 @@ function parseRepoSkillSpecifier(input: string): { specifier: string; skill: str
   }
 }
 
-export function normalizeAddCommandInput(specifier: string, skill?: string) {
+export function normalizeAddCommandInput(specifier: string, skill?: string | string[]) {
   const parsedRepoSkill = parseRepoSkillSpecifier(specifier)
   if (!parsedRepoSkill) {
     return { specifier, skill }
@@ -411,6 +402,13 @@ function formatAvailableSkills(skills: SkillInfo[]): string {
   return `${preview}, ...`
 }
 
+function printAvailableSkills(skills: SkillInfo[]) {
+  for (const skill of skills) {
+    const details = skill.description ? ` - ${skill.description}` : ''
+    console.info(`${skill.name}\t${skill.path}${details}`)
+  }
+}
+
 function filterSkillsBySubpath(skills: SkillInfo[], subpath?: string): SkillInfo[] {
   if (!subpath) {
     return skills
@@ -421,6 +419,34 @@ function filterSkillsBySubpath(skills: SkillInfo[], subpath?: string): SkillInfo
     const candidatePath = normalizeRequestedSkill(candidate.path)
     return candidatePath === normalizedSubpath || candidatePath.startsWith(`${normalizedSubpath}/`)
   })
+}
+
+function selectRequestedSkills(skills: SkillInfo[], requestedSkills: string[]): SkillInfo[] {
+  if (requestedSkills.includes('*')) {
+    return skills
+  }
+
+  const selectedSkills: SkillInfo[] = []
+  const selectedKeys = new Set<string>()
+
+  for (const requestedSkill of requestedSkills) {
+    const found = findRequestedSkill(skills, requestedSkill)
+    if (!found) {
+      throw new SkillError({
+        code: ErrorCode.SKILL_NOT_FOUND,
+        skillName: requestedSkill,
+        message: `Skill ${requestedSkill} not found in source. Available skills: ${formatAvailableSkills(skills)}`,
+      })
+    }
+
+    const key = `${found.name}\0${found.path}`
+    if (!selectedKeys.has(key)) {
+      selectedKeys.add(key)
+      selectedSkills.push(found)
+    }
+  }
+
+  return selectedSkills
 }
 
 async function discoverSkillsFromSource(source: ParsedAddSource): Promise<SkillInfo[]> {
@@ -442,26 +468,45 @@ async function discoverSkillsFromSource(source: ParsedAddSource): Promise<SkillI
   return filterSkillsBySubpath(skills, source.subpath)
 }
 
+function formatPathSuffix(skillPath: string): string {
+  return skillPath === '/' ? '' : `&path:${skillPath}`
+}
+
+function toGitHubSpecifierSource(repoUrl: string): string {
+  const match = repoUrl.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?\/?$/)
+  if (!match) {
+    return repoUrl
+  }
+
+  const [, owner, repo] = match
+  return `github:${owner}/${repo.replace(/\.git$/, '')}`
+}
+
+function formatResolvedManifestSpecifier(
+  normalized: NormalizedSpecifier,
+  entry: ResolvedSkillEntry,
+): string {
+  switch (entry.resolution.type) {
+    case 'git':
+      return `${toGitHubSpecifierSource(entry.resolution.url)}#${entry.resolution.commit}${formatPathSuffix(entry.resolution.path)}`
+    case 'npm':
+      return `npm:${entry.resolution.packageName}@${entry.resolution.version}${formatPathSuffix(entry.resolution.path)}`
+    case 'file':
+    case 'link':
+    case 'local':
+      return normalized.normalized
+    default: {
+      const _exhaustive: never = entry.resolution
+      throw new Error(`Unsupported resolution type: ${_exhaustive}`)
+    }
+  }
+}
+
 async function addSingleSkill(
   cwd: string,
   specifier: string,
   manifestDefaults?: { installDir: string; linkTargets: string[] },
 ): Promise<{ skillName: string; specifier: string }> {
-  let normalized: NormalizedSpecifier
-  try {
-    normalized = normalizeSpecifier(specifier)
-  } catch (error) {
-    if (error instanceof ParseError) {
-      throw error
-    }
-    throw new ParseError({
-      code: ErrorCode.INVALID_SPECIFIER,
-      message: `Invalid specifier: ${(error as Error).message}`,
-      content: specifier,
-      cause: error as Error,
-    })
-  }
-
   await ensureDir(cwd)
 
   const existingManifest = (await readSkillsManifest(cwd)) ?? {
@@ -475,8 +520,30 @@ async function addSingleSkill(
     existingManifest.linkTargets = manifestDefaults.linkTargets
   }
 
+  let normalized: NormalizedSpecifier
+  try {
+    normalized = normalizeSpecifier(specifier, {
+      installDir: existingManifest.installDir,
+    })
+  } catch (error) {
+    if (error instanceof ParseError) {
+      throw error
+    }
+    throw new ParseError({
+      code: ErrorCode.INVALID_SPECIFIER,
+      message: `Invalid specifier: ${(error as Error).message}`,
+      content: specifier,
+      cause: error as Error,
+    })
+  }
+
+  const { entry } = await resolveSkillEntry(cwd, specifier, normalized.skillName, {
+    installDir: existingManifest.installDir,
+  })
+  const manifestSpecifier = formatResolvedManifestSpecifier(normalized, entry)
+
   const existing = existingManifest.skills[normalized.skillName]
-  if (existing && existing !== normalized.normalized) {
+  if (existing && existing !== manifestSpecifier) {
     throw new SkillError({
       code: ErrorCode.SKILL_EXISTS,
       skillName: normalized.skillName,
@@ -484,16 +551,12 @@ async function addSingleSkill(
     })
   }
 
-  existingManifest.skills[normalized.skillName] = normalized.normalized
+  existingManifest.skills[normalized.skillName] = manifestSpecifier
   await writeSkillsManifest(cwd, existingManifest)
-
-  const existingLock = await readSkillsLock(cwd)
-  const lockfile = await syncSkillsLock(cwd, existingManifest, existingLock)
-  await writeSkillsLock(cwd, lockfile)
 
   return {
     skillName: normalized.skillName,
-    specifier: normalized.normalized,
+    specifier: manifestSpecifier,
   }
 }
 
@@ -519,7 +582,7 @@ async function resolveAddManifestContext(options: AddCommandOptions): Promise<{
   const targetCwd = options.global ? getSkillsPackageManagerHome() : options.cwd
   const existingManifest = await readSkillsManifest(targetCwd)
   const installDir = existingManifest?.installDir ?? '.agents/skills'
-  const requestedAgents = normalizeStringArray(options.agent)
+  const requestedAgents = options.all ? ['*'] : normalizeStringArray(options.agent)
 
   if (requestedAgents) {
     const resolvedTargets = resolveCompatibleAddAgentTargets(requestedAgents, {
@@ -567,6 +630,7 @@ export async function addCommand(options: AddCommandOptions) {
   const normalizedInput = normalizeAddCommandInput(options.specifier, options.skill)
   const { specifier, skill } = normalizedInput
   const parsedSource = parseAddSourceSpecifier(specifier)
+  const requestedSkills = options.all ? ['*'] : normalizeStringArray(skill)
 
   if (parsedSource) {
     p.intro(pc.bgCyan(pc.black(' spm ')))
@@ -586,7 +650,7 @@ export async function addCommand(options: AddCommandOptions) {
       spinner.stop(pc.red('No skills found'))
       throw new SkillError({
         code: ErrorCode.SKILL_NOT_FOUND,
-        skillName: skill ?? sourceLabel,
+        skillName: requestedSkills?.[0] ?? sourceLabel,
         message: `No valid skills found in ${sourceLabel}`,
       })
     }
@@ -595,20 +659,15 @@ export async function addCommand(options: AddCommandOptions) {
       `Found ${pc.green(String(discoveredSkills.length))} skill${discoveredSkills.length !== 1 ? 's' : ''}`,
     )
 
-    let selectedSkills: SkillInfo[]
-    if (skill === '*') {
-      selectedSkills = discoveredSkills
-    } else if (skill) {
-      const found = findRequestedSkill(discoveredSkills, skill)
-      if (!found) {
-        throw new SkillError({
-          code: ErrorCode.SKILL_NOT_FOUND,
-          skillName: skill,
-          message: `Skill ${skill} not found in ${sourceLabel}. Available skills: ${formatAvailableSkills(discoveredSkills)}`,
-        })
-      }
+    if (options.list) {
+      printAvailableSkills(discoveredSkills)
+      p.outro('Listed skills')
+      return { status: 'listed' as const, skills: discoveredSkills }
+    }
 
-      selectedSkills = [found]
+    let selectedSkills: SkillInfo[]
+    if (requestedSkills && requestedSkills.length > 0) {
+      selectedSkills = selectRequestedSkills(discoveredSkills, requestedSkills)
     } else if (options.yes) {
       selectedSkills = discoveredSkills
     } else {
@@ -642,6 +701,19 @@ export async function addCommand(options: AddCommandOptions) {
   }
 
   // Protocol specifier (file:, npm:, git URL with fragment, etc.) — direct add
+  if (options.list) {
+    const normalized = normalizeSpecifier(specifier, {
+      installDir: manifestContext.installDir,
+    })
+    const listedSkill = {
+      name: normalized.skillName,
+      description: '',
+      path: normalized.path,
+    }
+    printAvailableSkills([listedSkill])
+    return { status: 'listed' as const, skills: [listedSkill] }
+  }
+
   const result = await addSingleSkill(cwd, specifier, manifestContext)
   const spinner = p.spinner()
   spinner.start('Installing skills...')

@@ -9,7 +9,7 @@ export default defineConfig({
   title: 'skills-package-manager | The Next-Gen Agent Skill Manager',
   logoText: 'skills-package-manager',
   description:
-    'Manage, install, and link SKILL.md-based AI agent skills with lockfile-driven reproducibility and multi-protocol support.',
+    'Manage, install, and link SKILL.md-based AI agent skills from one pinned skills.json manifest.',
   logo: {
     light: '/logo-light.svg',
     dark: '/logo-dark.svg',

@@ -1,19 +1,19 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import type { SkillsLock, SkillsLockEntry } from '../config/types'
+import type { ResolvedSkillsPlan, ResolvedSkillEntry } from '../config/types'
 
 export function getLocalSkillDirs(
   rootDir: string,
-  lockfiles: Array<SkillsLock | null | undefined>,
+  plans: Array<ResolvedSkillsPlan | null | undefined>,
 ) {
   const dirs: string[] = []
 
-  for (const lockfile of lockfiles) {
-    if (!lockfile) {
+  for (const plan of plans) {
+    if (!plan) {
       continue
     }
 
-    for (const entry of Object.values(lockfile.skills)) {
+    for (const entry of Object.values(plan.skills)) {
       if (entry.resolution.type === 'local') {
         dirs.push(path.resolve(rootDir, entry.resolution.path))
       }
@@ -27,7 +27,7 @@ export function getSkillInstallPath(
   rootDir: string,
   installDir: string,
   skillName: string,
-  entry: SkillsLockEntry,
+  entry: ResolvedSkillEntry,
 ) {
   return entry.resolution.type === 'local'
     ? path.resolve(rootDir, entry.resolution.path)
@@ -60,9 +60,9 @@ function createUnignoreRules(relativePath: string): string[] {
   return rules
 }
 
-export async function ensureLocalSkillGitignoreRules(rootDir: string, lockfile: SkillsLock) {
+export async function ensureLocalSkillGitignoreRules(rootDir: string, plan: ResolvedSkillsPlan) {
   const desiredRules = new Set<string>()
-  for (const dir of getLocalSkillDirs(rootDir, [lockfile])) {
+  for (const dir of getLocalSkillDirs(rootDir, [plan])) {
     const relativePath = toRepoRelativePath(rootDir, dir)
     if (!relativePath) {
       continue
