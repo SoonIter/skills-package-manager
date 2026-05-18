@@ -4,7 +4,7 @@ import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
 import packageJson from '../package.json'
 import { runCli } from '../src/cli/runCli'
-import { writeSkillsLock } from '../src/config/writeSkillsLock'
+import type { AddCommandOptions } from '../src/config/types'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
 import { createSkillPackage, packDirectory } from './helpers'
 
@@ -48,19 +48,7 @@ function withHandlers<THandlers extends object>(handlers: THandlers) {
 
 describe('runCli dispatch', () => {
   it('dispatches add with specifier only', async () => {
-    const add = createAsyncSpy<
-      [
-        options: {
-          cwd: string
-          specifier: string
-          skill?: string
-          global?: boolean
-          yes?: boolean
-          agent?: string[]
-        },
-      ],
-      string
-    >('added')
+    const add = createAsyncSpy<[options: AddCommandOptions], string>('added')
 
     const result = await runCli(['node', 'spm', 'add', 'github:owner/repo'], {
       cwd: '/workspace/project',
@@ -77,25 +65,16 @@ describe('runCli dispatch', () => {
           global: undefined,
           yes: undefined,
           agent: undefined,
+          list: undefined,
+          copy: undefined,
+          all: undefined,
         },
       ],
     ])
   })
 
   it('dispatches add with optional --skill', async () => {
-    const add = createAsyncSpy<
-      [
-        options: {
-          cwd: string
-          specifier: string
-          skill?: string
-          global?: boolean
-          yes?: boolean
-          agent?: string[]
-        },
-      ],
-      string
-    >('added')
+    const add = createAsyncSpy<[options: AddCommandOptions], string>('added')
 
     await runCli(['node', 'spm', 'add', 'owner/repo', '--skill', 'my-skill'], {
       cwd: '/workspace/project',
@@ -111,25 +90,16 @@ describe('runCli dispatch', () => {
           global: undefined,
           yes: undefined,
           agent: undefined,
+          list: undefined,
+          copy: undefined,
+          all: undefined,
         },
       ],
     ])
   })
 
   it('dispatches add with -g -y and repeated --agent', async () => {
-    const add = createAsyncSpy<
-      [
-        options: {
-          cwd: string
-          specifier: string
-          skill?: string
-          global?: boolean
-          yes?: boolean
-          agent?: string[]
-        },
-      ],
-      string
-    >('added')
+    const add = createAsyncSpy<[options: AddCommandOptions], string>('added')
 
     await runCli(
       [
@@ -159,6 +129,49 @@ describe('runCli dispatch', () => {
           global: true,
           yes: true,
           agent: ['claude-code', 'continue'],
+          list: undefined,
+          copy: undefined,
+          all: undefined,
+        },
+      ],
+    ])
+  })
+
+  it('dispatches add with skills CLI compatibility flags', async () => {
+    const add = createAsyncSpy<[options: AddCommandOptions], string>('added')
+
+    await runCli(
+      [
+        'node',
+        'spm',
+        'add',
+        'owner/repo',
+        '-s',
+        'frontend-design',
+        '--skill',
+        'skill-creator',
+        '--list',
+        '--copy',
+        '--all',
+      ],
+      {
+        cwd: '/workspace/project',
+        ...withHandlers({ addCommand: add.fn }),
+      },
+    )
+
+    expect(add.calls).toEqual([
+      [
+        {
+          cwd: '/workspace/project',
+          specifier: 'owner/repo',
+          skill: ['frontend-design', 'skill-creator'],
+          global: undefined,
+          yes: undefined,
+          agent: undefined,
+          list: true,
+          copy: true,
+          all: true,
         },
       ],
     ])
@@ -174,6 +187,14 @@ describe('runCli dispatch', () => {
 
     expect(result).toBe('installed')
     expect(install.calls).toEqual([[{ cwd: '/workspace/project' }]])
+  })
+
+  it('rejects the removed install --frozen-lockfile flag', async () => {
+    await expect(
+      runCli(['node', 'spm', 'install', '--frozen-lockfile'], {
+        cwd: '/workspace/project',
+      }),
+    ).rejects.toThrow('Unknown option `--frozenLockfile`')
   })
 
   it('dispatches patch with optional flags', async () => {
@@ -291,22 +312,6 @@ describe('runCli dispatch', () => {
         'hello-skill': `file:${tarballPath}#path:/skills/hello-skill`,
       },
     })
-    await writeSkillsLock(root, {
-      lockfileVersion: '0.1',
-      installDir: '.agents/skills',
-      linkTargets: [],
-      skills: {
-        'hello-skill': {
-          specifier: `file:${tarballPath}#path:/skills/hello-skill`,
-          resolution: {
-            type: 'file',
-            tarball: path.relative(root, tarballPath),
-            path: '/skills/hello-skill',
-          },
-          digest: 'test-digest',
-        },
-      },
-    })
 
     const output: string[] = []
     const info = console.info
@@ -346,22 +351,6 @@ describe('runCli dispatch', () => {
       linkTargets: [],
       skills: {
         'hello-skill': `file:${tarballPath}#path:/skills/hello-skill`,
-      },
-    })
-    await writeSkillsLock(root, {
-      lockfileVersion: '0.1',
-      installDir: '.agents/skills',
-      linkTargets: [],
-      skills: {
-        'hello-skill': {
-          specifier: `file:${tarballPath}#path:/skills/hello-skill`,
-          resolution: {
-            type: 'file',
-            tarball: path.relative(root, tarballPath),
-            path: '/skills/hello-skill',
-          },
-          digest: 'test-digest',
-        },
       },
     })
 

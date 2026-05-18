@@ -1,12 +1,12 @@
 import { rm, symlink } from 'node:fs/promises'
 import path from 'node:path'
-import type { SkillsLockEntry } from '../config/types'
+import type { ResolvedSkillEntry } from '../config/types'
 import { ensureDir } from '../utils/fs'
 
 export async function fetchLinkSkill(
   rootDir: string,
   skillName: string,
-  entry: SkillsLockEntry,
+  entry: ResolvedSkillEntry,
   installDir: string,
 ): Promise<string> {
   if (entry.resolution.type !== 'link') {

@@ -1,11 +1,11 @@
 import path from 'node:path'
-import type { SkillsLockEntry } from '../config/types'
+import type { ResolvedSkillEntry } from '../config/types'
 import { materializePackedSkill } from '../install/materializePackedSkill'
 
 export async function fetchFileSkill(
   rootDir: string,
   skillName: string,
-  entry: SkillsLockEntry,
+  entry: ResolvedSkillEntry,
   installDir: string,
 ): Promise<string> {
   if (entry.resolution.type !== 'file') {

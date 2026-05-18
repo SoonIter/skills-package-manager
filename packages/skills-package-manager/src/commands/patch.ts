@@ -1,14 +1,12 @@
 import { access, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { isLockInSync } from '../config/compareSkillsLock'
-import { syncSkillsLock } from '../config/syncSkillsLock'
+import { resolveSkillsPlan } from '../config/resolveSkillsPlan'
 import type {
   NormalizedSkillsManifest,
   PatchCommandOptions,
   PatchCommandResult,
-  SkillsLock,
-  SkillsLockEntry,
+  ResolvedSkillEntry,
 } from '../config/types'
 import { convertNodeError, ErrorCode, FileSystemError, ManifestError, SkillError } from '../errors'
 import { extractSkillToDir } from '../install/extractSkillToDir'
@@ -37,22 +35,14 @@ async function ensureEditDirDoesNotExist(editDir: string) {
   })
 }
 
-async function createBaseLock(
+async function createBasePlan(
   cwd: string,
   manifest: NormalizedSkillsManifest,
-  currentLock: SkillsLock | null,
 ) {
-  if (currentLock && (await isLockInSync(cwd, manifest, currentLock))) {
-    return {
-      ...currentLock,
-      skills: { ...currentLock.skills },
-    }
-  }
-
-  return syncSkillsLock(cwd, manifest, currentLock)
+  return resolveSkillsPlan(cwd, manifest)
 }
 
-function getUnpatchedBaseEntry(entry: SkillsLockEntry): SkillsLockEntry {
+function getUnpatchedBaseEntry(entry: ResolvedSkillEntry): ResolvedSkillEntry {
   if (!entry.patch) {
     return entry
   }
@@ -89,14 +79,14 @@ export async function patchCommand(options: PatchCommandOptions): Promise<PatchC
     })
   }
 
-  const baseLock = await createBaseLock(options.cwd, ctx.manifest, ctx.lockfile)
-  const currentEntry = baseLock.skills[options.skillName]
+  const basePlan = await createBasePlan(options.cwd, ctx.manifest)
+  const currentEntry = basePlan.skills[options.skillName]
 
   if (!currentEntry) {
     throw new SkillError({
       code: ErrorCode.SKILL_NOT_FOUND,
       skillName: options.skillName,
-      message: `Skill "${options.skillName}" is missing from the resolved lockfile state`,
+      message: `Skill "${options.skillName}" is missing from the resolved install plan`,
     })
   }
 

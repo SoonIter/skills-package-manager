@@ -1,4 +1,4 @@
-import type { SkillsLockEntry } from '../config/types'
+import type { ResolvedSkillEntry } from '../config/types'
 import type { CacheManager } from '../pipeline/types'
 import { fetchFileSkill } from './file'
 import { fetchGitSkill } from './git'
@@ -9,7 +9,7 @@ import { fetchNpmSkill } from './npm'
 export async function fetchSkill(
   rootDir: string,
   skillName: string,
-  entry: SkillsLockEntry,
+  entry: ResolvedSkillEntry,
   installDir: string,
   cache: CacheManager,
 ): Promise<{ installPath: string; fromCache?: boolean }> {

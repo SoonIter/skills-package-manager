@@ -4,7 +4,7 @@ pageType: home
 hero:
   name: skills-package-manager
   text: The Next-Gen Package Manager for Agent Skills
-  tagline: Seamlessly manage, install, and link AI agent skills with lockfile-driven reproducibility and multi-protocol support.
+  tagline: Seamlessly manage, install, and link AI agent skills from a single skills.json manifest.
   image:
     src: /logo-light.svg
     alt: skills-package-manager logo
@@ -17,9 +17,9 @@ hero:
       link: /introduction
 
 features:
-  - title: Lockfile-Driven Versioning
-    details: Ditch heavy git commits. `skills-lock.yaml` ensures every team member and CI/CD environment runs on identical skill versions.
-    icon: lock
+  - title: Single-File Pins
+    details: Keep exact GitHub commits, npm versions, local links, install directories, and agent link targets in `skills.json`.
+    icon: manifest
   - title: Any Source, Any Skill
     details: Mix local `link:` or `local:`, versioned `npm:`, or direct `git:` repos with ease—even sub-folders within `.tgz` archives.
     icon: globe
@@ -51,7 +51,7 @@ concepts:
   - title: 'skills.json: The Manifest'
     details: 'The single source of truth for your required skills across any protocol.'
     icon: 'manifest'
-  - title: 'skills-lock.yaml: The Lockfile'
-    details: 'Locks dependencies to ensure deterministic, reproducible installations every time.'
-    icon: 'lockfile'
+  - title: 'Pinned Specifiers'
+    details: '`add` and `update` write resolved git commits and npm versions back to the manifest.'
+    icon: 'lock'
 ---

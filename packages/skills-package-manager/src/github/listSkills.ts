@@ -8,7 +8,50 @@ import type { SkillInfo } from './types'
 const execFileAsync = promisify(execFile)
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '__pycache__'])
-const ALLOWED_HIDDEN_DIRS = new Set(['.agents', '.claude', '.github'])
+const ALLOWED_HIDDEN_DIRS = new Set([
+  '.adal',
+  '.aider-desk',
+  '.agents',
+  '.augment',
+  '.bob',
+  '.claude',
+  '.codeartsdoer',
+  '.codebuddy',
+  '.codemaker',
+  '.codestudio',
+  '.commandcode',
+  '.continue',
+  '.cortex',
+  '.crush',
+  '.curated',
+  '.devin',
+  '.experimental',
+  '.factory',
+  '.forge',
+  '.github',
+  '.goose',
+  '.hermes',
+  '.iflow',
+  '.junie',
+  '.kilocode',
+  '.kiro',
+  '.kode',
+  '.mcpjam',
+  '.neovate',
+  '.openhands',
+  '.pi',
+  '.pochi',
+  '.qoder',
+  '.qwen',
+  '.roo',
+  '.rovodev',
+  '.system',
+  '.tabnine',
+  '.trae',
+  '.vibe',
+  '.windsurf',
+  '.zencoder',
+])
 
 function parseSkillFrontmatter(content: string): { name: string; description: string } {
   const fmMatch = content.match(/^---\n([\s\S]*?)\n---/)

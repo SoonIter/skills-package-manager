@@ -33,7 +33,7 @@ export type NormalizedSpecifier = {
   skillName: string
 }
 
-export type SkillsLockEntry = {
+export type ResolvedSkillEntry = {
   specifier: string
   resolution:
     | { type: 'link'; path: string }
@@ -56,11 +56,10 @@ export type SkillsLockEntry = {
   }
 }
 
-export type SkillsLock = {
-  lockfileVersion: '0.1'
+export type ResolvedSkillsPlan = {
   installDir: string
   linkTargets: string[]
-  skills: Record<string, SkillsLockEntry>
+  skills: Record<string, ResolvedSkillEntry>
 }
 
 export type InitCommandOptions = {
@@ -71,10 +70,13 @@ export type InitCommandOptions = {
 export type AddCommandOptions = {
   cwd: string
   specifier: string
-  skill?: string
+  skill?: string | string[]
   global?: boolean
   yes?: boolean
   agent?: string[]
+  list?: boolean
+  copy?: boolean
+  all?: boolean
 }
 
 export type UpdateCommandOptions = {
@@ -112,13 +114,12 @@ export type UpdateCommandResult = {
   status: 'updated' | 'skipped' | 'failed'
   updated: string[]
   unchanged: string[]
-  skipped: Array<{ name: string; reason: 'link-specifier' | 'local-specifier' }>
+  skipped: Array<{ name: string; reason: 'link-specifier' | 'local-specifier' | 'file-specifier' }>
   failed: Array<{ name: string; reason: string }>
 }
 
 export type InstallCommandOptions = {
   cwd: string
-  frozenLockfile?: boolean
   onProgress?: InstallProgressListener
 }
 

@@ -2,8 +2,8 @@ import { execSync } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from '@rstest/core'
-import YAML from 'yaml'
 import { addCommand, normalizeAddCommandInput, parseAddSourceSpecifier } from '../src/commands/add'
 import { normalizeLinkSource } from '../src/specifiers/normalizeLinkSource'
 import { createSkillPackage, packDirectory, startMockNpmRegistry } from './helpers'
@@ -31,6 +31,18 @@ describe('normalizeAddCommandInput', () => {
     ).toEqual({
       specifier: 'inference-sh/skills',
       skill: 'landing-page-design',
+    })
+  })
+
+  it('preserves repeated explicit --skill values', () => {
+    expect(
+      normalizeAddCommandInput('inference-sh/skills@other-skill', [
+        'landing-page-design',
+        'skill-creator',
+      ]),
+    ).toEqual({
+      specifier: 'inference-sh/skills',
+      skill: ['landing-page-design', 'skill-creator'],
     })
   })
 
@@ -84,10 +96,16 @@ describe('parseAddSourceSpecifier', () => {
     })
   })
 
-  it('rejects ambiguous GitHub tree URLs without an explicit ref', () => {
-    expect(() =>
+  it('parses GitHub tree URLs without an explicit ref using the first path segment as the ref', () => {
+    expect(
       parseAddSourceSpecifier('https://github.com/owner/repo/tree/main/skills/my-skill'),
-    ).toThrow('Ambiguous GitHub tree URL')
+    ).toEqual({
+      type: 'repo',
+      cloneUrl: 'https://github.com/owner/repo.git',
+      displaySource: 'owner/repo',
+      ref: 'main',
+      subpath: 'skills/my-skill',
+    })
   })
 
   it('parses GitLab tree URLs with an explicit slash-containing ref', () => {
@@ -104,10 +122,16 @@ describe('parseAddSourceSpecifier', () => {
     })
   })
 
-  it('rejects ambiguous GitLab tree URLs without an explicit ref', () => {
-    expect(() =>
+  it('parses GitLab tree URLs without an explicit ref using the first path segment as the ref', () => {
+    expect(
       parseAddSourceSpecifier('https://gitlab.com/group/subgroup/repo/-/tree/main/skills/my-skill'),
-    ).toThrow('Ambiguous GitLab tree URL')
+    ).toEqual({
+      type: 'repo',
+      cloneUrl: 'https://gitlab.com/group/subgroup/repo.git',
+      displaySource: 'group/subgroup/repo',
+      ref: 'main',
+      subpath: 'skills/my-skill',
+    })
   })
 
   it('parses generic git URLs with refs', () => {
@@ -140,11 +164,10 @@ describe('parseAddSourceSpecifier', () => {
 })
 
 describe('addCommand', () => {
-  it('writes manifest and lock for a file skill specifier', async () => {
+  it('writes manifest and no lock for a file skill specifier', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-'))
     const packageRoot = createSkillPackage('hello-skill', '# Hello skill\n')
     const tarballPath = packDirectory(packageRoot)
-    const portableTarballPath = path.relative(root, tarballPath).split(path.sep).join('/')
 
     await addCommand({
       cwd: root,
@@ -152,15 +175,13 @@ describe('addCommand', () => {
     })
 
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
-    const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
 
-    expect(manifest.skills['hello-skill']).toBe(`file:${tarballPath}#path:/skills/hello-skill`)
-    expect(lockfile.skills['hello-skill'].resolution.type).toBe('file')
-    expect(lockfile.skills['hello-skill'].resolution.tarball).toBe(portableTarballPath)
-    expect(lockfile.skills['hello-skill'].resolution.path).toBe('/skills/hello-skill')
+    expect(manifest.skills['hello-skill']).toBe(`file:${tarballPath}&path:/skills/hello-skill`)
+    expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
+    expect(existsSync(path.join(root, '.agents/skills/lock.yaml'))).toBe(false)
   })
 
-  it('keeps the bundled self skill out of skills.json and skills-lock.yaml', async () => {
+  it('keeps the bundled self skill out of skills.json', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-self-skill-'))
     writeFileSync(
       path.join(root, 'skills.json'),
@@ -179,14 +200,13 @@ describe('addCommand', () => {
     })
 
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
-    const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
     const installedSkill = path.join(root, '.agents/skills/skills-package-manager-cli/SKILL.md')
 
     expect(manifest.selfSkill).toBe(true)
-    expect(manifest.skills['hello-skill']).toBe(`file:${tarballPath}#path:/skills/hello-skill`)
+    expect(manifest.skills['hello-skill']).toBe(`file:${tarballPath}&path:/skills/hello-skill`)
     expect(manifest.skills['skills-package-manager-cli']).toBeUndefined()
-    expect(lockfile.skills['skills-package-manager-cli']).toBeUndefined()
     expect(existsSync(installedSkill)).toBe(true)
+    expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
   })
 
   it('installs and links a link skill immediately after add', async () => {
@@ -281,6 +301,70 @@ describe('addCommand', () => {
 
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
     expect(Object.keys(manifest.skills).sort()).toEqual(['hello-skill', 'landing-page-design'])
+  })
+
+  it('adds multiple selected skills when --skill is repeated', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-multi-skill-'))
+    const localRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-local-multi-skill-'))
+
+    mkdirSync(path.join(localRepo, 'skills/hello-skill'), { recursive: true })
+    mkdirSync(path.join(localRepo, 'guides/design/landing-page-design'), { recursive: true })
+    writeFileSync(path.join(localRepo, 'skills/hello-skill/SKILL.md'), '# Hello skill\n')
+    writeFileSync(
+      path.join(localRepo, 'guides/design/landing-page-design/SKILL.md'),
+      '---\nname: landing-page-design\ndescription: Design landing pages\n---\n',
+    )
+
+    await addCommand({
+      cwd: root,
+      specifier: localRepo,
+      skill: ['hello-skill', 'landing-page-design'],
+    })
+
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+    expect(Object.keys(manifest.skills).sort()).toEqual(['hello-skill', 'landing-page-design'])
+  })
+
+  it('lists available skills without writing skills.json or installing', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-list-'))
+    const localRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-local-list-'))
+
+    mkdirSync(path.join(localRepo, 'skills/hello-skill'), { recursive: true })
+    writeFileSync(path.join(localRepo, 'skills/hello-skill/SKILL.md'), '# Hello skill\n')
+
+    const result = await addCommand({
+      cwd: root,
+      specifier: localRepo,
+      list: true,
+    })
+
+    expect(result).toEqual({
+      status: 'listed',
+      skills: [{ name: 'hello-skill', description: '', path: '/skills/hello-skill' }],
+    })
+    expect(existsSync(path.join(root, 'skills.json'))).toBe(false)
+    expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(false)
+  })
+
+  it('installs all skills to all project agents when --all is passed', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-all-'))
+    const localRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-local-all-agents-'))
+
+    mkdirSync(path.join(localRepo, 'skills/hello-skill'), { recursive: true })
+    writeFileSync(path.join(localRepo, 'skills/hello-skill/SKILL.md'), '# Hello skill\n')
+
+    await addCommand({
+      cwd: root,
+      specifier: localRepo,
+      all: true,
+    })
+
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+    expect(Object.keys(manifest.skills)).toEqual(['hello-skill'])
+    expect(manifest.linkTargets).toContain('.claude/skills')
+    expect(manifest.linkTargets).toContain('.continue/skills')
+    expect(manifest.linkTargets).toContain('.windsurf/skills')
+    expect(lstatSync(path.join(root, '.claude/skills/hello-skill')).isSymbolicLink()).toBe(true)
   })
 
   it('adds project agent link targets when --agent is specified', async () => {
@@ -514,7 +598,7 @@ describe('addCommand', () => {
     ).rejects.toThrow('Invalid agents: not-a-real-agent')
   })
 
-  it('writes manifest and lock for an npm skill specifier', async () => {
+  it('writes a pinned manifest entry for an npm skill specifier', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-npm-'))
     const packageRoot = createSkillPackage('hello-skill', '# Hello from npm\n')
     const registry = await startMockNpmRegistry(packageRoot, { authToken: 'test-token' })
@@ -531,22 +615,17 @@ describe('addCommand', () => {
       })
 
       const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
-      const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
 
       expect(manifest.skills['hello-skill']).toBe(
-        `npm:${registry.packageName}#path:/skills/hello-skill`,
+        `npm:${registry.packageName}@1.0.0&path:/skills/hello-skill`,
       )
-      expect(lockfile.skills['hello-skill'].resolution.type).toBe('npm')
-      expect(lockfile.skills['hello-skill'].resolution.packageName).toBe('@tests/hello-skill')
-      expect(lockfile.skills['hello-skill'].resolution.version).toBe('1.0.0')
-      expect(lockfile.skills['hello-skill'].resolution.tarball).toBe(registry.tarballUrl)
-      expect(lockfile.skills['hello-skill'].resolution.registry).toBe(registry.registryUrl)
+      expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
     } finally {
       await registry.close()
     }
   })
 
-  it('writes manifest and lock for a git skill specifier', async () => {
+  it('writes a pinned manifest entry for a git skill specifier', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-git-'))
     const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-git-source-'))
 
@@ -565,13 +644,51 @@ describe('addCommand', () => {
     })
 
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
-    const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8'))
 
-    expect(manifest.skills['hello-skill']).toBe(`${gitRepo}#HEAD&path:/skills/hello-skill`)
-    expect(lockfile.skills['hello-skill'].resolution.type).toBe('git')
-    expect(lockfile.skills['hello-skill'].resolution.url).toBe(gitRepo)
-    expect(lockfile.skills['hello-skill'].resolution.commit).toBe(commit)
-    expect(lockfile.skills['hello-skill'].resolution.path).toBe('/skills/hello-skill')
+    expect(manifest.skills['hello-skill']).toBe(`${gitRepo}#${commit}&path:/skills/hello-skill`)
+    expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
+  })
+
+  it('writes GitHub adds back to skills.json with a github: pinned specifier', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-github-tree-'))
+    const gitRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-github-source-'))
+    const gitConfigHome = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-github-config-'))
+    const previousGitConfigGlobal = process.env.GIT_CONFIG_GLOBAL
+
+    mkdirSync(path.join(gitRepo, 'skills/hello-skill'), { recursive: true })
+    writeFileSync(path.join(gitRepo, 'skills/hello-skill/SKILL.md'), '# Hello from GitHub URL\n')
+    execSync('git init', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git checkout -b main', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git config user.email test@example.com', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git config user.name test', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
+    execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
+    const commit = execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
+
+    process.env.GIT_CONFIG_GLOBAL = path.join(gitConfigHome, '.gitconfig')
+    writeFileSync(
+      process.env.GIT_CONFIG_GLOBAL,
+      `[url "${pathToFileURL(gitRepo).href}"]\n\tinsteadOf = https://github.com/owner/repo.git\n`,
+    )
+
+    try {
+      await addCommand({
+        cwd: root,
+        specifier: 'https://github.com/owner/repo/tree/main/skills/hello-skill',
+      })
+
+      const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+      expect(manifest.skills['hello-skill']).toBe(
+        `github:owner/repo#${commit}&path:/skills/hello-skill`,
+      )
+      expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(true)
+    } finally {
+      if (previousGitConfigGlobal === undefined) {
+        delete process.env.GIT_CONFIG_GLOBAL
+      } else {
+        process.env.GIT_CONFIG_GLOBAL = previousGitConfigGlobal
+      }
+    }
   })
 
   it('adds a skill with owner/repo and --skill flag', async () => {
@@ -585,6 +702,7 @@ describe('addCommand', () => {
     execSync('git config user.name test', { cwd: gitRepo, stdio: 'ignore' })
     execSync('git add .', { cwd: gitRepo, stdio: 'ignore' })
     execSync('git commit -m init', { cwd: gitRepo, stdio: 'ignore' })
+    const commit = execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim()
 
     // Use a direct git specifier to test the --skill path builds the right specifier
     // (We can't actually test owner/repo without GitHub API, so test the protocol fallback)
@@ -595,6 +713,6 @@ describe('addCommand', () => {
     })
 
     const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
-    expect(manifest.skills.dogfood).toBe(`${gitRepo}#HEAD&path:/dogfood`)
+    expect(manifest.skills.dogfood).toBe(`${gitRepo}#${commit}&path:/dogfood`)
   })
 })

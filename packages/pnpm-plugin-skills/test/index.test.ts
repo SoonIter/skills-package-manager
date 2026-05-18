@@ -27,7 +27,7 @@ async function loadPreResolution() {
 }
 
 describe('preResolution', () => {
-  it('installs skills from workspace root when manifest and lock exist', async () => {
+  it('installs skills from workspace root when only skills.json exists', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'pnpm-plugin-skills-'))
     mkdirSync(path.join(root, 'skills-source/skills/hello-skill'), { recursive: true })
     writeFileSync(
@@ -48,23 +48,6 @@ describe('preResolution', () => {
         2,
       ),
     )
-    writeFileSync(
-      path.join(root, 'skills-lock.yaml'),
-      [
-        "lockfileVersion: '0.1'",
-        'installDir: .agents/skills',
-        'linkTargets:',
-        '  - .claude/skills',
-        'skills:',
-        '  hello-skill:',
-        '    specifier: link:./skills-source/skills/hello-skill',
-        '    resolution:',
-        '      type: link',
-        `      path: ${JSON.stringify(path.join(root, 'skills-source/skills/hello-skill'))}`,
-        '    digest: test-digest',
-      ].join('\n'),
-    )
-
     const preResolution = await loadPreResolution()
 
     const result = await preResolution({
@@ -78,6 +61,8 @@ describe('preResolution', () => {
       'Hello from plugin',
     )
     expect(existsSync(path.join(root, '.claude/skills/hello-skill'))).toBe(true)
+    expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
+    expect(existsSync(path.join(root, '.agents/skills/lock.yaml'))).toBe(false)
   })
 })
 

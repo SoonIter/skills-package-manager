@@ -2,7 +2,6 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
-import YAML from 'yaml'
 import { installCommand } from '../src/commands/install'
 import { patchCommand } from '../src/commands/patch'
 import { patchCommitCommand } from '../src/commands/patchCommit'
@@ -46,7 +45,7 @@ describe('patch workflow', () => {
     expect(manifest?.skills['hello-skill']).toBe(`file:${tarballPath}#path:/skills/hello-skill`)
   })
 
-  it('commits a patch file, updates manifest and lockfile, and reapplies on install', async () => {
+  it('commits a patch file, updates manifest, and reapplies on install', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-patch-commit-'))
     const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
     const tarballPath = packDirectory(packageRoot)
@@ -77,17 +76,14 @@ describe('patch workflow', () => {
       'hello-skill': 'patches/hello-skill.patch',
     })
     expect(readFileSync(patchCommitResult.patchFile, 'utf8')).toContain('Patched locally.')
-
-    const lockfile = YAML.parse(readFileSync(path.join(root, 'skills-lock.yaml'), 'utf8')) as {
-      skills: Record<string, { patch?: { path: string } }>
-    }
-    expect(lockfile.skills['hello-skill'].patch?.path).toBe('patches/hello-skill.patch')
+    expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
+    expect(existsSync(path.join(root, '.agents/skills/lock.yaml'))).toBe(false)
     expect(readFileSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'), 'utf8')).toContain(
       'Patched locally.',
     )
 
     rmSync(path.join(root, '.agents/skills'), { recursive: true, force: true })
-    await installCommand({ cwd: root, frozenLockfile: true })
+    await installCommand({ cwd: root })
 
     expect(readFileSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'), 'utf8')).toContain(
       'Patched locally.',

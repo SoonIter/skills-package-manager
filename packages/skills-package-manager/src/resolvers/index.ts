@@ -1,4 +1,4 @@
-import type { NormalizedSpecifier, SkillsLockEntry } from '../config/types'
+import type { NormalizedSpecifier, ResolvedSkillEntry } from '../config/types'
 import { resolveFileEntry } from './file'
 import { resolveGitEntry } from './git'
 import { resolveLinkEntry } from './link'
@@ -9,7 +9,7 @@ export async function resolveEntry(
   cwd: string,
   normalized: NormalizedSpecifier,
   skillName?: string,
-): Promise<{ skillName: string; entry: SkillsLockEntry }> {
+): Promise<{ skillName: string; entry: ResolvedSkillEntry }> {
   const finalSkillName = skillName || normalized.skillName
 
   switch (normalized.type) {

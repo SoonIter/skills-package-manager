@@ -109,7 +109,7 @@ describe('documentation', () => {
 
     expect(readme).toContain('npx skills-package-manager --help')
     expect(readme).toContain('npx skills-package-manager --version')
-    expect(readme).toContain('npx skills-package-manager add <specifier> [--skill <name>]')
+    expect(readme).toContain('npx skills-package-manager add <specifier> [--skill <name>...]')
     expect(readme).toContain('npx skills-package-manager install')
     expect(readme).toContain('npx skills-package-manager update [skill...]')
     expect(readme).toContain('npx skills-package-manager init [--yes]')

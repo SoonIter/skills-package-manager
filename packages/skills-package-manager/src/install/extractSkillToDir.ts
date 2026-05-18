@@ -1,5 +1,5 @@
 import path from 'node:path'
-import type { SkillsLockEntry } from '../config/types'
+import type { ResolvedSkillEntry } from '../config/types'
 import { cleanupPackedNpmPackage, downloadNpmPackageTarball } from '../npm/packPackage'
 import { extractGitSkillToDir } from './materializeGitSkill'
 import { copyLocalSkillToDir } from './materializeLocalSkill'
@@ -7,7 +7,7 @@ import { extractPackedSkillToDir } from './materializePackedSkill'
 
 export async function extractSkillToDir(
   rootDir: string,
-  entry: SkillsLockEntry,
+  entry: ResolvedSkillEntry,
   targetDir: string,
 ) {
   if (entry.resolution.type === 'link') {

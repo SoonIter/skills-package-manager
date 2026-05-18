@@ -1,5 +1,5 @@
 import path from 'node:path'
-import type { SkillsLockEntry } from '../config/types'
+import type { ResolvedSkillEntry } from '../config/types'
 import { materializePackedSkill } from '../install/materializePackedSkill'
 import { downloadNpmPackageTarball } from '../npm/packPackage'
 import type { CacheManager } from '../pipeline/types'
@@ -10,7 +10,7 @@ const inFlightDownloads = new Map<string, Promise<{ tarballPath: string; fromCac
 export async function fetchNpmSkill(
   rootDir: string,
   skillName: string,
-  entry: SkillsLockEntry,
+  entry: ResolvedSkillEntry,
   installDir: string,
   _cache: CacheManager,
 ): Promise<{ installPath: string; fromCache: boolean }> {
@@ -57,10 +57,6 @@ export async function fetchNpmSkill(
     return { installPath: path.join(rootDir, installDir, skillName), fromCache }
   } finally {
     inFlightDownloads.delete(cacheKey)
-    // Note: cleanupPackedNpmPackage is not called here because tarballs are stored
-    // in a persistent cache directory (see downloadNpmPackageTarball). The old
-    // installSkills flow cleaned up temp directories at the end of fetchSkillsFromLock,
-    // but the current implementation uses a deterministic persistent cache, so no
-    // per-run cleanup is required.
+    // Tarballs are stored in a deterministic persistent cache, so no per-run cleanup is required.
   }
 }

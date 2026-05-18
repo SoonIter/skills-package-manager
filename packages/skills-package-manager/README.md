@@ -9,7 +9,7 @@ For one-off usage, `npx skills-package-manager add ...` is the low-friction migr
 ```bash
 npx skills-package-manager --help
 npx skills-package-manager --version
-npx skills-package-manager add <specifier> [--skill <name>]
+npx skills-package-manager add <specifier> [--skill <name>...]
 npx skills-package-manager install
 npx skills-package-manager patch <skill>
 npx skills-package-manager patch-commit <edit-dir>
@@ -37,26 +37,37 @@ npx skills-package-manager add owner/repo
 # Interactive — clone repo, discover skills, select via multiselect prompt
 npx skills-package-manager add owner/repo
 npx skills-package-manager add https://github.com/owner/repo
+npx skills-package-manager add https://gitlab.com/org/repo
+npx skills-package-manager add git@github.com:owner/repo.git
+npx skills-package-manager add ./my-local-skills
 
-# Non-interactive — add a specific skill by name
+# Non-interactive — add one or more specific skills by name
 npx skills-package-manager add owner/repo --skill find-skills
+npx skills-package-manager add owner/repo -s frontend-design -s skill-creator
 npx skills-package-manager add owner/repo@find-skills
 npx skills-package-manager add owner/repo#main@find-skills
 
 # Direct repo subpath
 npx skills-package-manager add owner/repo/skills/my-skill
-npx skills-package-manager add https://github.com/owner/repo/tree/main/skills/my-skill#main
+npx skills-package-manager add https://github.com/owner/repo/tree/main/skills/my-skill
+
+# Inspect or target agents with skills CLI-compatible flags
+npx skills-package-manager add owner/repo --list
+npx skills-package-manager add owner/repo --all
+npx skills-package-manager add owner/repo -a claude-code -a opencode
 
 # Direct specifier — skip discovery
-npx skills-package-manager add https://github.com/owner/repo.git#path:/skills/my-skill
+npx skills-package-manager add github:owner/repo#abc1234&path:/skills/my-skill
 npx skills-package-manager add link:./local-source/skills/my-skill
-npx skills-package-manager add local:./.agents/skills/my-skill
+npx skills-package-manager add local:*
 npx skills-package-manager add ./local-source
-npx skills-package-manager add file:./skills-package.tgz#path:/skills/my-skill
-npx skills-package-manager add npm:@scope/skills-package#path:/skills/my-skill
+npx skills-package-manager add file:./skills-package.tgz&path:/skills/my-skill
+npx skills-package-manager add npm:@scope/skills-package@1.0.0&path:/skills/my-skill
 ```
 
 After `npx skills-package-manager add`, the newly added skills are resolved, installed or registered according to their protocol, and linked to each configured `linkTarget` immediately.
+GitHub sources are written back to `skills.json` as pinned `github:owner/repo#<commit>&path:<path>` specifiers.
+The `--copy` flag is accepted for `npx skills add` command-line compatibility; SPM still keeps one canonical install directory and links configured agent targets from there.
 
 #### How it works
 
@@ -65,7 +76,7 @@ When given `owner/repo` or a GitHub URL:
 1. Shallow-clones the repository into a temp directory
 2. Scans for `SKILL.md` files (checks root, then `skills/`, `.agents/skills/`, etc.)
 3. Presents an interactive multiselect prompt (powered by [@clack/prompts](https://github.com/bombshell-dev/clack))
-4. Writes selected skills to `skills.json` and resolves `skills-lock.yaml`
+4. Writes selected, pinned skill specifiers to `skills.json`
 5. Cleans up the temp directory
 
 ### `npx skills-package-manager init`
@@ -106,7 +117,7 @@ npx skills-package-manager install
 ```
 
 This resolves each skill from its specifier, installs managed skills into `installDir` (default `.agents/skills/`), registers `local:` skills in place, and creates symlinks for each `linkTarget`.
-When `selfSkill` is `true`, `npx skills-package-manager install` also installs the bundled `skills-package-manager-cli` skill so users get guidance for `skills.json`, `skills-lock.yaml`, and `npx skills-package-manager` commands. This helper skill is not written to `skills-lock.yaml`.
+When `selfSkill` is `true`, `npx skills-package-manager install` also installs the bundled `skills-package-manager-cli` skill so users get guidance for `skills.json` and `npx skills-package-manager` commands. This helper skill is injected at install time and is not written to `skills.json`.
 If `patchedSkills` contains an entry for a managed skill, the corresponding patch file is applied after the skill is materialized. `local:` skills cannot be patched because their source directories are user-owned.
 
 ### `npx skills-package-manager patch`
@@ -120,7 +131,7 @@ npx skills-package-manager patch hello-skill --edit-dir ./tmp/hello-skill
 
 Behavior:
 
-- Resolves the currently locked content for the target skill
+- Resolves the current manifest content for the target skill
 - Extracts an editable copy into a temporary directory by default
 - Reapplies any committed patch for that skill unless `--ignore-existing` is passed
 - Writes patch edit metadata so `patch-commit` can generate a new patch file later
@@ -139,12 +150,11 @@ Behavior:
 - Compares the edited directory with the original resolved skill content
 - Writes a unified diff patch file to `patches/<skill>.patch` by default
 - Updates `skills.json` through the `patchedSkills` field
-- Updates `skills-lock.yaml` with patch path and digest metadata
 - Reinstalls and relinks the patched skill so the working tree reflects the committed patch
 
 ### `npx skills-package-manager update`
 
-Refresh resolvable skills declared in `skills.json` without changing the manifest:
+Refresh resolvable skills declared in `skills.json` and write the updated pins back to the manifest:
 
 ```bash
 npx skills-package-manager update
@@ -154,10 +164,10 @@ npx skills-package-manager update find-skills rspress-custom-theme
 Behavior:
 
 - Uses `skills.json` as the source of truth
-- Re-resolves git refs and npm package targets
-- Skips local `link:` and `local:` skills, including the bundled self skill
+- Updates git skills to the latest `main` commit and npm skills to the registry `latest` version
+- Skips local `link:`, `local:`, and `file:` skills
 - Fails immediately for unknown skill names
-- Writes `skills-lock.yaml` only after fetch and link succeed
+- Writes `skills.json` only after the updated install succeeds
 
 ## Programmatic API
 
@@ -182,14 +192,15 @@ const skills = await listRepoSkills('vercel-labs', 'skills')
 ## Specifier Format
 
 ```text
-git/file/npm: <source>#[ref&]path:<skill-path>
+git/file/npm: <source>[#ref][&path:<skill-path>]
 link: link:<path-to-skill-dir>
 local: local:<path-to-existing-skill-dir>
+local shorthand: local:*
 ```
 
 | Part | Description | Example |
 |------|-------------|---------|
-| `source` | Git URL, direct `link:` or `local:` skill path, `file:` tarball, or `npm:` package name | `https://github.com/o/r.git`, `link:./local/skills/my-skill`, `local:./.agents/skills/my-skill`, `file:./skills.tgz`, `npm:@scope/pkg` |
+| `source` | Git URL or `github:` shorthand, direct `link:` or `local:` skill path, `file:` tarball, or `npm:` package name | `github:o/r`, `https://github.com/o/r.git`, `link:./local/skills/my-skill`, `local:*`, `file:./skills.tgz`, `npm:@scope/pkg@1.0.0` |
 | `ref` | Optional git ref | `main`, `v1.0.0`, `HEAD`, `6cb0992`, `6cb0992a176f2ca142e19f64dca8ac12025b035e` |
 | `path` | Path to skill directory within source | `/skills/my-skill` |
 
@@ -201,7 +212,7 @@ local: local:<path-to-existing-skill-dir>
 - **`link`** — Symlinks a local skill directory into `installDir`
 - **`local`** — Uses an existing user-owned skill directory in place
 - **`file`** — Extracts a local `tgz` package and copies the selected skill
-- **`npm`** — Resolves a package from the configured npm registry, locks the tarball URL/version/integrity, and installs from the downloaded tarball
+- **`npm`** — Resolves a package from the configured npm registry and installs from the downloaded tarball
 
 `npm:` reads `registry` and scoped `@scope:registry` values from `.npmrc`. Matching `:_authToken`, `:_auth`, or `username` + `:_password` entries are also used for private registry requests.
 
@@ -212,7 +223,7 @@ src/
 ├── bin/           # CLI entry points
 ├── cli/           # CLI runner and interactive prompts
 ├── commands/      # add, install, patch command implementations
-├── config/        # skills.json / skills-lock.yaml read/write
+├── config/        # skills.json read/write and in-memory install plan resolution
 ├── github/        # Git clone + skill discovery (listSkills)
 ├── install/       # Skill materialization, linking, pruning
 ├── patches/       # Patch edit state, diff generation, patch application
@@ -231,4 +242,3 @@ pnpm build    # Builds with Rslib (ESM output + DTS)
 ```bash
 pnpm test     # Runs tests with Rstest
 ```
-``

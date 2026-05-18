@@ -1,26 +1,23 @@
 ---
 name: skills-package-manager-cli
-description: Help users work in repositories that use skills-package-manager. Use when requests mention `skills.json`, `skills-lock.yaml`, `selfSkill`, `npx skills-package-manager init`,  `add`, `install`, `update`, skill specifiers, install directories like `.agents/skills`, or linked skill directories like `.claude/skills`
+description: Help users work in repositories that use skills-package-manager. Use when requests mention `skills.json`, `selfSkill`, `npx skills-package-manager init`, `add`, `install`, `update`, skill specifiers, install directories like `.agents/skills`, or linked skill directories like `.claude/skills`
 ---
 
 # skills-package-manager
 
-Use this skill for repositories that already use `skills-package-manager`, or when a user needs help understanding and editing its manifest, lockfile, and CLI workflow.
+Use this skill for repositories that already use `skills-package-manager`, or when a user needs help understanding and editing its manifest and CLI workflow.
 
 ## Core Model
 
 - `skills.json` is the source of truth.
-  It declares which skills a repo wants, where to materialize them, where to link them, and whether to include the bundled helper skill.
-- `skills-lock.yaml` is resolved state.
-  It pins commits, versions, paths, and digests so installs are reproducible.
+  It declares which skills a repo wants, the pinned git commits or npm versions to use, where to materialize skills, where to link them, and whether to include the bundled helper skill.
 - Installed directories such as `.agents/skills` and linked directories such as `.claude/skills` are outputs.
-  They are produced from the manifest and lockfile; they are not the canonical config.
+  They are produced from `skills.json`; they are not canonical config.
 
 ## What `selfSkill` Means
 
 - `selfSkill: true` adds the bundled `skills-package-manager-cli` skill during install.
-- It is meant to help users who see `skills.json`, `skills-lock.yaml`, and `npx skills-package-manager` commands but do not yet know how they fit together.
-- The bundled skill is injected automatically. It should not be added manually under `skills` unless there is a very specific reason.
+- The bundled skill is injected at runtime. It should not be added manually under `skills` unless there is a very specific reason.
 
 ## Command Guide
 
@@ -28,27 +25,29 @@ Use this skill for repositories that already use `skills-package-manager`, or wh
    - Creates `skills.json`.
    - `npx skills-package-manager init --yes` writes the default manifest immediately.
 
-2. `npx skills-package-manager add <specifier> [--skill <name>]`
+2. `npx skills-package-manager add <specifier> [--skill <name>...]`
    - Adds a skill to `skills.json`.
-   - Resolves it into `skills-lock.yaml`.
+   - Resolves remote git/npm inputs into pinned specifiers in the manifest.
+   - GitHub shorthand, GitHub URL, and GitHub tree URL inputs are written back as `github:owner/repo#<commit>&path:<path>`.
+   - Compatible with common `npx skills add` flags: `-s/--skill` can repeat, `-l/--list` lists without installing, `--all` selects all skills and all known project agents, `-a/--agent` can repeat, and `--copy` is accepted as a no-op compatibility flag.
    - Installs it into `installDir` and links it into each `linkTarget`.
 
 3. `npx skills-package-manager install`
-   - Reconciles the manifest, lockfile, and installed output.
-   - Without `--frozen-lockfile`, it updates `skills-lock.yaml` when needed.
-   - With `--frozen-lockfile`, it requires the lockfile to already match the manifest.
+   - Resolves and installs everything declared in `skills.json`.
+   - Does not write a separate lock file.
 
 4. `npx skills-package-manager update [skill...]`
-   - Refreshes resolvable entries in `skills-lock.yaml`.
-   - Skips local `link:` and `local:` skills, including the bundled `skills-package-manager-cli` self skill.
+   - Updates git skills to the latest `main` commit and npm skills to the registry `latest` version.
+   - Writes updated pins back to `skills.json` only after install succeeds.
+   - Skips `link:`, `local:`, and `file:` skills.
 
 ## How To Triage User Questions
 
 1. If the user wants to change which skills a repo uses:
    Edit `skills.json`, then run `npx skills-package-manager install`.
 
-2. If the user wants to understand pinned versions or why a change happened:
-   Inspect `skills-lock.yaml`.
+2. If the user wants newer remote skills:
+   Run `npx skills-package-manager update` or update the pinned specifier in `skills.json`.
 
 3. If the user says a skill is missing in their agent:
    Check `installDir`, `linkTargets`, generated skill directories, and symlinks.
@@ -58,14 +57,15 @@ Use this skill for repositories that already use `skills-package-manager`, or wh
 
 ## Specifier Reminders
 
-- `link:./path/to/skill-dir` points to a local skill directory.
+- `github:owner/repo#commit&path:/skills/name` points to a pinned GitHub skill.
+- `link:./path/to/skill-dir` points to a local skill directory and is symlinked into `installDir`.
+- `local:*` keeps an existing user-owned skill at `${installDir}/${skillName}` in place.
 - `local:./path/to/existing-skill-dir` keeps an existing user-owned skill directory in place.
-- `file:./pkg.tgz#path:/skills/name` points to a packaged tarball plus skill path.
-- `npm:@scope/pkg#path:/skills/name` resolves a package from the configured registry.
-- GitHub shorthand or Git URLs resolve remote repositories and may need `--skill` when multiple skills are available.
+- `file:./pkg.tgz&path:/skills/name` points to a packaged tarball plus skill path.
+- `npm:@scope/pkg@1.0.0&path:/skills/name` resolves a package from the configured registry.
 
 ## Validation Checklist
 
-- Keep `manifest`, `lockfile`, `installDir`, `linkTargets`, `skills`, and `specifier` terminology exact.
-- Treat `skills-lock.yaml` as generated state unless the task is specifically about lockfile internals or checked-in examples.
-- If you change this bundled skill inside the `skills-package-manager` repo, revalidate the skill folder and update any checked-in lockfile digest that refers to it.
+- Keep `manifest`, `installDir`, `linkTargets`, `skills`, and `specifier` terminology exact.
+- Treat `skills.json` as the only user-maintained config file.
+- If you change this bundled skill inside the `skills-package-manager` repo, revalidate the skill folder.

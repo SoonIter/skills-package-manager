@@ -1,0 +1,48 @@
+# Manifest
+
+skills-package-manager uses `skills.json` as the single user-maintained configuration file.
+
+## `skills.json`
+
+`skills.json` describes which skills a project needs, where they should be installed, and which agent directories should receive symlinks.
+
+```json
+{
+  "installDir": ".agents/skills",
+  "linkTargets": [".claude/skills"],
+  "selfSkill": false,
+  "patchedSkills": {
+    "find-skills": "patches/find-skills.patch"
+  },
+  "skills": {
+    "find-skills": "github:vercel-labs/skills#abc1234&path:/skills/find-skills",
+    "my-linked-skill": "link:./local-source/skills/my-linked-skill",
+    "my-existing-skill": "local:*",
+    "my-packed-skill": "file:./skills-package.tgz&path:/skills/my-packed-skill",
+    "my-npm-skill": "npm:@scope/skills-package@1.0.0&path:/skills/my-npm-skill"
+  }
+}
+```
+
+Field descriptions:
+
+- `installDir`: The directory where managed skills are written.
+- `linkTargets`: Target directories where symbolic links should be created.
+- `selfSkill`: Whether to auto-install the bundled `skills-package-manager-cli` skill during install. Defaults to `false`.
+- `patchedSkills`: Optional mapping from skill name to a committed patch file path.
+- `skills`: A mapping from skill name to specifier.
+
+## Pinning Model
+
+Remote versions are pinned in `skills.json`:
+
+- `add` resolves git refs to commits and npm packages to versions before writing the manifest.
+- `update` moves git skills to the latest `main` commit and npm skills to the registry `latest` version.
+- `install` resolves the manifest into an in-memory install plan and does not write a separate lock file.
+
+## Recommended Practices
+
+1. Commit `skills.json`.
+2. Ignore generated skill directories such as `.agents/skills` and `.claude/skills`.
+3. Prefer explicit `github:` or git specifiers with `path:` for external skills.
+4. Use `local:*` for existing user-owned skills that live under `${installDir}/${skillName}`.

@@ -103,7 +103,7 @@ export class ParseError extends SpmError {
 }
 
 /**
- * Error thrown when manifest or lockfile operations fail
+ * Error thrown when manifest operations fail
  */
 export class ManifestError extends SpmError {
   readonly filePath: string
@@ -111,8 +111,6 @@ export class ManifestError extends SpmError {
   constructor(options: {
     code:
       | ErrorCode.MANIFEST_NOT_FOUND
-      | ErrorCode.LOCKFILE_NOT_FOUND
-      | ErrorCode.LOCKFILE_OUTDATED
       | ErrorCode.MANIFEST_EXISTS
       | ErrorCode.MANIFEST_VALIDATION_ERROR
     filePath: string
@@ -121,8 +119,6 @@ export class ManifestError extends SpmError {
   }) {
     const defaultMessages: Record<string, string> = {
       [ErrorCode.MANIFEST_NOT_FOUND]: `Manifest not found: ${options.filePath}`,
-      [ErrorCode.LOCKFILE_NOT_FOUND]: `Lockfile not found: ${options.filePath}`,
-      [ErrorCode.LOCKFILE_OUTDATED]: `Lockfile is out of date: ${options.filePath}`,
       [ErrorCode.MANIFEST_EXISTS]: `Manifest already exists: ${options.filePath}`,
       [ErrorCode.MANIFEST_VALIDATION_ERROR]: `Invalid skills.json: ${options.filePath}`,
     }

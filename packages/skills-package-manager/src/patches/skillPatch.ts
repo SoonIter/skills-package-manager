@@ -3,7 +3,7 @@ import { access, cp, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/p
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
-import type { SkillsLockEntry } from '../config/types'
+import type { ResolvedSkillEntry } from '../config/types'
 import { convertNodeError, ErrorCode, GitError, ParseError } from '../errors'
 
 const execFileAsync = promisify(execFile)
@@ -14,7 +14,7 @@ export type PatchEditState = {
   version: 1
   skillName: string
   originalSpecifier: string
-  baseEntry: SkillsLockEntry
+  baseEntry: ResolvedSkillEntry
 }
 
 export async function writePatchEditState(editDir: string, state: PatchEditState) {

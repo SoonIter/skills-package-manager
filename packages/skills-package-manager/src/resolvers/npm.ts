@@ -1,4 +1,4 @@
-import type { SkillsLockEntry } from '../config/types'
+import type { ResolvedSkillEntry } from '../config/types'
 import { resolveNpmPackage } from '../npm/packPackage'
 import { sha256 } from '../utils/hash'
 
@@ -8,7 +8,7 @@ export async function resolveNpmEntry(
   path: string,
   skillName: string,
   specifier: string,
-): Promise<{ skillName: string; entry: SkillsLockEntry }> {
+): Promise<{ skillName: string; entry: ResolvedSkillEntry }> {
   const packageSpecifier = source.slice('npm:'.length)
   const resolved = await resolveNpmPackage(cwd, packageSpecifier)
 

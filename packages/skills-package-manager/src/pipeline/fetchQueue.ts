@@ -52,9 +52,9 @@ async function isSkillUpToDate(
 export function createFetchTaskQueue(
   ctx: WorkspaceContext,
   bus: PipelineBus,
-  options: { concurrency: number; maxPending?: number },
+  options: { concurrency: number; maxPending?: number; installDir: string },
 ): FetchQueue {
-  const installDir = ctx.lockfile?.installDir ?? ctx.manifest.installDir ?? '.agents/skills'
+  const { installDir } = options
 
   async function processor(task: FetchTask): Promise<FetchResult> {
     if (await isSkillUpToDate(ctx.cwd, installDir, task.skillName, task.entry)) {

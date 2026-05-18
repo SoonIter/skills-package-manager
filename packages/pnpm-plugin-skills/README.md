@@ -7,10 +7,10 @@ A pnpm plugin that automatically installs agent skills during `pnpm install`.
 This plugin hooks into pnpm's `preResolution` lifecycle to run skill installation before dependency resolution. On every `pnpm install`, it:
 
 1. Reads `skills.json` from the workspace root
-2. Resolves and syncs `skills-lock.yaml`
+2. Resolves the manifest into an in-memory installation plan
 3. Materializes skills into the configured `installDir`
 4. Creates symlinks for configured `linkTargets`
-5. Skips if the lockfile hasn't changed (fast path)
+5. Updates the internal install state for future incremental runs
 
 ## Setup
 
@@ -27,7 +27,7 @@ Then create a `skills.json` in your project root:
   "installDir": ".agents/skills",
   "linkTargets": [".claude/skills"],
   "skills": {
-    "my-skill": "https://github.com/owner/repo.git#path:/skills/my-skill"
+    "my-skill": "github:owner/repo#abc1234&path:/skills/my-skill"
   }
 }
 ```

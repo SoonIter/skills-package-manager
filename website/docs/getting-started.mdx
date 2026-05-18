@@ -32,6 +32,10 @@ npx skills-package-manager add rstackjs/agent-skills
 
 # Explicitly add a specific skill
 npx skills-package-manager add rstackjs/agent-skills --skill pr-creator
+
+# List skills or install all skills using skills CLI-compatible flags
+npx skills-package-manager add rstackjs/agent-skills --list
+npx skills-package-manager add rstackjs/agent-skills --all
 ```
 
 ### Materialize & Link
@@ -41,7 +45,7 @@ npx skills-package-manager install
 ```
 
 This command will:
-1.  Resolve dependencies and generate `skills-lock.yaml`.
+1.  Resolve each specifier from `skills.json`.
 2.  Download/Copy files to `.agents/skills`.
 3.  Symlink them to your agent folders (e.g., `.claude/skills`).
 
@@ -54,7 +58,7 @@ Remember to add `.agents/skills` and your agent link targets to your `.gitignore
 ## 2. Advanced Workflow
 
 ### Update to latest versions
-To move your git-based skills to their latest commits:
+To move remote git skills to the latest `main` commit and npm skills to the registry `latest` version:
 ```bash
 npx skills-package-manager update
 ```
