@@ -108,10 +108,22 @@ describe('parseAddSourceSpecifier', () => {
     })
   })
 
+  it('parses GitHub tree URLs with version refs and subpaths', () => {
+    expect(
+      parseAddSourceSpecifier('https://github.com/owner/repo/tree/v1.0.0/skills/my-skill'),
+    ).toEqual({
+      type: 'repo',
+      cloneUrl: 'https://github.com/owner/repo.git',
+      displaySource: 'owner/repo',
+      ref: 'v1.0.0',
+      subpath: 'skills/my-skill',
+    })
+  })
+
   it('rejects ambiguous GitHub tree URLs when the ref may contain slashes', () => {
     expect(() =>
       parseAddSourceSpecifier('https://github.com/owner/repo/tree/feature/foo/skills/my-skill'),
-    ).toThrow('ambiguous')
+    ).toThrow('slash-delimited ref')
   })
 
   it('parses GitLab tree URLs with an explicit slash-containing ref', () => {
@@ -145,7 +157,7 @@ describe('parseAddSourceSpecifier', () => {
       parseAddSourceSpecifier(
         'https://gitlab.com/group/subgroup/repo/-/tree/feature/foo/skills/my-skill',
       ),
-    ).toThrow('ambiguous')
+    ).toThrow('slash-delimited ref')
   })
 
   it('parses generic git URLs with refs', () => {

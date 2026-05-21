@@ -42,6 +42,18 @@ type ExtractedAddSource = {
   skill?: string
 }
 
+const AMBIGUOUS_TREE_REF_PREFIXES = new Set([
+  'bugfix',
+  'chore',
+  'dependabot',
+  'feat',
+  'feature',
+  'fix',
+  'hotfix',
+  'release',
+  'renovate',
+])
+
 function buildGitSpecifier(repoUrl: string, skillPath: string, ref?: string): string {
   return ref ? `${repoUrl}#${ref}&path:${skillPath}` : `${repoUrl}&path:${skillPath}`
 }
@@ -134,10 +146,10 @@ function parseTreeUrlSuffix(
 
   const [treeRef, ...subpathParts] = normalizedTreeSuffix.split('/')
   if (subpathParts.length > 0) {
-    if (!['main', 'master', 'trunk'].includes(treeRef)) {
+    if (AMBIGUOUS_TREE_REF_PREFIXES.has(treeRef)) {
       throw new ParseError({
         code: ErrorCode.INVALID_SPECIFIER,
-        message: `${provider} tree URL is ambiguous when the ref or path may contain "/": ${input}. Append an explicit "#<ref>" suffix.`,
+        message: `${provider} tree URL may contain a slash-delimited ref: ${input}. Append an explicit "#<ref>" suffix.`,
         content: input,
       })
     }
@@ -476,6 +488,45 @@ async function discoverSkillsFromSource(source: ParsedAddSource): Promise<SkillI
   return filterSkillsBySubpath(skills, source.subpath)
 }
 
+async function discoverSkillsWithSpinner(
+  source: ParsedAddSource,
+  requestedSkills: string[] | undefined,
+): Promise<SkillInfo[]> {
+  p.intro(pc.bgCyan(pc.black(' spm ')))
+
+  const spinner = p.spinner()
+  const sourceLabel = source.displaySource
+
+  if (source.type === 'repo') {
+    spinner.start(`Cloning ${sourceLabel}...`)
+  } else {
+    spinner.start(`Scanning ${sourceLabel}...`)
+  }
+
+  let discoveredSkills: SkillInfo[]
+  try {
+    discoveredSkills = await discoverSkillsFromSource(source)
+  } catch (error) {
+    spinner.stop(pc.red('Failed to discover skills'))
+    throw error
+  }
+
+  if (discoveredSkills.length === 0) {
+    spinner.stop(pc.red('No skills found'))
+    throw new SkillError({
+      code: ErrorCode.SKILL_NOT_FOUND,
+      skillName: requestedSkills?.[0] ?? sourceLabel,
+      message: `No valid skills found in ${sourceLabel}`,
+    })
+  }
+
+  spinner.stop(
+    `Found ${pc.green(String(discoveredSkills.length))} skill${discoveredSkills.length !== 1 ? 's' : ''}`,
+  )
+
+  return discoveredSkills
+}
+
 function formatPathSuffix(skillPath: string): string {
   return skillPath === '/' ? '' : `&path:${skillPath}`
 }
@@ -675,31 +726,7 @@ export async function addCommand(options: AddCommandOptions) {
 
   if (options.list) {
     if (parsedSource) {
-      p.intro(pc.bgCyan(pc.black(' spm ')))
-
-      const spinner = p.spinner()
-      const sourceLabel = parsedSource.displaySource
-
-      if (parsedSource.type === 'repo') {
-        spinner.start(`Cloning ${sourceLabel}...`)
-      } else {
-        spinner.start(`Scanning ${sourceLabel}...`)
-      }
-
-      const discoveredSkills = await discoverSkillsFromSource(parsedSource)
-
-      if (discoveredSkills.length === 0) {
-        spinner.stop(pc.red('No skills found'))
-        throw new SkillError({
-          code: ErrorCode.SKILL_NOT_FOUND,
-          skillName: requestedSkills?.[0] ?? sourceLabel,
-          message: `No valid skills found in ${sourceLabel}`,
-        })
-      }
-
-      spinner.stop(
-        `Found ${pc.green(String(discoveredSkills.length))} skill${discoveredSkills.length !== 1 ? 's' : ''}`,
-      )
+      const discoveredSkills = await discoverSkillsWithSpinner(parsedSource, requestedSkills)
       printAvailableSkills(discoveredSkills)
       p.outro('Listed skills')
       return { status: 'listed' as const, skills: discoveredSkills }
@@ -723,31 +750,7 @@ export async function addCommand(options: AddCommandOptions) {
   const { cwd } = manifestContext
 
   if (parsedSource) {
-    p.intro(pc.bgCyan(pc.black(' spm ')))
-
-    const spinner = p.spinner()
-    const sourceLabel = parsedSource.displaySource
-
-    if (parsedSource.type === 'repo') {
-      spinner.start(`Cloning ${sourceLabel}...`)
-    } else {
-      spinner.start(`Scanning ${sourceLabel}...`)
-    }
-
-    const discoveredSkills = await discoverSkillsFromSource(parsedSource)
-
-    if (discoveredSkills.length === 0) {
-      spinner.stop(pc.red('No skills found'))
-      throw new SkillError({
-        code: ErrorCode.SKILL_NOT_FOUND,
-        skillName: requestedSkills?.[0] ?? sourceLabel,
-        message: `No valid skills found in ${sourceLabel}`,
-      })
-    }
-
-    spinner.stop(
-      `Found ${pc.green(String(discoveredSkills.length))} skill${discoveredSkills.length !== 1 ? 's' : ''}`,
-    )
+    const discoveredSkills = await discoverSkillsWithSpinner(parsedSource, requestedSkills)
 
     let selectedSkills: SkillInfo[]
     if (requestedSkills && requestedSkills.length > 0) {
@@ -771,6 +774,7 @@ export async function addCommand(options: AddCommandOptions) {
       }
     }
 
+    const spinner = p.spinner()
     spinner.start('Installing skills...')
     await runInstallPipeline(cwd)
     spinner.stop('Installed skills')
