@@ -316,7 +316,7 @@ function Terminal() {
         <span className="t-success">✔</span> Linking .cursor/skills
       </span>,
       <span key="10">
-        <span className="t-success">✔</span> Writing install state
+        <span className="t-success">✔</span> Install complete
       </span>,
       <span key="11" className="t-done">
         ✨ Done in 1.2s

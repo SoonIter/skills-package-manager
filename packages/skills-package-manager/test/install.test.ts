@@ -14,16 +14,14 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
 import { installCommand } from '../src/commands/install'
-import { resolveSkillsPlan } from '../src/config/resolveSkillsPlan'
-import type { ResolvedSkillEntry, ResolvedSkillsPlan } from '../src/config/types'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
-import { writeInstallState } from '../src/install/installState'
-import { sha256 } from '../src/utils/hash'
+import { resolveGitCommit } from '../src/resolvers/git'
 import { createSkillPackage, packDirectory, startMockNpmRegistry } from './helpers'
 
 function expectNoLockFiles(root: string) {
   expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
   expect(existsSync(path.join(root, '.agents/skills/lock.yaml'))).toBe(false)
+  expect(existsSync(path.join(root, '.agents/skills/.skills-pm-install-state.json'))).toBe(false)
 }
 
 function createGitSkillRepo(content: string) {
@@ -39,21 +37,6 @@ function createGitSkillRepo(content: string) {
     gitRepo,
     commit: execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim(),
   }
-}
-
-function computePlanDigest(plan: ResolvedSkillsPlan) {
-  const sortedSkillNames = Object.keys(plan.skills).sort()
-  const sortedEntries = Object.fromEntries(
-    sortedSkillNames.map((skillName) => [skillName, plan.skills[skillName]]),
-  ) as Record<string, ResolvedSkillEntry>
-
-  return sha256(
-    JSON.stringify({
-      installDir: plan.installDir,
-      linkTargets: plan.linkTargets,
-      skills: sortedEntries,
-    }),
-  )
 }
 
 describe('installCommand', () => {
@@ -287,35 +270,10 @@ describe('installCommand', () => {
     expectNoLockFiles(root)
   })
 
-  it('short-circuits pinned git commit installs without resolving the remote ref', async () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-git-fast-path-'))
+  it('resolves full git commit pins without querying the remote ref', async () => {
     const commit = 'a'.repeat(40)
-    const manifest = {
-      installDir: '.agents/skills',
-      linkTargets: [],
-      skills: {
-        'hello-git-skill': `github:owner/repo#${commit}&path:/skills/hello-git-skill`,
-      },
-    }
-    const skillDir = path.join(root, '.agents/skills/hello-git-skill')
 
-    await writeSkillsManifest(root, manifest)
-    mkdirSync(skillDir, { recursive: true })
-    writeFileSync(path.join(skillDir, 'SKILL.md'), '# Existing git skill\n')
-
-    const plan = await resolveSkillsPlan(root, manifest)
-    await writeInstallState(root, plan.installDir, {
-      planDigest: computePlanDigest(plan),
-      installDir: plan.installDir,
-      linkTargets: plan.linkTargets,
-      installerVersion: '0.1.0',
-      installedAt: new Date().toISOString(),
-    })
-
-    await installCommand({ cwd: root })
-
-    expect(readFileSync(path.join(skillDir, 'SKILL.md'), 'utf8')).toBe('# Existing git skill\n')
-    expectNoLockFiles(root)
+    await expect(resolveGitCommit('https://example.invalid/repo.git', commit)).resolves.toBe(commit)
   })
 
   it('removes managed skills that are no longer declared', async () => {
@@ -348,7 +306,7 @@ describe('installCommand', () => {
     expectNoLockFiles(root)
   })
 
-  it('reinstalls missing managed skills when install state is otherwise up to date', async () => {
+  it('reinstalls missing managed skill files', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-reinstall-missing-'))
     const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
     const tarballPath = packDirectory(packageRoot)
@@ -370,7 +328,7 @@ describe('installCommand', () => {
     expectNoLockFiles(root)
   })
 
-  it('short-circuits when install state is up to date', async () => {
+  it('reuses already materialized managed skills without writing persistent state', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-uptodate-'))
     const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
     const tarballPath = packDirectory(packageRoot)
@@ -397,7 +355,7 @@ describe('installCommand', () => {
     expectNoLockFiles(root)
   })
 
-  it('does not short-circuit when skill files are missing', async () => {
+  it('reinstalls when managed skill directories are missing', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-missing-skill-'))
     const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
     const tarballPath = packDirectory(packageRoot)

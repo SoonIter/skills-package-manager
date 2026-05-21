@@ -78,6 +78,7 @@ describe('patch workflow', () => {
     expect(readFileSync(patchCommitResult.patchFile, 'utf8')).toContain('Patched locally.')
     expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
     expect(existsSync(path.join(root, '.agents/skills/lock.yaml'))).toBe(false)
+    expect(existsSync(path.join(root, '.agents/skills/.skills-pm-install-state.json'))).toBe(false)
     expect(readFileSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'), 'utf8')).toContain(
       'Patched locally.',
     )

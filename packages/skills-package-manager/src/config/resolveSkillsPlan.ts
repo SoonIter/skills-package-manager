@@ -1,6 +1,5 @@
 import path from 'node:path'
 import { ErrorCode, ParseError } from '../errors'
-import type { ManifestStat } from '../pipeline/types'
 import { resolveEntry } from '../resolvers'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { sha256File } from '../utils/hash'
@@ -71,8 +70,6 @@ export async function resolveSkillsPlan(
   manifest: NormalizedSkillsManifest,
   options?: {
     onProgress?: InstallProgressListener
-    manifestStat?: ManifestStat | null
-    installState?: { manifestStat?: ManifestStat } | null
   },
 ): Promise<ResolvedSkillsPlan> {
   const expandedManifest = await expandSkillsManifest(cwd, manifest)

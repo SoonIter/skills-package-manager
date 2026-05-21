@@ -63,6 +63,7 @@ describe('preResolution', () => {
     expect(existsSync(path.join(root, '.claude/skills/hello-skill'))).toBe(true)
     expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
     expect(existsSync(path.join(root, '.agents/skills/lock.yaml'))).toBe(false)
+    expect(existsSync(path.join(root, '.agents/skills/.skills-pm-install-state.json'))).toBe(false)
   })
 })
 

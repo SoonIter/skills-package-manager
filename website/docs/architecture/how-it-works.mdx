@@ -1,6 +1,6 @@
 # How it works
 
-The installation flow is built around a unified pipeline with three concurrent task queues: **resolve**, **fetch**, and **link**. `spm install` resolves `skills.json` into an in-memory install plan, streams that plan through the pipeline, and records only lightweight install state for fast repeat installs.
+The installation flow is built around a unified pipeline with three concurrent task queues: **resolve**, **fetch**, and **link**. `spm install` resolves `skills.json` into an in-memory install plan and streams that plan through the pipeline.
 
 ## 1. Load configuration
 
@@ -8,7 +8,6 @@ The pipeline starts by loading:
 
 - `skills.json`
 - `.npmrc` npm registry config
-- `.skills-pm-install-state.json` from `installDir`, when present
 
 ## 2. Resolve specifiers
 
@@ -37,13 +36,11 @@ Before fetch begins, managed skills that are no longer declared in `skills.json`
 flowchart LR
     A["skills.json"] --> B["WorkspaceContext"]
     C[".npmrc"] --> B
-    D["install state"] --> B
     B --> E["ResolveTaskQueue"]
     E --> F["FetchTaskQueue"]
     F --> G["LinkTaskQueue"]
     G --> H["installDir"]
     G --> I["linkTargets"]
-    F --> J["install state"]
 ```
 
 ## Design goals

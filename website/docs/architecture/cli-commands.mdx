@@ -21,13 +21,12 @@ For remote sources, `add` writes pinned specifiers:
 
 Install process:
 
-1. Load `skills.json`, `.npmrc`, cache, and install state.
+1. Load `skills.json`, `.npmrc`, and cache.
 2. Resolve the manifest into an in-memory install plan.
 3. Inject the bundled helper skill when `selfSkill` is enabled.
 4. Prune managed skills that are no longer declared.
 5. Fetch managed skills into `installDir`.
 6. Link skills into `linkTargets`.
-7. Write `.skills-pm-install-state.json` for repeat-install fast paths.
 
 No separate lock file is written.
 

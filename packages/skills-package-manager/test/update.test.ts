@@ -191,6 +191,7 @@ describe('updateCommand', () => {
       'Second version',
     )
     expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
+    expect(existsSync(path.join(root, '.agents/skills/.skills-pm-install-state.json'))).toBe(false)
   })
 
   it('updates npm skills to the latest version in skills.json and installs them', async () => {
@@ -225,6 +226,9 @@ describe('updateCommand', () => {
         readFileSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'), 'utf8'),
       ).toContain('Hello from npm v2')
       expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
+      expect(existsSync(path.join(root, '.agents/skills/.skills-pm-install-state.json'))).toBe(
+        false,
+      )
     } finally {
       await registry.close()
     }

@@ -10,7 +10,6 @@ This plugin hooks into pnpm's `preResolution` lifecycle to run skill installatio
 2. Resolves the manifest into an in-memory installation plan
 3. Materializes skills into the configured `installDir`
 4. Creates symlinks for configured `linkTargets`
-5. Updates the internal install state for future incremental runs
 
 ## Setup
 

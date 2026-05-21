@@ -1,12 +1,8 @@
-import { access, lstat, readlink } from 'node:fs/promises'
-import path from 'node:path'
-import type { ResolvedSkillEntry, ResolvedSkillsPlan } from '../config/types'
+import type { ResolvedSkillsPlan } from '../config/types'
 import { ErrorCode, getErrorMessage, SpmError } from '../errors'
 import { installStageHooks } from '../install/installPlan'
-import { writeInstallState } from '../install/installState'
 import { ensureLocalSkillGitignoreRules, getLocalSkillDirs } from '../install/localSkills'
 import { pruneManagedSkills } from '../install/pruneManagedSkills'
-import { sha256 } from '../utils/hash'
 import { createPipelineBus } from './bus'
 import { createFetchTaskQueue } from './fetchQueue'
 import { createLinkTaskQueue } from './linkQueue'
@@ -20,74 +16,11 @@ export interface RunPipelineInput {
   options?: PipelineOptions
 }
 
-async function areManagedSkillsInstalled(
-  rootDir: string,
-  installDir: string,
-  skillNames: string[],
-): Promise<boolean> {
-  for (const skillName of skillNames) {
-    try {
-      await access(path.join(rootDir, installDir, skillName, 'SKILL.md'))
-    } catch {
-      return false
-    }
-  }
-  return true
-}
-
-async function areLinksUpToDate(
-  rootDir: string,
-  installDir: string,
-  linkTargets: string[],
-  skillNames: string[],
-): Promise<boolean> {
-  for (const linkTarget of linkTargets) {
-    const targetDir = path.resolve(rootDir, linkTarget)
-    for (const skillName of skillNames) {
-      try {
-        const linkPath = path.join(targetDir, skillName)
-        const stats = await lstat(linkPath)
-        if (!stats.isSymbolicLink()) return false
-        const target = await readlink(linkPath)
-        const resolvedTarget = path.resolve(path.dirname(linkPath), target)
-        const expectedTarget = path.resolve(rootDir, installDir, skillName)
-        if (resolvedTarget !== expectedTarget) return false
-      } catch {
-        return false
-      }
-    }
-  }
-  return true
-}
-
 export async function runPipeline(input: RunPipelineInput): Promise<PipelineResult> {
   const { ctx, plan, skipResolve = false, options = {} } = input
   const { skills: entries, installDir, linkTargets } = plan
   const bus = createPipelineBus(options.onProgress)
   const errors: unknown[] = []
-
-  // Fast path: skip all work when install state is up-to-date
-  const sortedSkillNames = Object.keys(entries).sort()
-  const sortedEntries = Object.fromEntries(
-    sortedSkillNames.map((skillName) => [skillName, entries[skillName]]),
-  ) as Record<string, ResolvedSkillEntry>
-  const planForDigest: ResolvedSkillsPlan = {
-    installDir,
-    linkTargets,
-    skills: sortedEntries,
-  }
-  const currentDigest = sha256(JSON.stringify(planForDigest))
-  if (
-    ctx.installState?.planDigest === currentDigest &&
-    (await areManagedSkillsInstalled(ctx.cwd, installDir, sortedSkillNames)) &&
-    (await areLinksUpToDate(ctx.cwd, installDir, linkTargets, sortedSkillNames))
-  ) {
-    // Emit progress events so callers (e.g. the CLI reporter) see consistent output
-    for (const skillName of sortedSkillNames) {
-      bus.emitLinked({ skillName })
-    }
-    return bus.getResults()
-  }
 
   const resolveQueue = createResolveTaskQueue(ctx, bus, {
     concurrency: options.resolveConcurrency ?? 8,
@@ -192,30 +125,5 @@ export async function runPipeline(input: RunPipelineInput): Promise<PipelineResu
     })
   }
 
-  const results = bus.getResults()
-  if (results.resolved.length > 0 || results.fetched.length > 0 || skipResolve) {
-    const installedPlan: ResolvedSkillsPlan = {
-      installDir,
-      linkTargets,
-      skills: skipResolve
-        ? sortedEntries
-        : Object.fromEntries(
-            results.resolved
-              .slice()
-              .sort((a, b) => a.skillName.localeCompare(b.skillName))
-              .map((r) => [r.skillName, r.entry]),
-          ),
-    }
-    const planDigest = sha256(JSON.stringify(installedPlan))
-    await writeInstallState(ctx.cwd, installDir, {
-      planDigest,
-      manifestStat: ctx.manifestStat ?? undefined,
-      installDir,
-      linkTargets,
-      installerVersion: '0.1.0',
-      installedAt: new Date().toISOString(),
-    })
-  }
-
-  return results
+  return bus.getResults()
 }

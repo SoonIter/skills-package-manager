@@ -205,6 +205,7 @@ describe('addCommand', () => {
     expect(manifest.skills['hello-skill']).toBe(`file:${tarballPath}&path:/skills/hello-skill`)
     expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
     expect(existsSync(path.join(root, '.agents/skills/lock.yaml'))).toBe(false)
+    expect(existsSync(path.join(root, '.agents/skills/.skills-pm-install-state.json'))).toBe(false)
   })
 
   it('keeps the bundled self skill out of skills.json', async () => {
@@ -233,6 +234,7 @@ describe('addCommand', () => {
     expect(manifest.skills['skills-package-manager-cli']).toBeUndefined()
     expect(existsSync(installedSkill)).toBe(true)
     expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
+    expect(existsSync(path.join(root, '.agents/skills/.skills-pm-install-state.json'))).toBe(false)
   })
 
   it('installs and links a link skill immediately after add', async () => {
