@@ -117,7 +117,9 @@ export function normalizeSpecifier(
 
   const skillPath = normalizeSkillPath(parsed.path)
   const skillName =
-    skillPath === '/' ? options.skillName ?? inferRootSkillName(type, parsed.sourcePart) : path.posix.basename(skillPath)
+    skillPath === '/'
+      ? (options.skillName ?? inferRootSkillName(type, parsed.sourcePart))
+      : path.posix.basename(skillPath)
   const githubSource = type === 'git' ? normalizeGitHubSource(parsed.sourcePart) : null
   const source = githubSource?.source ?? parsed.sourcePart
   const normalizedSource = githubSource?.normalizedSource ?? parsed.sourcePart

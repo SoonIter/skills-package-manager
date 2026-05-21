@@ -6,10 +6,10 @@ import type {
 } from '../config/types'
 import { writeSkillsManifest } from '../config/writeSkillsManifest'
 import { ErrorCode, ManifestError, SkillError } from '../errors'
-import { resolveGitCommit } from '../resolvers/git'
 import { resolveNpmPackage } from '../npm/packPackage'
 import { runPipeline } from '../pipeline'
 import { loadConfig } from '../pipeline/context'
+import { resolveGitCommit } from '../resolvers/git'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 
 function createEmptyResult(): UpdateCommandResult {

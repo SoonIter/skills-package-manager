@@ -1,6 +1,10 @@
-import { access } from 'node:fs/promises'
+import { access, rm } from 'node:fs/promises'
 import path from 'node:path'
 import type { ResolvedSkillEntry } from '../config/types'
+
+export async function clearLocalSkillMarker(sourceRoot: string) {
+  await rm(path.join(sourceRoot, '.skills-pm.json'), { force: true }).catch(() => {})
+}
 
 export async function fetchLocalSkill(rootDir: string, entry: ResolvedSkillEntry): Promise<string> {
   if (entry.resolution.type !== 'local') {
@@ -13,6 +17,8 @@ export async function fetchLocalSkill(rootDir: string, entry: ResolvedSkillEntry
   } catch {
     throw new Error(`Invalid local skill at ${sourceRoot}: missing SKILL.md`)
   }
+
+  await clearLocalSkillMarker(sourceRoot)
 
   return sourceRoot
 }

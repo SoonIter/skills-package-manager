@@ -1,7 +1,6 @@
 import type {
   InstallProgressEvent,
   NormalizedSkillsManifest,
-  ResolvedSkillsPlan,
   ResolvedSkillEntry,
 } from '../config/types'
 import type { NpmConfig } from '../npm/packPackage'

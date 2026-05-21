@@ -108,6 +108,12 @@ describe('parseAddSourceSpecifier', () => {
     })
   })
 
+  it('rejects ambiguous GitHub tree URLs when the ref may contain slashes', () => {
+    expect(() =>
+      parseAddSourceSpecifier('https://github.com/owner/repo/tree/feature/foo/skills/my-skill'),
+    ).toThrow('ambiguous')
+  })
+
   it('parses GitLab tree URLs with an explicit slash-containing ref', () => {
     expect(
       parseAddSourceSpecifier(
@@ -132,6 +138,14 @@ describe('parseAddSourceSpecifier', () => {
       ref: 'main',
       subpath: 'skills/my-skill',
     })
+  })
+
+  it('rejects ambiguous GitLab tree URLs when the ref may contain slashes', () => {
+    expect(() =>
+      parseAddSourceSpecifier(
+        'https://gitlab.com/group/subgroup/repo/-/tree/feature/foo/skills/my-skill',
+      ),
+    ).toThrow('ambiguous')
   })
 
   it('parses generic git URLs with refs', () => {
@@ -344,6 +358,73 @@ describe('addCommand', () => {
     })
     expect(existsSync(path.join(root, 'skills.json'))).toBe(false)
     expect(existsSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'))).toBe(false)
+  })
+
+  it('lists available skills without validating write-only add options', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-list-readonly-'))
+    const globalRoot = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-list-global-home-'))
+    const localRepo = mkdtempSync(path.join(tmpdir(), 'skills-pm-local-list-readonly-'))
+    const previousSpmHome = process.env.SKILLS_PACKAGE_MANAGER_HOME
+
+    mkdirSync(path.join(localRepo, 'skills/hello-skill'), { recursive: true })
+    writeFileSync(path.join(localRepo, 'skills/hello-skill/SKILL.md'), '# Hello skill\n')
+    process.env.SKILLS_PACKAGE_MANAGER_HOME = path.join(globalRoot, '.spm-home')
+
+    try {
+      const result = await addCommand({
+        cwd: root,
+        specifier: localRepo,
+        list: true,
+        global: true,
+        agent: ['not-a-real-agent'],
+      })
+
+      expect(result).toEqual({
+        status: 'listed',
+        skills: [{ name: 'hello-skill', description: '', path: '/skills/hello-skill' }],
+      })
+      expect(existsSync(path.join(root, 'skills.json'))).toBe(false)
+      expect(existsSync(path.join(process.env.SKILLS_PACKAGE_MANAGER_HOME, 'skills.json'))).toBe(
+        false,
+      )
+    } finally {
+      if (previousSpmHome === undefined) {
+        delete process.env.SKILLS_PACKAGE_MANAGER_HOME
+      } else {
+        process.env.SKILLS_PACKAGE_MANAGER_HOME = previousSpmHome
+      }
+    }
+  })
+
+  it('adds local:* using the explicit skill name', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-local-star-'))
+    const skillDir = path.join(root, '.agents/skills/my-skill')
+
+    mkdirSync(skillDir, { recursive: true })
+    writeFileSync(path.join(skillDir, 'SKILL.md'), '# My skill\n')
+
+    await addCommand({
+      cwd: root,
+      specifier: 'local:*',
+      skill: 'my-skill',
+    })
+
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+
+    expect(manifest.skills['my-skill']).toBe('local:*')
+    expect(existsSync(path.join(root, '.agents/skills/my-skill/SKILL.md'))).toBe(true)
+    expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
+  })
+
+  it('rejects local:* add without an explicit skill name', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-add-local-star-missing-skill-'))
+
+    await expect(
+      addCommand({
+        cwd: root,
+        specifier: 'local:*',
+      }),
+    ).rejects.toThrow('local:* add requires --skill <name>')
   })
 
   it('installs all skills to all project agents when --all is passed', async () => {

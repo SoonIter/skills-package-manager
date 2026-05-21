@@ -69,6 +69,15 @@ function Icon({ children, viewBox = '0 0 24 24' }: { children: ReactNode; viewBo
 
 function getFeatureIcon(name?: string) {
   switch (name) {
+    case 'manifest':
+      return (
+        <Icon>
+          <rect x="4" y="4" width="16" height="16" rx="2" />
+          <path d="M9 9h6" />
+          <path d="M9 13h6" />
+          <path d="M9 17h6" />
+        </Icon>
+      )
     case 'lock':
       return (
         <Icon>
@@ -445,10 +454,7 @@ function ConfigViewer() {
           <span className="t-dot t-dot--green" />
         </div>
         <div className="spm-hero-window__tabs">
-          <button
-            type="button"
-            className="t-tab t-tab--active"
-          >
+          <button type="button" className="t-tab t-tab--active">
             skills.json
           </button>
         </div>

@@ -10,7 +10,7 @@
 
 <p>
   <strong>The Next-Gen Package Manager for <a href="https://skills-package-manager.site">Agent Skills</a></strong><br>
-  Manage, install, and link SKILL.md-based skills from a single `skills.json` manifest.
+  Manage, install, and link SKILL.md-based skills from a single <code>skills.json</code> manifest.
 </p>
 
 <p>

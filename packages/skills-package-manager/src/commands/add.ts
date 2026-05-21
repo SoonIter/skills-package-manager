@@ -134,6 +134,14 @@ function parseTreeUrlSuffix(
 
   const [treeRef, ...subpathParts] = normalizedTreeSuffix.split('/')
   if (subpathParts.length > 0) {
+    if (!['main', 'master', 'trunk'].includes(treeRef)) {
+      throw new ParseError({
+        code: ErrorCode.INVALID_SPECIFIER,
+        message: `${provider} tree URL is ambiguous when the ref or path may contain "/": ${input}. Append an explicit "#<ref>" suffix.`,
+        content: input,
+      })
+    }
+
     return {
       ref: treeRef,
       subpath: sanitizeSourceSubpath(subpathParts.join('/')),
@@ -485,7 +493,12 @@ function toGitHubSpecifierSource(repoUrl: string): string {
 function formatResolvedManifestSpecifier(
   normalized: NormalizedSpecifier,
   entry: ResolvedSkillEntry,
+  originalSpecifier: string,
 ): string {
+  if (originalSpecifier === 'local:*') {
+    return originalSpecifier
+  }
+
   switch (entry.resolution.type) {
     case 'git':
       return `${toGitHubSpecifierSource(entry.resolution.url)}#${entry.resolution.commit}${formatPathSuffix(entry.resolution.path)}`
@@ -506,6 +519,7 @@ async function addSingleSkill(
   cwd: string,
   specifier: string,
   manifestDefaults?: { installDir: string; linkTargets: string[] },
+  skillName?: string,
 ): Promise<{ skillName: string; specifier: string }> {
   await ensureDir(cwd)
 
@@ -524,6 +538,7 @@ async function addSingleSkill(
   try {
     normalized = normalizeSpecifier(specifier, {
       installDir: existingManifest.installDir,
+      skillName,
     })
   } catch (error) {
     if (error instanceof ParseError) {
@@ -540,7 +555,7 @@ async function addSingleSkill(
   const { entry } = await resolveSkillEntry(cwd, specifier, normalized.skillName, {
     installDir: existingManifest.installDir,
   })
-  const manifestSpecifier = formatResolvedManifestSpecifier(normalized, entry)
+  const manifestSpecifier = formatResolvedManifestSpecifier(normalized, entry, specifier)
 
   const existing = existingManifest.skills[normalized.skillName]
   if (existing && existing !== manifestSpecifier) {
@@ -558,6 +573,34 @@ async function addSingleSkill(
     skillName: normalized.skillName,
     specifier: manifestSpecifier,
   }
+}
+
+function getDirectAddSkillName(
+  specifier: string,
+  requestedSkills: string[] | undefined,
+): string | undefined {
+  if (!requestedSkills || requestedSkills.length === 0 || requestedSkills.includes('*')) {
+    if (specifier === 'local:*') {
+      throw new ParseError({
+        code: ErrorCode.INVALID_SPECIFIER,
+        message:
+          'local:* add requires --skill <name> so the existing installDir skill can be resolved',
+        content: specifier,
+      })
+    }
+
+    return undefined
+  }
+
+  if (requestedSkills.length > 1) {
+    throw new ParseError({
+      code: ErrorCode.INVALID_SPECIFIER,
+      message: 'Direct specifier add accepts at most one --skill value',
+      content: requestedSkills.join(', '),
+    })
+  }
+
+  return requestedSkills[0]
 }
 
 function normalizeStringArray(values: string[] | string | undefined): string[] | undefined {
@@ -625,12 +668,59 @@ async function resolveAddManifestContext(options: AddCommandOptions): Promise<{
 }
 
 export async function addCommand(options: AddCommandOptions) {
-  const manifestContext = await resolveAddManifestContext(options)
-  const { cwd } = manifestContext
   const normalizedInput = normalizeAddCommandInput(options.specifier, options.skill)
   const { specifier, skill } = normalizedInput
   const parsedSource = parseAddSourceSpecifier(specifier)
   const requestedSkills = options.all ? ['*'] : normalizeStringArray(skill)
+
+  if (options.list) {
+    if (parsedSource) {
+      p.intro(pc.bgCyan(pc.black(' spm ')))
+
+      const spinner = p.spinner()
+      const sourceLabel = parsedSource.displaySource
+
+      if (parsedSource.type === 'repo') {
+        spinner.start(`Cloning ${sourceLabel}...`)
+      } else {
+        spinner.start(`Scanning ${sourceLabel}...`)
+      }
+
+      const discoveredSkills = await discoverSkillsFromSource(parsedSource)
+
+      if (discoveredSkills.length === 0) {
+        spinner.stop(pc.red('No skills found'))
+        throw new SkillError({
+          code: ErrorCode.SKILL_NOT_FOUND,
+          skillName: requestedSkills?.[0] ?? sourceLabel,
+          message: `No valid skills found in ${sourceLabel}`,
+        })
+      }
+
+      spinner.stop(
+        `Found ${pc.green(String(discoveredSkills.length))} skill${discoveredSkills.length !== 1 ? 's' : ''}`,
+      )
+      printAvailableSkills(discoveredSkills)
+      p.outro('Listed skills')
+      return { status: 'listed' as const, skills: discoveredSkills }
+    }
+
+    const existingManifest = await readSkillsManifest(options.cwd)
+    const normalized = normalizeSpecifier(specifier, {
+      installDir: existingManifest?.installDir ?? '.agents/skills',
+      skillName: getDirectAddSkillName(specifier, requestedSkills),
+    })
+    const listedSkill = {
+      name: normalized.skillName,
+      description: '',
+      path: normalized.path,
+    }
+    printAvailableSkills([listedSkill])
+    return { status: 'listed' as const, skills: [listedSkill] }
+  }
+
+  const manifestContext = await resolveAddManifestContext(options)
+  const { cwd } = manifestContext
 
   if (parsedSource) {
     p.intro(pc.bgCyan(pc.black(' spm ')))
@@ -659,12 +749,6 @@ export async function addCommand(options: AddCommandOptions) {
       `Found ${pc.green(String(discoveredSkills.length))} skill${discoveredSkills.length !== 1 ? 's' : ''}`,
     )
 
-    if (options.list) {
-      printAvailableSkills(discoveredSkills)
-      p.outro('Listed skills')
-      return { status: 'listed' as const, skills: discoveredSkills }
-    }
-
     let selectedSkills: SkillInfo[]
     if (requestedSkills && requestedSkills.length > 0) {
       selectedSkills = selectRequestedSkills(discoveredSkills, requestedSkills)
@@ -680,7 +764,7 @@ export async function addCommand(options: AddCommandOptions) {
         parsedSource.type === 'repo'
           ? buildGitSpecifier(parsedSource.cloneUrl, selectedSkill.path, parsedSource.ref)
           : buildLinkSpecifier(parsedSource.localPath, selectedSkill.path)
-      const result = await addSingleSkill(cwd, nextSpecifier, manifestContext)
+      const result = await addSingleSkill(cwd, nextSpecifier, manifestContext, selectedSkill.name)
       results.push(result)
       if (selectedSkills.length > 1) {
         p.log.success(`Added ${pc.cyan(result.skillName)}`)
@@ -701,20 +785,12 @@ export async function addCommand(options: AddCommandOptions) {
   }
 
   // Protocol specifier (file:, npm:, git URL with fragment, etc.) — direct add
-  if (options.list) {
-    const normalized = normalizeSpecifier(specifier, {
-      installDir: manifestContext.installDir,
-    })
-    const listedSkill = {
-      name: normalized.skillName,
-      description: '',
-      path: normalized.path,
-    }
-    printAvailableSkills([listedSkill])
-    return { status: 'listed' as const, skills: [listedSkill] }
-  }
-
-  const result = await addSingleSkill(cwd, specifier, manifestContext)
+  const result = await addSingleSkill(
+    cwd,
+    specifier,
+    manifestContext,
+    getDirectAddSkillName(specifier, requestedSkills),
+  )
   const spinner = p.spinner()
   spinner.start('Installing skills...')
   await runInstallPipeline(cwd)

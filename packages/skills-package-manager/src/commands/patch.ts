@@ -35,10 +35,7 @@ async function ensureEditDirDoesNotExist(editDir: string) {
   })
 }
 
-async function createBasePlan(
-  cwd: string,
-  manifest: NormalizedSkillsManifest,
-) {
+async function createBasePlan(cwd: string, manifest: NormalizedSkillsManifest) {
   return resolveSkillsPlan(cwd, manifest)
 }
 

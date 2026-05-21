@@ -57,12 +57,12 @@ npx skills-package-manager add owner/repo --all
 npx skills-package-manager add owner/repo -a claude-code -a opencode
 
 # Direct specifier — skip discovery
-npx skills-package-manager add github:owner/repo#abc1234&path:/skills/my-skill
+npx skills-package-manager add 'github:owner/repo#abc1234&path:/skills/my-skill'
 npx skills-package-manager add link:./local-source/skills/my-skill
-npx skills-package-manager add local:*
+npx skills-package-manager add 'local:*' --skill my-skill
 npx skills-package-manager add ./local-source
-npx skills-package-manager add file:./skills-package.tgz&path:/skills/my-skill
-npx skills-package-manager add npm:@scope/skills-package@1.0.0&path:/skills/my-skill
+npx skills-package-manager add 'file:./skills-package.tgz&path:/skills/my-skill'
+npx skills-package-manager add 'npm:@scope/skills-package@1.0.0&path:/skills/my-skill'
 ```
 
 After `npx skills-package-manager add`, the newly added skills are resolved, installed or registered according to their protocol, and linked to each configured `linkTarget` immediately.

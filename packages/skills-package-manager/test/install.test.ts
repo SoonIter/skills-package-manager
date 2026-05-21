@@ -14,7 +14,11 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
 import { installCommand } from '../src/commands/install'
+import { resolveSkillsPlan } from '../src/config/resolveSkillsPlan'
+import type { ResolvedSkillEntry, ResolvedSkillsPlan } from '../src/config/types'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
+import { writeInstallState } from '../src/install/installState'
+import { sha256 } from '../src/utils/hash'
 import { createSkillPackage, packDirectory, startMockNpmRegistry } from './helpers'
 
 function expectNoLockFiles(root: string) {
@@ -35,6 +39,21 @@ function createGitSkillRepo(content: string) {
     gitRepo,
     commit: execSync('git rev-parse HEAD', { cwd: gitRepo }).toString().trim(),
   }
+}
+
+function computePlanDigest(plan: ResolvedSkillsPlan) {
+  const sortedSkillNames = Object.keys(plan.skills).sort()
+  const sortedEntries = Object.fromEntries(
+    sortedSkillNames.map((skillName) => [skillName, plan.skills[skillName]]),
+  ) as Record<string, ResolvedSkillEntry>
+
+  return sha256(
+    JSON.stringify({
+      installDir: plan.installDir,
+      linkTargets: plan.linkTargets,
+      skills: sortedEntries,
+    }),
+  )
 }
 
 describe('installCommand', () => {
@@ -85,6 +104,42 @@ describe('installCommand', () => {
     expect(lstatSync(linkedSkill).isSymbolicLink()).toBe(true)
     expect(path.resolve(path.dirname(linkedSkill), readlinkSync(linkedSkill))).toBe(skillDir)
     expect(gitignore.match(/!\.agents\/skills\/my-skill\/\*\*/g)).toHaveLength(1)
+    expectNoLockFiles(root)
+  })
+
+  it('clears stale managed markers when adopting a local:* skill', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-local-marker-'))
+    const skillDir = path.join(root, '.agents/skills/my-skill')
+
+    mkdirSync(skillDir, { recursive: true })
+    writeFileSync(path.join(skillDir, 'SKILL.md'), '# My skill\n')
+    writeFileSync(path.join(skillDir, 'notes.md'), 'keep me\n')
+    writeFileSync(
+      path.join(skillDir, '.skills-pm.json'),
+      JSON.stringify({ name: 'my-skill', installedBy: 'skills-package-manager' }),
+    )
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'my-skill': 'local:*',
+      },
+    })
+
+    await installCommand({ cwd: root })
+
+    expect(existsSync(path.join(skillDir, '.skills-pm.json'))).toBe(false)
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {},
+    })
+    await installCommand({ cwd: root })
+
+    expect(existsSync(path.join(skillDir, 'SKILL.md'))).toBe(true)
+    expect(readFileSync(path.join(skillDir, 'notes.md'), 'utf8')).toBe('keep me\n')
     expectNoLockFiles(root)
   })
 
@@ -229,6 +284,37 @@ describe('installCommand', () => {
     const installedSkill = path.join(root, '.agents/skills/hello-git-skill/SKILL.md')
     expect(existsSync(installedSkill)).toBe(true)
     expect(readFileSync(installedSkill, 'utf8')).toContain('Hello from git')
+    expectNoLockFiles(root)
+  })
+
+  it('short-circuits pinned git commit installs without resolving the remote ref', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-git-fast-path-'))
+    const commit = 'a'.repeat(40)
+    const manifest = {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'hello-git-skill': `github:owner/repo#${commit}&path:/skills/hello-git-skill`,
+      },
+    }
+    const skillDir = path.join(root, '.agents/skills/hello-git-skill')
+
+    await writeSkillsManifest(root, manifest)
+    mkdirSync(skillDir, { recursive: true })
+    writeFileSync(path.join(skillDir, 'SKILL.md'), '# Existing git skill\n')
+
+    const plan = await resolveSkillsPlan(root, manifest)
+    await writeInstallState(root, plan.installDir, {
+      planDigest: computePlanDigest(plan),
+      installDir: plan.installDir,
+      linkTargets: plan.linkTargets,
+      installerVersion: '0.1.0',
+      installedAt: new Date().toISOString(),
+    })
+
+    await installCommand({ cwd: root })
+
+    expect(readFileSync(path.join(skillDir, 'SKILL.md'), 'utf8')).toBe('# Existing git skill\n')
     expectNoLockFiles(root)
   })
 

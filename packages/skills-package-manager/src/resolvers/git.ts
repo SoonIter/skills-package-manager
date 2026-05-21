@@ -9,6 +9,10 @@ import { sha256 } from '../utils/hash'
 
 const execFileAsync = promisify(execFile)
 
+function isFullCommitSha(ref: string): boolean {
+  return /^[0-9a-f]{40}$/i.test(ref)
+}
+
 async function resolveGitCommitByLsRemote(url: string, target: string): Promise<string | null> {
   try {
     const { stdout } = await execFileAsync('git', ['ls-remote', url, target, `${target}^{}`])
@@ -44,6 +48,10 @@ async function resolveGitCommitByClone(url: string, target: string): Promise<str
 
 export async function resolveGitCommit(url: string, ref: string | null): Promise<string> {
   const target = ref ?? 'HEAD'
+  if (isFullCommitSha(target)) {
+    return target
+  }
+
   const commit = await resolveGitCommitByLsRemote(url, target)
 
   if (commit) {

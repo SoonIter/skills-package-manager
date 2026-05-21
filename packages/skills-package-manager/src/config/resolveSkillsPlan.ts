@@ -78,9 +78,14 @@ export async function resolveSkillsPlan(
   const expandedManifest = await expandSkillsManifest(cwd, manifest)
   const entries = await Promise.all(
     Object.entries(expandedManifest.skills).map(async ([skillName, specifier]) => {
-      const { skillName: resolvedName, entry } = await resolveSkillEntry(cwd, specifier, skillName, {
-        installDir: expandedManifest.installDir,
-      })
+      const { skillName: resolvedName, entry } = await resolveSkillEntry(
+        cwd,
+        specifier,
+        skillName,
+        {
+          installDir: expandedManifest.installDir,
+        },
+      )
       const entryWithPatch = await attachManifestPatchToEntry(
         cwd,
         expandedManifest,
