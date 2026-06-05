@@ -2,6 +2,7 @@ import { access, lstat, readFile, readlink } from 'node:fs/promises'
 import path from 'node:path'
 import { createInstallError } from '../errors'
 import { fetchSkill } from '../fetchers'
+import { clearLocalSkillMarker } from '../fetchers/local'
 import { getSkillInstallPath } from '../install/localSkills'
 import { applySkillPatch } from '../patches/skillPatch'
 import { createTaskQueue, type TaskQueue } from './queue'
@@ -19,7 +20,9 @@ async function isSkillUpToDate(
 
   try {
     if (entry.resolution.type === 'local') {
-      await access(path.join(path.resolve(rootDir, entry.resolution.path), 'SKILL.md'))
+      const sourceRoot = path.resolve(rootDir, entry.resolution.path)
+      await access(path.join(sourceRoot, 'SKILL.md'))
+      await clearLocalSkillMarker(sourceRoot)
       return true
     }
 

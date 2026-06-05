@@ -1,5 +1,3 @@
 packages:
   - website
   - packages/*
-configDependencies:
-  pnpm-plugin-skills: 0.9.0+sha512-IpZ9tvou08CdxLUDC1U+SiU8P5F54BxtegRiQaZ3FFJCkN6AG4OOK68vu/fFqhhqpec79+UwRtJ5m4CCs6esUw==

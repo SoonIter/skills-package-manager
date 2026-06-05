@@ -23,8 +23,8 @@ export type {
   PatchCommandResult,
   PatchCommitCommandOptions,
   PatchCommitCommandResult,
-  ResolvedSkillsPlan,
   ResolvedSkillEntry,
+  ResolvedSkillsPlan,
   SkillsManifest,
   UpdateCommandOptions,
   UpdateCommandResult,
@@ -55,9 +55,9 @@ export {
   parseOwnerRepo,
 } from './github/listSkills'
 export type { SkillInfo } from './github/types'
+export { installStageHooks } from './install/installPlan'
 // Install
 export { installSkills } from './install/installSkills'
-export { installStageHooks } from './install/installPlan'
 export { createInstallProgressReporter } from './install/progressReporter'
 // Specifiers
 export { normalizeSpecifier } from './specifiers/normalizeSpecifier'

@@ -15,11 +15,13 @@ import path from 'node:path'
 import { describe, expect, it } from '@rstest/core'
 import { installCommand } from '../src/commands/install'
 import { writeSkillsManifest } from '../src/config/writeSkillsManifest'
+import { resolveGitCommit } from '../src/resolvers/git'
 import { createSkillPackage, packDirectory, startMockNpmRegistry } from './helpers'
 
 function expectNoLockFiles(root: string) {
   expect(existsSync(path.join(root, 'skills-lock.yaml'))).toBe(false)
   expect(existsSync(path.join(root, '.agents/skills/lock.yaml'))).toBe(false)
+  expect(existsSync(path.join(root, '.agents/skills/.skills-pm-install-state.json'))).toBe(false)
 }
 
 function createGitSkillRepo(content: string) {
@@ -85,6 +87,42 @@ describe('installCommand', () => {
     expect(lstatSync(linkedSkill).isSymbolicLink()).toBe(true)
     expect(path.resolve(path.dirname(linkedSkill), readlinkSync(linkedSkill))).toBe(skillDir)
     expect(gitignore.match(/!\.agents\/skills\/my-skill\/\*\*/g)).toHaveLength(1)
+    expectNoLockFiles(root)
+  })
+
+  it('clears stale managed markers when adopting a local:* skill', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-local-marker-'))
+    const skillDir = path.join(root, '.agents/skills/my-skill')
+
+    mkdirSync(skillDir, { recursive: true })
+    writeFileSync(path.join(skillDir, 'SKILL.md'), '# My skill\n')
+    writeFileSync(path.join(skillDir, 'notes.md'), 'keep me\n')
+    writeFileSync(
+      path.join(skillDir, '.skills-pm.json'),
+      JSON.stringify({ name: 'my-skill', installedBy: 'skills-package-manager' }),
+    )
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'my-skill': 'local:*',
+      },
+    })
+
+    await installCommand({ cwd: root })
+
+    expect(existsSync(path.join(skillDir, '.skills-pm.json'))).toBe(false)
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {},
+    })
+    await installCommand({ cwd: root })
+
+    expect(existsSync(path.join(skillDir, 'SKILL.md'))).toBe(true)
+    expect(readFileSync(path.join(skillDir, 'notes.md'), 'utf8')).toBe('keep me\n')
     expectNoLockFiles(root)
   })
 
@@ -232,6 +270,12 @@ describe('installCommand', () => {
     expectNoLockFiles(root)
   })
 
+  it('resolves full git commit pins without querying the remote ref', async () => {
+    const commit = 'a'.repeat(40)
+
+    await expect(resolveGitCommit('https://example.invalid/repo.git', commit)).resolves.toBe(commit)
+  })
+
   it('removes managed skills that are no longer declared', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-prune-'))
 
@@ -262,7 +306,7 @@ describe('installCommand', () => {
     expectNoLockFiles(root)
   })
 
-  it('reinstalls missing managed skills when install state is otherwise up to date', async () => {
+  it('reinstalls missing managed skill files', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-reinstall-missing-'))
     const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
     const tarballPath = packDirectory(packageRoot)
@@ -284,7 +328,7 @@ describe('installCommand', () => {
     expectNoLockFiles(root)
   })
 
-  it('short-circuits when install state is up to date', async () => {
+  it('reuses already materialized managed skills without writing persistent state', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-uptodate-'))
     const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
     const tarballPath = packDirectory(packageRoot)
@@ -311,7 +355,7 @@ describe('installCommand', () => {
     expectNoLockFiles(root)
   })
 
-  it('does not short-circuit when skill files are missing', async () => {
+  it('reinstalls when managed skill directories are missing', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-missing-skill-'))
     const packageRoot = createSkillPackage('hello-skill', '# Hello from tgz\n')
     const tarballPath = packDirectory(packageRoot)

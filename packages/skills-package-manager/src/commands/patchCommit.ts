@@ -16,10 +16,7 @@ import { runPipeline } from '../pipeline'
 import { loadConfig } from '../pipeline/context'
 import { toPortableRelativePath } from '../utils/path'
 
-async function createBasePlan(
-  cwd: string,
-  manifest: NormalizedSkillsManifest,
-) {
+async function createBasePlan(cwd: string, manifest: NormalizedSkillsManifest) {
   return resolveSkillsPlan(cwd, manifest)
 }
 

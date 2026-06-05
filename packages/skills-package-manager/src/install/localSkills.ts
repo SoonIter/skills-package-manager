@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import type { ResolvedSkillsPlan, ResolvedSkillEntry } from '../config/types'
+import type { ResolvedSkillEntry, ResolvedSkillsPlan } from '../config/types'
 
 export function getLocalSkillDirs(
   rootDir: string,

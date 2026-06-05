@@ -1,7 +1,6 @@
 import type {
   InstallProgressEvent,
   NormalizedSkillsManifest,
-  ResolvedSkillsPlan,
   ResolvedSkillEntry,
 } from '../config/types'
 import type { NpmConfig } from '../npm/packPackage'
@@ -22,28 +21,12 @@ export interface CacheManager {
 // WorkspaceContext
 // ---------------------------------------------------------------------------
 
-export interface ManifestStat {
-  mtimeMs: number
-  size: number
-}
-
 export interface WorkspaceContext {
   cwd: string
   manifest: NormalizedSkillsManifest
   manifestExists: boolean
   npmConfig: NpmConfig
-  installState: InstallState | null
-  manifestStat: ManifestStat | null
   cache: CacheManager
-}
-
-export interface InstallState {
-  planDigest: string
-  manifestStat?: ManifestStat
-  installDir: string
-  linkTargets: string[]
-  installerVersion: string
-  installedAt: string
 }
 
 // ---------------------------------------------------------------------------
