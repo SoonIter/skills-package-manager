@@ -40,6 +40,8 @@ const packageJson = JSON.parse(
   readFileSync(path.join(repoRoot, 'packages/skills-package-manager/package.json'), 'utf8'),
 ) as { version: string }
 
+const spmProcessTimeoutMs = 55_000
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
@@ -111,6 +113,7 @@ export function runSpm(args: string[], options: RunSpmOptions): CliResult {
       ...options.env,
     },
     encoding: 'utf8',
+    timeout: spmProcessTimeoutMs,
   })
 
   return {
