@@ -1,0 +1,30 @@
+// Rstest Snapshot v1
+
+exports[`spm add e2e > adds, installs, and links a selected local skill for an agent 1`] = `
+"status: 0
+signal: <none>
+stdout:
+  ┌   spm 
+  │
+  ◇  Found 1 skill
+  │
+  ◇  Installed skills
+  │
+  └  Added agent-skill
+stderr:
+  <empty>"
+`;
+
+exports[`spm add e2e > lists skills from a local source without writing a manifest 1`] = `
+"status: 0
+signal: <none>
+stdout:
+  ┌   spm 
+  │
+  ◇  Found 1 skill
+  listed-skill	/skills/listed-skill - Listed skill
+  │
+  └  Listed skills
+stderr:
+  <empty>"
+`;

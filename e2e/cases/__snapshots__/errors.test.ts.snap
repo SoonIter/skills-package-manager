@@ -1,0 +1,19 @@
+// Rstest Snapshot v1
+
+exports[`spm error e2e > reports a missing add specifier 1`] = `
+"status: 1
+signal: <none>
+stdout:
+  <empty>
+stderr:
+  Missing required specifier"
+`;
+
+exports[`spm error e2e > reports an unknown command 1`] = `
+"status: 1
+signal: <none>
+stdout:
+  <empty>
+stderr:
+  Unknown command: unknown"
+`;

@@ -1,0 +1,42 @@
+// Rstest Snapshot v1
+
+exports[`spm help and version e2e > prints package version from the built bin 1`] = `
+"status: 0
+signal: <none>
+stdout:
+  <package-version>
+stderr:
+  <empty>"
+`;
+
+exports[`spm help and version e2e > prints top-level help from the built bin 1`] = `
+"status: 0
+signal: <none>
+stdout:
+  spm/<package-version>
+  
+  Usage:
+    $ spm <command> [options]
+  
+  Commands:
+    add [...positionals]    
+    install [...args]       
+    patch <skill>           
+    patch-commit <editDir>  
+    update [...skills]      
+    init [...args]          
+  
+  For more info, run any command with the \`--help\` flag:
+    $ spm add --help
+    $ spm install --help
+    $ spm patch --help
+    $ spm patch-commit --help
+    $ spm update --help
+    $ spm init --help
+  
+  Options:
+    -h, --help     Display this message 
+    -v, --version  Display version number
+stderr:
+  <empty>"
+`;

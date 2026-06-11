@@ -1,0 +1,19 @@
+// Rstest Snapshot v1
+
+exports[`spm patch e2e > prepares and commits a skill patch from the built bin 1`] = `
+"status: 0
+signal: <none>
+stdout:
+  <project>/patch-edit
+stderr:
+  <empty>"
+`;
+
+exports[`spm patch e2e > prepares and commits a skill patch from the built bin 2`] = `
+"status: 0
+signal: <none>
+stdout:
+  patches/patch-skill.patch
+stderr:
+  <empty>"
+`;
