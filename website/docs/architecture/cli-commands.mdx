@@ -17,16 +17,17 @@ For remote sources, `add` writes pinned specifiers:
 
 ## `npx skills-package-manager install`
 
-`install` restores everything declared in `skills.json`.
+`install` is the shared bootstrap and restore command. If `skills.json` is missing, it creates one first; migrated projects adopt existing local skills as `local:*`, while new projects receive an empty default manifest. Then it restores everything declared in `skills.json`.
 
 Install process:
 
-1. Load `skills.json`, `.npmrc`, and cache.
-2. Resolve the manifest into an in-memory install plan.
-3. Inject the bundled helper skill when `selfSkill` is enabled.
-4. Prune managed skills that are no longer declared.
-5. Fetch managed skills into `installDir`.
-6. Link skills into `linkTargets`.
+1. Bootstrap `skills.json` when it is missing.
+2. Load `skills.json`, `.npmrc`, and cache.
+3. Resolve the manifest into an in-memory install plan.
+4. Inject the bundled helper skill when `selfSkill` is enabled.
+5. Prune managed skills that are no longer declared.
+6. Fetch managed skills into `installDir`.
+7. Link skills into `linkTargets`.
 
 No separate lock file is written.
 

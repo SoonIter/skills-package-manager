@@ -38,8 +38,8 @@ features:
 
 quickStarts:
   - label: 'CLI Setup'
-    command: "npx skills-package-manager init --yes\nnpx skills-package-manager add <skill-name>\nnpx skills-package-manager install"
-    agentText: 'Use skills-package-manager to initialize and install skills for this project.'
+    command: "npx skills-package-manager install\nnpx skills-package-manager add <skill-source>"
+    agentText: 'Use skills-package-manager install to bootstrap this project, then add skills when needed.'
   - label: 'pnpm Plugin'
     command: 'pnpm add pnpm-plugin-skills --config'
     agentText: 'Add pnpm-plugin-skills as a pnpm config dependency to automatically sync skills on install.'

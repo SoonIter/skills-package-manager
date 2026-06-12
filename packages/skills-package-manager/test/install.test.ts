@@ -90,6 +90,112 @@ describe('installCommand', () => {
     expectNoLockFiles(root)
   })
 
+  it('bootstraps an empty skills.json for a new project when the manifest is missing', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-bootstrap-empty-'))
+
+    await installCommand({ cwd: root })
+
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+    expect(manifest.installDir).toBe('.agents/skills')
+    expect(manifest.linkTargets).toEqual([])
+    expect(manifest.skills).toEqual({})
+    expectNoLockFiles(root)
+  })
+
+  it('bootstraps skills.json from existing installed skills when the manifest is missing', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-bootstrap-'))
+    const firstSkillDir = path.join(root, '.agents/skills/first-skill')
+    const secondSkillDir = path.join(root, '.agents/skills/second-skill')
+
+    mkdirSync(firstSkillDir, { recursive: true })
+    mkdirSync(secondSkillDir, { recursive: true })
+    mkdirSync(path.join(root, '.agents/skills/not-a-skill'), { recursive: true })
+    mkdirSync(path.join(root, '.claude/skills/first-skill'), { recursive: true })
+    writeFileSync(path.join(firstSkillDir, 'SKILL.md'), '# First skill\n')
+    writeFileSync(path.join(secondSkillDir, 'SKILL.md'), '# Second skill\n')
+    writeFileSync(path.join(root, '.claude/skills/first-skill/SKILL.md'), '# Stale copy\n')
+    writeFileSync(path.join(root, '.gitignore'), '.agents/**\n')
+
+    await installCommand({ cwd: root })
+
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+    const linkedSkill = path.join(root, '.claude/skills/first-skill')
+    const gitignore = readFileSync(path.join(root, '.gitignore'), 'utf8')
+
+    expect(manifest.installDir).toBe('.agents/skills')
+    expect(manifest.linkTargets).toEqual(['.claude/skills'])
+    expect(manifest.skills).toEqual({
+      'first-skill': 'local:*',
+      'second-skill': 'local:*',
+    })
+    expect(readFileSync(path.join(firstSkillDir, 'SKILL.md'), 'utf8')).toBe('# First skill\n')
+    expect(lstatSync(linkedSkill).isSymbolicLink()).toBe(true)
+    expect(path.resolve(path.dirname(linkedSkill), readlinkSync(linkedSkill))).toBe(firstSkillDir)
+    expect(gitignore).toContain('!.agents/skills/first-skill/**')
+    expect(gitignore).toContain('!.agents/skills/second-skill/**')
+    expectNoLockFiles(root)
+  })
+
+  it('uses skills-lock.json names when bootstrapping a Vercel skills install', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-bootstrap-lock-'))
+
+    mkdirSync(path.join(root, '.agents/skills/from-lock'), { recursive: true })
+    mkdirSync(path.join(root, '.agents/skills/untracked'), { recursive: true })
+    writeFileSync(path.join(root, '.agents/skills/from-lock/SKILL.md'), '# From lock\n')
+    writeFileSync(path.join(root, '.agents/skills/untracked/SKILL.md'), '# Untracked\n')
+    writeFileSync(
+      path.join(root, 'skills-lock.json'),
+      JSON.stringify(
+        {
+          version: 1,
+          skills: {
+            'from-lock': {
+              source: 'vercel-labs/agent-skills',
+              sourceType: 'github',
+              computedHash: 'abc123',
+            },
+            missing: {
+              source: 'vercel-labs/agent-skills',
+              sourceType: 'github',
+              computedHash: 'def456',
+            },
+          },
+        },
+        null,
+        2,
+      ),
+    )
+
+    await installCommand({ cwd: root })
+
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+    expect(manifest.skills).toEqual({
+      'from-lock': 'local:*',
+    })
+    expect(existsSync(path.join(root, '.agents/skills/untracked/SKILL.md'))).toBe(true)
+  })
+
+  it('bootstraps from .agent/skills when that install directory already exists', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-bootstrap-agent-'))
+    const skillDir = path.join(root, '.agent/skills/my-skill')
+
+    mkdirSync(skillDir, { recursive: true })
+    mkdirSync(path.join(root, '.claude/skills'), { recursive: true })
+    writeFileSync(path.join(skillDir, 'SKILL.md'), '# My skill\n')
+
+    await installCommand({ cwd: root })
+
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+    const linkedSkill = path.join(root, '.claude/skills/my-skill')
+    expect(manifest.installDir).toBe('.agent/skills')
+    expect(manifest.linkTargets).toEqual(['.claude/skills'])
+    expect(manifest.skills).toEqual({
+      'my-skill': 'local:*',
+    })
+    expect(lstatSync(linkedSkill).isSymbolicLink()).toBe(true)
+    expect(path.resolve(path.dirname(linkedSkill), readlinkSync(linkedSkill))).toBe(skillDir)
+  })
+
   it('clears stale managed markers when adopting a local:* skill', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-local-marker-'))
     const skillDir = path.join(root, '.agents/skills/my-skill')
