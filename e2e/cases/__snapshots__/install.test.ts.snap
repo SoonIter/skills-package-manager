@@ -1,5 +1,29 @@
 // Rstest Snapshot v1
 
+exports[`spm install e2e > bootstraps an empty skills.json when it is missing 1`] = `
+"status: 0
+signal: <none>
+stdout:
+  spm install: starting (0 skills)
+  spm install: resolving...
+  spm install: fetching...
+  spm install: Progress: resolved 0, reused 0, downloaded 0, added 0, done
+stderr:
+  <empty>"
+`;
+
+exports[`spm install e2e > bootstraps skills.json from existing local skills 1`] = `
+"status: 0
+signal: <none>
+stdout:
+  spm install: starting (1 skill)
+  spm install: resolving...
+  spm install: fetching...
+  spm install: Progress: resolved 1, reused 0, downloaded 0, added 0, done
+stderr:
+  <empty>"
+`;
+
 exports[`spm install e2e > installs a linked skill and creates configured agent links 1`] = `
 "status: 0
 signal: <none>
@@ -8,15 +32,6 @@ stdout:
   spm install: resolving...
   spm install: fetching...
   spm install: Progress: resolved 1, reused 0, downloaded 0, added 1, done
-stderr:
-  <empty>"
-`;
-
-exports[`spm install e2e > skips cleanly when skills.json is missing 1`] = `
-"status: 0
-signal: <none>
-stdout:
-  <empty>
 stderr:
   <empty>"
 `;

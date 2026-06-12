@@ -41,6 +41,8 @@ Install all skills defined in `skills.json`, materialize managed skills into `in
 
 `install` does not create a separate lock file. Remote reproducibility comes from pinned specifiers in `skills.json`.
 
+If `skills.json` is missing, `install` bootstraps one first. For migrated projects, it scans `.agents/skills` and `.agent/skills` for direct child directories with `SKILL.md`, writes them as `local:*` entries, and adds `.claude/skills` as a link target when that directory already exists. When a Vercel `skills-lock.json` is present, matching lock entries are used as the migration source so stale local directories are not adopted accidentally. For new projects with no local skills yet, it writes an empty default manifest.
+
 If `patchedSkills` contains an entry for a managed skill, the referenced patch file is applied after the base skill content is materialized. `local:` skills cannot be patched because their source directories are user-owned.
 
 ```bash
