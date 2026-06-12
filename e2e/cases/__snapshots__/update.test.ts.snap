@@ -1,0 +1,19 @@
+// Rstest Snapshot v1
+
+exports[`spm update e2e > reports unknown update targets 1`] = `
+"status: 1
+signal: <none>
+stdout:
+  <empty>
+stderr:
+  Error [ESKILLNOTFOUND]: Unknown skill: missing-skill"
+`;
+
+exports[`spm update e2e > skips link specifiers without rewriting the manifest 1`] = `
+"status: 0
+signal: <none>
+stdout:
+  <empty>
+stderr:
+  <empty>"
+`;

@@ -1,0 +1,19 @@
+// Rstest Snapshot v1
+
+exports[`spm init e2e > fails without overwriting an existing manifest 1`] = `
+"status: 1
+signal: <none>
+stdout:
+  <empty>
+stderr:
+  Error [EMANIFESTEXISTS]: skills.json already exists"
+`;
+
+exports[`spm init e2e > writes the default manifest with --yes 1`] = `
+"status: 0
+signal: <none>
+stdout:
+  <empty>
+stderr:
+  <empty>"
+`;
