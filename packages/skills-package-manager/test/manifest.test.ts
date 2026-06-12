@@ -20,7 +20,24 @@ describe('manifest io', () => {
       installDir: '.agents/skills',
       linkTargets: [],
       skills: { hello: 'link:./skills/hello' },
+      dependencies: {},
     })
+    expect(
+      JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8')).dependencies,
+    ).toBeUndefined()
+  })
+
+  it('writes non-empty dependency locks after skills', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-manifest-dependencies-'))
+    await writeSkillsManifest(root, {
+      skills: { hello: 'link:./skills/hello' },
+      dependencies: { dep: 'link:./skills/dep' },
+    })
+    const rawManifest = readFileSync(path.join(root, 'skills.json'), 'utf8')
+    const manifest = await readSkillsManifest(root)
+
+    expect(rawManifest.indexOf('"skills"')).toBeLessThan(rawManifest.indexOf('"dependencies"'))
+    expect(manifest?.dependencies).toEqual({ dep: 'link:./skills/dep' })
   })
 
   it('defaults selfSkill to undefined when omitted from skills.json', async () => {
@@ -111,7 +128,7 @@ describe('manifest validation', () => {
     const result = skillsManifestSchema.safeParse(validManifest)
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data).toEqual(validManifest)
+      expect(result.data).toEqual({ ...validManifest, dependencies: {} })
     }
   })
 
@@ -125,6 +142,7 @@ describe('manifest validation', () => {
       expect(result.data.linkTargets).toEqual([])
       expect(result.data.selfSkill).toBeUndefined()
       expect(result.data.skills).toEqual({})
+      expect(result.data.dependencies).toEqual({})
     }
   })
 

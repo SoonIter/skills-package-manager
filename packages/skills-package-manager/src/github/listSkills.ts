@@ -3,6 +3,7 @@ import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { promisify } from 'node:util'
+import { parseSkillFrontmatter } from '../skills/frontmatter'
 import type { SkillInfo } from './types'
 
 const execFileAsync = promisify(execFile)
@@ -53,22 +54,6 @@ const ALLOWED_HIDDEN_DIRS = new Set([
   '.zencoder',
 ])
 
-function parseSkillFrontmatter(content: string): { name: string; description: string } {
-  const fmMatch = content.match(/^---\n([\s\S]*?)\n---/)
-  if (!fmMatch) {
-    return { name: '', description: '' }
-  }
-
-  const fm = fmMatch[1]
-  const nameMatch = fm.match(/^name:\s*(.+)$/m)
-  const descMatch = fm.match(/^description:\s*(.+)$/m)
-
-  return {
-    name: nameMatch?.[1]?.trim() ?? '',
-    description: descMatch?.[1]?.trim() ?? '',
-  }
-}
-
 async function hasSkillMd(dir: string): Promise<boolean> {
   try {
     const s = await stat(join(dir, 'SKILL.md'))
@@ -81,7 +66,7 @@ async function hasSkillMd(dir: string): Promise<boolean> {
 async function parseSkillDir(dir: string, relativePath: string): Promise<SkillInfo | null> {
   try {
     const content = await readFile(join(dir, 'SKILL.md'), 'utf8')
-    const meta = parseSkillFrontmatter(content)
+    const { frontmatter: meta } = parseSkillFrontmatter(content)
     const dirName = basename(dir)
     return {
       name: meta.name || dirName,

@@ -28,5 +28,6 @@ function normalizeManifest(manifest: NormalizedSkillsManifest | null): Normalize
     installDir: '.agents/skills',
     linkTargets: [],
     skills: {},
+    dependencies: {},
   }
 }

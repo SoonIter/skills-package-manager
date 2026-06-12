@@ -1,14 +1,24 @@
+import { bootstrapSkillsManifest } from '../config/bootstrapSkillsManifest'
 import { resolveSkillsPlan } from '../config/resolveSkillsPlan'
+import {
+  areManifestDependenciesEqual,
+  resolveManifestDependencies,
+} from '../config/skillDependencies'
 import type { InstallCommandOptions } from '../config/types'
+import { writeSkillsManifest } from '../config/writeSkillsManifest'
 import { createInstallProgressReporter } from '../install/progressReporter'
 import { runPipeline } from '../pipeline'
 import { loadConfig } from '../pipeline/context'
 
 export async function installCommand(options: InstallCommandOptions) {
-  const ctx = await loadConfig(options.cwd)
+  let ctx = await loadConfig(options.cwd)
 
   if (!ctx.manifestExists) {
-    return { status: 'skipped' as const, reason: 'manifest-missing' }
+    ctx = {
+      ...ctx,
+      manifest: await bootstrapSkillsManifest(options.cwd),
+      manifestExists: true,
+    }
   }
 
   const reporter = createInstallProgressReporter()
@@ -19,7 +29,11 @@ export async function installCommand(options: InstallCommandOptions) {
   let started = false
 
   try {
-    const plan = await resolveSkillsPlan(options.cwd, ctx.manifest)
+    const dependencyResult = await resolveManifestDependencies(options.cwd, ctx.manifest, {
+      onWarning: options.onWarning,
+    })
+    const nextManifest = dependencyResult.manifest
+    const plan = await resolveSkillsPlan(options.cwd, nextManifest)
 
     reporter.start(Object.keys(plan.skills).length)
     started = true
@@ -29,7 +43,10 @@ export async function installCommand(options: InstallCommandOptions) {
 
     reporter.setPhase('fetching')
     await runPipeline({
-      ctx,
+      ctx: {
+        ...ctx,
+        manifest: nextManifest,
+      },
       plan,
       skipResolve: true,
       options: { onProgress },
@@ -38,7 +55,15 @@ export async function installCommand(options: InstallCommandOptions) {
     reporter.setPhase('finalizing')
     reporter.complete()
 
-    return { status: 'installed' as const, installed: Object.keys(plan.skills) }
+    if (!areManifestDependenciesEqual(ctx.manifest, nextManifest)) {
+      await writeSkillsManifest(options.cwd, nextManifest)
+    }
+
+    return {
+      status: 'installed' as const,
+      installed: Object.keys(plan.skills),
+      warnings: dependencyResult.warnings,
+    }
   } catch (error) {
     if (started) {
       reporter.fail()

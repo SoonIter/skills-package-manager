@@ -55,6 +55,7 @@ export function normalizeSkillsManifest(
     linkTargets: manifest.linkTargets ?? [],
     selfSkill: manifest.selfSkill ?? false,
     skills: manifest.skills ?? {},
+    dependencies: manifest.dependencies ?? {},
     patchedSkills: manifest.patchedSkills,
   }
 }

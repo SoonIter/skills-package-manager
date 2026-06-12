@@ -10,13 +10,18 @@ import {
 import { promptSkillSelection } from '../cli/prompt'
 import { readSkillsManifest } from '../config/readSkillsManifest'
 import { resolveSkillEntry, resolveSkillsPlan } from '../config/resolveSkillsPlan'
-import type { AddCommandOptions, NormalizedSpecifier, ResolvedSkillEntry } from '../config/types'
+import type {
+  AddCommandOptions,
+  NormalizedSkillsManifest,
+  NormalizedSpecifier,
+} from '../config/types'
 import { writeSkillsManifest } from '../config/writeSkillsManifest'
 import { ErrorCode, ParseError, SkillError } from '../errors'
 import { cloneAndDiscover, discoverSkillsInDir, parseGitHubUrl } from '../github/listSkills'
 import type { SkillInfo } from '../github/types'
 import { runPipeline } from '../pipeline'
 import { loadConfig } from '../pipeline/context'
+import { formatResolvedManifestSpecifier } from '../specifiers/formatResolvedSpecifier'
 import { normalizeLinkSource } from '../specifiers/normalizeLinkSource'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 import { ensureDir } from '../utils/fs'
@@ -527,45 +532,6 @@ async function discoverSkillsWithSpinner(
   return discoveredSkills
 }
 
-function formatPathSuffix(skillPath: string): string {
-  return skillPath === '/' ? '' : `&path:${skillPath}`
-}
-
-function toGitHubSpecifierSource(repoUrl: string): string {
-  const match = repoUrl.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?\/?$/)
-  if (!match) {
-    return repoUrl
-  }
-
-  const [, owner, repo] = match
-  return `github:${owner}/${repo.replace(/\.git$/, '')}`
-}
-
-function formatResolvedManifestSpecifier(
-  normalized: NormalizedSpecifier,
-  entry: ResolvedSkillEntry,
-  originalSpecifier: string,
-): string {
-  if (originalSpecifier === 'local:*') {
-    return originalSpecifier
-  }
-
-  switch (entry.resolution.type) {
-    case 'git':
-      return `${toGitHubSpecifierSource(entry.resolution.url)}#${entry.resolution.commit}${formatPathSuffix(entry.resolution.path)}`
-    case 'npm':
-      return `npm:${entry.resolution.packageName}@${entry.resolution.version}${formatPathSuffix(entry.resolution.path)}`
-    case 'file':
-    case 'link':
-    case 'local':
-      return normalized.normalized
-    default: {
-      const _exhaustive: never = entry.resolution
-      throw new Error(`Unsupported resolution type: ${_exhaustive}`)
-    }
-  }
-}
-
 async function addSingleSkill(
   cwd: string,
   specifier: string,
@@ -574,10 +540,11 @@ async function addSingleSkill(
 ): Promise<{ skillName: string; specifier: string }> {
   await ensureDir(cwd)
 
-  const existingManifest = (await readSkillsManifest(cwd)) ?? {
+  const existingManifest: NormalizedSkillsManifest = (await readSkillsManifest(cwd)) ?? {
     installDir: manifestDefaults?.installDir ?? '.agents/skills',
     linkTargets: manifestDefaults?.linkTargets ?? [],
     skills: {},
+    dependencies: {},
   }
 
   if (manifestDefaults) {

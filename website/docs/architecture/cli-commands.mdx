@@ -17,16 +17,19 @@ For remote sources, `add` writes pinned specifiers:
 
 ## `npx skills-package-manager install`
 
-`install` restores everything declared in `skills.json`.
+`install` is the shared bootstrap and restore command. If `skills.json` is missing, it creates one first; migrated projects adopt existing local skills as `local:*`, while new projects receive an empty default manifest. Then it restores everything declared in `skills.json`.
 
 Install process:
 
-1. Load `skills.json`, `.npmrc`, and cache.
-2. Resolve the manifest into an in-memory install plan.
-3. Inject the bundled helper skill when `selfSkill` is enabled.
-4. Prune managed skills that are no longer declared.
-5. Fetch managed skills into `installDir`.
-6. Link skills into `linkTargets`.
+1. Bootstrap `skills.json` when it is missing.
+2. Load `skills.json`, `.npmrc`, and cache.
+3. Resolve the manifest into an in-memory install plan.
+4. Inject the bundled helper skill when `selfSkill` is enabled.
+5. Read patched `SKILL.md` frontmatter, recursively resolve `dependencies`, and prepare the final dependency lock map.
+6. Prune managed skills that are no longer declared or reachable as dependencies.
+7. Fetch managed skills into `installDir`.
+8. Link skills into `linkTargets`.
+9. Write updated `skills.json.dependencies` after the install succeeds.
 
 No separate lock file is written.
 
@@ -37,6 +40,8 @@ No separate lock file is written.
 - Git and `github:` skills move to the latest `main` commit.
 - `npm:` skills move to the registry `latest` version.
 - `link:`, `local:`, and `file:` skills are skipped.
+- Without named targets, dependency locks are updated alongside root skills before the dependency closure is recomputed.
+- Named update targets only match root `skills`.
 - `skills.json` is written only after the updated install succeeds.
 
 ## `npx skills-package-manager patch`

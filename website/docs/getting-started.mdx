@@ -9,20 +9,21 @@ import PnpmGuide from './_pnpm.mdx';
 </PageTab>
 <PageTab label="Standalone CLI">
 
-## 1. Quick Initialization
+## 1. Quick Start
 
-If you're not using pnpm, you can manage skills using the standalone CLI. Initialize your project to create a `skills.json` manifest.
+If you're not using pnpm, start every project with the same command. `install` creates `skills.json` for new projects and migrates existing local skills when they are present.
 
 <Steps>
 
-### Bootstrap your project
+### Bootstrap the project
 
 ```bash
-# Run once with npx, no global install required
-npx skills-package-manager init --yes
+npx skills-package-manager install
 ```
 
-### Add your first skill
+If `skills.json` does not exist yet, `install` writes one. For migrated projects, it scans `.agents/skills` and `.agent/skills`, reuses matching `skills-lock.json` entries when present, and writes `local:*` entries. For new projects, it writes an empty manifest that is ready for `add`.
+
+### Add skills when needed
 
 Select from a variety of sources (Git, NPM, Local).
 
@@ -38,7 +39,9 @@ npx skills-package-manager add rstackjs/agent-skills --list
 npx skills-package-manager add rstackjs/agent-skills --all
 ```
 
-### Materialize & Link
+`add` updates `skills.json`, installs the selected skills, and links them into configured agent folders.
+
+### Restore on another machine
 
 ```bash
 npx skills-package-manager install
@@ -102,12 +105,12 @@ Update your `package.json` to include the `prepare` lifecycle hook:
 }
 ```
 
-### Initialize and Add Skills
+### Bootstrap and Add Skills
 
-If you haven't already, initialize your manifest and start adding skills:
+Run the same bootstrap command first for both new projects and migrated projects. Then add skills when needed:
 
 ```bash
-npx skills-package-manager init --yes
+npx skills-package-manager install
 npx skills-package-manager add <source>
 ```
 

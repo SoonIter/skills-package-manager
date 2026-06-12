@@ -1,6 +1,6 @@
 import { Steps } from '@rspress/core/theme';
 
-## 1. Started with `pnpm-plugin-skills`
+## 1. Get started with `pnpm-plugin-skills`
 
 If your project already uses pnpm, the easiest way to adopt skills-package-manager is to start from `pnpm install` and let skill installation happen automatically inside the existing dependency workflow.
 
@@ -16,17 +16,19 @@ pnpm add pnpm-plugin-skills --config
 
 This tells pnpm to load `pnpm-plugin-skills` during installation.
 
-### Declare the skills your project needs
+### Bootstrap the manifest
 
-Create a `skills.json` file at the workspace root. You can create it manually or use the CLI to initialize:
+Run the same command for new projects and migrated projects:
 
 ```bash
-# Interactive — prompt for installDir and linkTargets
-npx skills-package-manager init
-
-# Non-interactive — write the default manifest immediately
-npx skills-package-manager init --yes
+npx skills-package-manager install
 ```
+
+If local skills already exist, `install` migrates them into `skills.json` as `local:*` entries. If no local skills exist yet, it writes an empty default manifest.
+
+### Add skills when needed
+
+`add` updates `skills.json`, installs the selected skills, and links configured agent targets:
 
 ```bash
 # Interactive — clone repo, discover skills, select via multiselect prompt
@@ -37,7 +39,9 @@ npx skills-package-manager add https://github.com/rstackjs/agent-skills
 npx skills-package-manager add vercel-labs/skills --skill find-skills
 npx skills-package-manager add vercel-labs/skills -s frontend-design -s skill-creator
 npx skills-package-manager add vercel-labs/skills@find-skills
+```
 
+```bash
 # skills CLI-compatible inspection and broad install flags
 npx skills-package-manager add vercel-labs/skills --list
 npx skills-package-manager add vercel-labs/skills --all

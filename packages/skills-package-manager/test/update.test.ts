@@ -28,6 +28,13 @@ function createMainBranchGitSkillRepo() {
   return { gitRepo, firstCommit, secondCommit }
 }
 
+function createLocalSkill(root: string, skillName: string, content: string): string {
+  const skillDir = path.join(root, 'sources', skillName)
+  mkdirSync(skillDir, { recursive: true })
+  writeFileSync(path.join(skillDir, 'SKILL.md'), content)
+  return `link:./sources/${skillName}`
+}
+
 async function startTwoVersionRegistry() {
   const packageV1 = createSkillPackage('hello-skill', '# Hello from npm v1\n', '1.0.0')
   const packageV2 = createSkillPackage('hello-skill', '# Hello from npm v2\n', '2.0.0')
@@ -269,6 +276,77 @@ describe('updateCommand', () => {
     ])
     expect(existsSync(path.join(root, '.agents/skills/link-skill/SKILL.md'))).toBe(true)
     expect(existsSync(path.join(root, '.agents/skills/file-skill/SKILL.md'))).toBe(true)
+  })
+
+  it('updates dependency locks during no-arg update', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-dependency-'))
+    const { gitRepo, firstCommit, secondCommit } = createMainBranchGitSkillRepo()
+    const rootSpecifier = createLocalSkill(
+      root,
+      'root-skill',
+      `---
+dependencies:
+  hello-skill: "${gitRepo}#${firstCommit}&path:/skills/hello-skill"
+---
+# Root
+`,
+    )
+
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'root-skill': rootSpecifier,
+          },
+          dependencies: {
+            'hello-skill': `${gitRepo}#${firstCommit}&path:/skills/hello-skill`,
+          },
+        },
+        null,
+        2,
+      ),
+    )
+
+    const result = await updateCommand({ cwd: root })
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+
+    expect(result.status).toBe('updated')
+    expect(result.updated).toEqual(['hello-skill'])
+    expect(result.skipped).toEqual([{ name: 'root-skill', reason: 'link-specifier' }])
+    expect(manifest.dependencies).toEqual({
+      'hello-skill': `${gitRepo}#${secondCommit}&path:/skills/hello-skill`,
+    })
+    expect(readFileSync(path.join(root, '.agents/skills/hello-skill/SKILL.md'), 'utf8')).toContain(
+      'Second version',
+    )
+  })
+
+  it('rejects named updates that target dependency-only skills', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-update-dependency-named-'))
+    writeFileSync(
+      path.join(root, 'skills.json'),
+      JSON.stringify(
+        {
+          installDir: '.agents/skills',
+          linkTargets: [],
+          skills: {
+            'root-skill': `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`,
+          },
+          dependencies: {
+            'dep-skill': `link:${path.resolve(__dirname, 'fixtures/local-source/skills/hello-skill')}`,
+          },
+        },
+        null,
+        2,
+      ),
+    )
+
+    await expect(updateCommand({ cwd: root, skills: ['dep-skill'] })).rejects.toThrow(
+      'Unknown skill: dep-skill',
+    )
   })
 
   it('throws for unknown target skills', async () => {

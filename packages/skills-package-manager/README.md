@@ -4,13 +4,13 @@ Core library and CLI for managing agent skills.
 
 ## CLI Usage
 
-For one-off usage, `npx skills-package-manager add ...` is the low-friction migration path for teams already familiar with `npx skills add ...`.
+For one-off usage, `npx skills-package-manager install` is the shared starting point for both new projects and projects migrating from another skills CLI.
 
 ```bash
 npx skills-package-manager --help
 npx skills-package-manager --version
-npx skills-package-manager add <specifier> [--skill <name>...]
 npx skills-package-manager install
+npx skills-package-manager add <specifier> [--skill <name>...]
 npx skills-package-manager patch <skill>
 npx skills-package-manager patch-commit <edit-dir>
 npx skills-package-manager update [skill...]
@@ -110,7 +110,7 @@ Default `skills.json` written by `npx skills-package-manager init --yes`:
 
 ### `npx skills-package-manager install`
 
-Install all skills declared in `skills.json`:
+Bootstrap the project and install all skills declared in `skills.json`:
 
 ```bash
 npx skills-package-manager install
@@ -119,6 +119,20 @@ npx skills-package-manager install
 This resolves each skill from its specifier, installs managed skills into `installDir` (default `.agents/skills/`), registers `local:` skills in place, and creates symlinks for each `linkTarget`.
 When `selfSkill` is `true`, `npx skills-package-manager install` also installs the bundled `skills-package-manager-cli` skill so users get guidance for `skills.json` and `npx skills-package-manager` commands. This helper skill is injected at install time and is not written to `skills.json`.
 If `patchedSkills` contains an entry for a managed skill, the corresponding patch file is applied after the skill is materialized. `local:` skills cannot be patched because their source directories are user-owned.
+
+If `skills.json` does not exist, `install` bootstraps one first. For migrated projects, it scans `.agents/skills` and `.agent/skills` for direct child directories with `SKILL.md`, writes them as `local:*` entries, and adds `.claude/skills` as a link target when that directory already exists. When a Vercel `skills-lock.json` is present, matching lock entries are used as the migration source so stale local directories are not adopted accidentally. For new projects with no local skills yet, it writes an empty default manifest.
+
+Skills can declare top-level frontmatter dependencies:
+
+```yaml
+---
+name: workflow-skill
+dependencies:
+  shared-helper: "github:owner/repo#main&path:/skills/shared-helper"
+---
+```
+
+`install` recursively installs those dependencies and writes the resolved pins to `skills.json.dependencies` after the install succeeds. Existing `skills.json.dependencies` entries override frontmatter specifiers for the same name, and stale dependency locks are pruned.
 
 ### `npx skills-package-manager patch`
 
@@ -166,7 +180,8 @@ Behavior:
 - Uses `skills.json` as the source of truth
 - Updates git skills to the latest `main` commit and npm skills to the registry `latest` version
 - Skips local `link:`, `local:`, and `file:` skills
-- Fails immediately for unknown skill names
+- Without named targets, updates both root `skills` and dependency locks before recomputing the dependency closure
+- Named update targets must be root `skills`; dependency-only names fail immediately
 - Writes `skills.json` only after the updated install succeeds
 
 ## Programmatic API

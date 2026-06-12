@@ -178,7 +178,10 @@ describe('runCli dispatch', () => {
   })
 
   it('dispatches install with cwd', async () => {
-    const install = createAsyncSpy<[options: { cwd: string }], string>('installed')
+    const install = createAsyncSpy<
+      [options: { cwd: string; onWarning?: (warning: unknown) => void }],
+      string
+    >('installed')
 
     const result = await runCli(['node', 'spm', 'install'], {
       cwd: '/workspace/project',
@@ -186,7 +189,8 @@ describe('runCli dispatch', () => {
     })
 
     expect(result).toBe('installed')
-    expect(install.calls).toEqual([[{ cwd: '/workspace/project' }]])
+    expect(install.calls[0][0].cwd).toBe('/workspace/project')
+    expect(typeof install.calls[0][0].onWarning).toBe('function')
   })
 
   it('rejects the removed install --frozen-lockfile flag', async () => {
@@ -249,25 +253,35 @@ describe('runCli dispatch', () => {
   })
 
   it('dispatches update with skills array', async () => {
-    const update = createAsyncSpy<[options: { cwd: string; skills?: string[] }], string>('updated')
+    const update = createAsyncSpy<
+      [options: { cwd: string; skills?: string[]; onWarning?: (warning: unknown) => void }],
+      string
+    >('updated')
 
     await runCli(['node', 'spm', 'update', 'alpha', 'beta'], {
       cwd: '/workspace/project',
       ...withHandlers({ updateCommand: update.fn }),
     })
 
-    expect(update.calls).toEqual([[{ cwd: '/workspace/project', skills: ['alpha', 'beta'] }]])
+    expect(update.calls[0][0].cwd).toBe('/workspace/project')
+    expect(update.calls[0][0].skills).toEqual(['alpha', 'beta'])
+    expect(typeof update.calls[0][0].onWarning).toBe('function')
   })
 
   it('dispatches update with undefined skills when no args are passed', async () => {
-    const update = createAsyncSpy<[options: { cwd: string; skills?: string[] }], string>('updated')
+    const update = createAsyncSpy<
+      [options: { cwd: string; skills?: string[]; onWarning?: (warning: unknown) => void }],
+      string
+    >('updated')
 
     await runCli(['node', 'spm', 'update'], {
       cwd: '/workspace/project',
       ...withHandlers({ updateCommand: update.fn }),
     })
 
-    expect(update.calls).toEqual([[{ cwd: '/workspace/project', skills: undefined }]])
+    expect(update.calls[0][0].cwd).toBe('/workspace/project')
+    expect(update.calls[0][0].skills).toBeUndefined()
+    expect(typeof update.calls[0][0].onWarning).toBe('function')
   })
 
   it('dispatches init with yes true when --yes is passed', async () => {

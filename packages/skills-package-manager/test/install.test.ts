@@ -39,6 +39,13 @@ function createGitSkillRepo(content: string) {
   }
 }
 
+function createLocalSkill(root: string, skillName: string, content: string): string {
+  const skillDir = path.join(root, 'sources', skillName)
+  mkdirSync(skillDir, { recursive: true })
+  writeFileSync(path.join(skillDir, 'SKILL.md'), content)
+  return `link:./sources/${skillName}`
+}
+
 describe('installCommand', () => {
   it('installs a linked local skill, creates symlinks, and writes no lock files', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-'))
@@ -88,6 +95,112 @@ describe('installCommand', () => {
     expect(path.resolve(path.dirname(linkedSkill), readlinkSync(linkedSkill))).toBe(skillDir)
     expect(gitignore.match(/!\.agents\/skills\/my-skill\/\*\*/g)).toHaveLength(1)
     expectNoLockFiles(root)
+  })
+
+  it('bootstraps an empty skills.json for a new project when the manifest is missing', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-bootstrap-empty-'))
+
+    await installCommand({ cwd: root })
+
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+    expect(manifest.installDir).toBe('.agents/skills')
+    expect(manifest.linkTargets).toEqual([])
+    expect(manifest.skills).toEqual({})
+    expectNoLockFiles(root)
+  })
+
+  it('bootstraps skills.json from existing installed skills when the manifest is missing', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-bootstrap-'))
+    const firstSkillDir = path.join(root, '.agents/skills/first-skill')
+    const secondSkillDir = path.join(root, '.agents/skills/second-skill')
+
+    mkdirSync(firstSkillDir, { recursive: true })
+    mkdirSync(secondSkillDir, { recursive: true })
+    mkdirSync(path.join(root, '.agents/skills/not-a-skill'), { recursive: true })
+    mkdirSync(path.join(root, '.claude/skills/first-skill'), { recursive: true })
+    writeFileSync(path.join(firstSkillDir, 'SKILL.md'), '# First skill\n')
+    writeFileSync(path.join(secondSkillDir, 'SKILL.md'), '# Second skill\n')
+    writeFileSync(path.join(root, '.claude/skills/first-skill/SKILL.md'), '# Stale copy\n')
+    writeFileSync(path.join(root, '.gitignore'), '.agents/**\n')
+
+    await installCommand({ cwd: root })
+
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+    const linkedSkill = path.join(root, '.claude/skills/first-skill')
+    const gitignore = readFileSync(path.join(root, '.gitignore'), 'utf8')
+
+    expect(manifest.installDir).toBe('.agents/skills')
+    expect(manifest.linkTargets).toEqual(['.claude/skills'])
+    expect(manifest.skills).toEqual({
+      'first-skill': 'local:*',
+      'second-skill': 'local:*',
+    })
+    expect(readFileSync(path.join(firstSkillDir, 'SKILL.md'), 'utf8')).toBe('# First skill\n')
+    expect(lstatSync(linkedSkill).isSymbolicLink()).toBe(true)
+    expect(path.resolve(path.dirname(linkedSkill), readlinkSync(linkedSkill))).toBe(firstSkillDir)
+    expect(gitignore).toContain('!.agents/skills/first-skill/**')
+    expect(gitignore).toContain('!.agents/skills/second-skill/**')
+    expectNoLockFiles(root)
+  })
+
+  it('uses skills-lock.json names when bootstrapping a Vercel skills install', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-bootstrap-lock-'))
+
+    mkdirSync(path.join(root, '.agents/skills/from-lock'), { recursive: true })
+    mkdirSync(path.join(root, '.agents/skills/untracked'), { recursive: true })
+    writeFileSync(path.join(root, '.agents/skills/from-lock/SKILL.md'), '# From lock\n')
+    writeFileSync(path.join(root, '.agents/skills/untracked/SKILL.md'), '# Untracked\n')
+    writeFileSync(
+      path.join(root, 'skills-lock.json'),
+      JSON.stringify(
+        {
+          version: 1,
+          skills: {
+            'from-lock': {
+              source: 'vercel-labs/agent-skills',
+              sourceType: 'github',
+              computedHash: 'abc123',
+            },
+            missing: {
+              source: 'vercel-labs/agent-skills',
+              sourceType: 'github',
+              computedHash: 'def456',
+            },
+          },
+        },
+        null,
+        2,
+      ),
+    )
+
+    await installCommand({ cwd: root })
+
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+    expect(manifest.skills).toEqual({
+      'from-lock': 'local:*',
+    })
+    expect(existsSync(path.join(root, '.agents/skills/untracked/SKILL.md'))).toBe(true)
+  })
+
+  it('bootstraps from .agent/skills when that install directory already exists', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-bootstrap-agent-'))
+    const skillDir = path.join(root, '.agent/skills/my-skill')
+
+    mkdirSync(skillDir, { recursive: true })
+    mkdirSync(path.join(root, '.claude/skills'), { recursive: true })
+    writeFileSync(path.join(skillDir, 'SKILL.md'), '# My skill\n')
+
+    await installCommand({ cwd: root })
+
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+    const linkedSkill = path.join(root, '.claude/skills/my-skill')
+    expect(manifest.installDir).toBe('.agent/skills')
+    expect(manifest.linkTargets).toEqual(['.claude/skills'])
+    expect(manifest.skills).toEqual({
+      'my-skill': 'local:*',
+    })
+    expect(lstatSync(linkedSkill).isSymbolicLink()).toBe(true)
+    expect(path.resolve(path.dirname(linkedSkill), readlinkSync(linkedSkill))).toBe(skillDir)
   })
 
   it('clears stale managed markers when adopting a local:* skill', async () => {
@@ -268,6 +381,361 @@ describe('installCommand', () => {
     expect(existsSync(installedSkill)).toBe(true)
     expect(readFileSync(installedSkill, 'utf8')).toContain('Hello from git')
     expectNoLockFiles(root)
+  })
+
+  it('auto-locks and installs dependencies declared in SKILL.md frontmatter', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-deps-'))
+    const dependencySpecifier = createLocalSkill(root, 'dep-skill', '# Dependency\n')
+    const rootSpecifier = createLocalSkill(
+      root,
+      'root-skill',
+      `---
+dependencies:
+  dep-skill: "${dependencySpecifier}"
+---
+# Root
+`,
+    )
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: ['.claude/skills'],
+      skills: {
+        'root-skill': rootSpecifier,
+      },
+    })
+
+    const result = await installCommand({ cwd: root })
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+
+    expect(result.installed).toEqual(['root-skill', 'dep-skill'])
+    expect(result.warnings).toEqual([])
+    expect(manifest.dependencies).toEqual({
+      'dep-skill': dependencySpecifier,
+    })
+    expect(manifest.selfSkill).toBeUndefined()
+    expect(existsSync(path.join(root, '.agents/skills/dep-skill/SKILL.md'))).toBe(true)
+    expect(lstatSync(path.join(root, '.claude/skills/dep-skill')).isSymbolicLink()).toBe(true)
+    expectNoLockFiles(root)
+  })
+
+  it('pins git dependencies when writing skills.json dependencies', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-deps-git-'))
+    const { gitRepo, commit } = createGitSkillRepo('# Git dependency\n')
+    const rootSpecifier = createLocalSkill(
+      root,
+      'root-skill',
+      `---
+dependencies:
+  hello-git-skill: "${gitRepo}#main&path:/skills/hello-git-skill"
+---
+# Root
+`,
+    )
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'root-skill': rootSpecifier,
+      },
+    })
+
+    await installCommand({ cwd: root })
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+
+    expect(manifest.dependencies).toEqual({
+      'hello-git-skill': `${gitRepo}#${commit}&path:/skills/hello-git-skill`,
+    })
+    expect(readFileSync(path.join(root, '.agents/skills/hello-git-skill/SKILL.md'), 'utf8')).toBe(
+      '# Git dependency\n',
+    )
+  })
+
+  it('uses manifest dependency overrides instead of frontmatter specifiers', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-deps-override-'))
+    const frontmatterDependency = createLocalSkill(root, 'frontmatter-dep', '# Frontmatter dep\n')
+    const manifestDependency = createLocalSkill(root, 'manifest-dep', '# Manifest dep\n')
+    const rootSpecifier = createLocalSkill(
+      root,
+      'root-skill',
+      `---
+dependencies:
+  shared-dep: "${frontmatterDependency}"
+---
+# Root
+`,
+    )
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'root-skill': rootSpecifier,
+      },
+      dependencies: {
+        'shared-dep': manifestDependency,
+      },
+    })
+
+    await installCommand({ cwd: root })
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+
+    expect(manifest.dependencies).toEqual({
+      'shared-dep': manifestDependency,
+    })
+    expect(readFileSync(path.join(root, '.agents/skills/shared-dep/SKILL.md'), 'utf8')).toBe(
+      '# Manifest dep\n',
+    )
+  })
+
+  it('keeps root skills authoritative when frontmatter declares the same dependency name', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-deps-root-wins-'))
+    const ignoredDependency = createLocalSkill(root, 'ignored-root-b', '# Ignored root B\n')
+    const rootB = createLocalSkill(root, 'root-b-source', '# Explicit root B\n')
+    const rootA = createLocalSkill(
+      root,
+      'root-a',
+      `---
+dependencies:
+  root-b: "${ignoredDependency}"
+---
+# Root A
+`,
+    )
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'root-a': rootA,
+        'root-b': rootB,
+      },
+    })
+
+    await installCommand({ cwd: root })
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+
+    expect(manifest.dependencies).toBeUndefined()
+    expect(readFileSync(path.join(root, '.agents/skills/root-b/SKILL.md'), 'utf8')).toBe(
+      '# Explicit root B\n',
+    )
+  })
+
+  it('keeps the first frontmatter dependency specifier and warns on conflicts', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-deps-conflict-'))
+    const firstDependency = createLocalSkill(root, 'first-dep', '# First dep\n')
+    const secondDependency = createLocalSkill(root, 'second-dep', '# Second dep\n')
+    const firstRoot = createLocalSkill(
+      root,
+      'first-root',
+      `---
+dependencies:
+  shared-dep: "${firstDependency}"
+---
+# First root
+`,
+    )
+    const secondRoot = createLocalSkill(
+      root,
+      'second-root',
+      `---
+dependencies:
+  shared-dep: "${secondDependency}"
+---
+# Second root
+`,
+    )
+    const warnings: string[] = []
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'first-root': firstRoot,
+        'second-root': secondRoot,
+      },
+    })
+
+    const result = await installCommand({
+      cwd: root,
+      onWarning: (warning) => warnings.push(warning.message),
+    })
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+
+    expect(result.warnings).toHaveLength(1)
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0]).toContain('using the first specifier')
+    expect(manifest.dependencies).toEqual({
+      'shared-dep': firstDependency,
+    })
+    expect(readFileSync(path.join(root, '.agents/skills/shared-dep/SKILL.md'), 'utf8')).toBe(
+      '# First dep\n',
+    )
+  })
+
+  it('resolves recursive dependencies once when the graph contains a cycle', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-deps-cycle-'))
+    const depASpecifier = createLocalSkill(
+      root,
+      'dep-a',
+      `---
+dependencies:
+  dep-b: "link:./sources/dep-b"
+---
+# Dep A
+`,
+    )
+    createLocalSkill(
+      root,
+      'dep-b',
+      `---
+dependencies:
+  dep-a: "link:./sources/dep-a"
+---
+# Dep B
+`,
+    )
+    const rootSpecifier = createLocalSkill(
+      root,
+      'root-skill',
+      `---
+dependencies:
+  dep-a: "${depASpecifier}"
+---
+# Root
+`,
+    )
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'root-skill': rootSpecifier,
+      },
+    })
+
+    const result = await installCommand({ cwd: root })
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+
+    expect(result.installed).toEqual(['root-skill', 'dep-a', 'dep-b'])
+    expect(manifest.dependencies).toEqual({
+      'dep-a': 'link:./sources/dep-a',
+      'dep-b': 'link:./sources/dep-b',
+    })
+    expect(existsSync(path.join(root, '.agents/skills/dep-a/SKILL.md'))).toBe(true)
+    expect(existsSync(path.join(root, '.agents/skills/dep-b/SKILL.md'))).toBe(true)
+  })
+
+  it('prunes stale dependency locks and installed dependency skills', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-deps-prune-'))
+    const dependencySpecifier = createLocalSkill(root, 'dep-skill', '# Dependency\n')
+    const rootSkillDir = path.join(root, 'sources/root-skill')
+    mkdirSync(rootSkillDir, { recursive: true })
+    writeFileSync(
+      path.join(rootSkillDir, 'SKILL.md'),
+      `---
+dependencies:
+  dep-skill: "${dependencySpecifier}"
+---
+# Root
+`,
+    )
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: ['.claude/skills'],
+      skills: {
+        'root-skill': 'link:./sources/root-skill',
+      },
+    })
+
+    await installCommand({ cwd: root })
+    writeFileSync(path.join(rootSkillDir, 'SKILL.md'), '# Root\n')
+    await installCommand({ cwd: root })
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+
+    expect(manifest.dependencies).toBeUndefined()
+    expect(existsSync(path.join(root, '.agents/skills/dep-skill'))).toBe(false)
+    expect(existsSync(path.join(root, '.claude/skills/dep-skill'))).toBe(false)
+  })
+
+  it('warns and skips invalid frontmatter dependencies', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-deps-invalid-'))
+    const rootSpecifier = createLocalSkill(
+      root,
+      'root-skill',
+      `---
+dependencies:
+  bad-shape: 123
+  bad-specifier: "link:./sources/bad#main"
+---
+# Root
+`,
+    )
+    const warnings: string[] = []
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'root-skill': rootSpecifier,
+      },
+    })
+
+    const result = await installCommand({
+      cwd: root,
+      onWarning: (warning) => warnings.push(warning.message),
+    })
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+
+    expect(result.installed).toEqual(['root-skill'])
+    expect(result.warnings).toHaveLength(2)
+    expect(warnings).toHaveLength(2)
+    expect(manifest.dependencies).toBeUndefined()
+  })
+
+  it('reads dependencies from patched SKILL.md frontmatter', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'skills-pm-install-deps-patch-'))
+    const dependencySpecifier = createLocalSkill(root, 'dep-skill', '# Dependency\n')
+    const packageRoot = createSkillPackage('root-skill', '# Root\n')
+    const tarballPath = packDirectory(packageRoot)
+    mkdirSync(path.join(root, 'patches'), { recursive: true })
+    writeFileSync(
+      path.join(root, 'patches/root-skill.patch'),
+      `diff --git a/SKILL.md b/SKILL.md
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -1 +1,5 @@
++---
++dependencies:
++  dep-skill: "${dependencySpecifier}"
++---
+ # Root
+`,
+    )
+
+    await writeSkillsManifest(root, {
+      installDir: '.agents/skills',
+      linkTargets: [],
+      skills: {
+        'root-skill': `file:${tarballPath}#path:/skills/root-skill`,
+      },
+      patchedSkills: {
+        'root-skill': 'patches/root-skill.patch',
+      },
+    })
+
+    await installCommand({ cwd: root })
+    const manifest = JSON.parse(readFileSync(path.join(root, 'skills.json'), 'utf8'))
+
+    expect(manifest.dependencies).toEqual({
+      'dep-skill': dependencySpecifier,
+    })
+    expect(readFileSync(path.join(root, '.agents/skills/root-skill/SKILL.md'), 'utf8')).toContain(
+      'dependencies:',
+    )
+    expect(existsSync(path.join(root, '.agents/skills/dep-skill/SKILL.md'))).toBe(true)
   })
 
   it('resolves full git commit pins without querying the remote ref', async () => {
