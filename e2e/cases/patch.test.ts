@@ -35,12 +35,6 @@ describe('spm patch e2e', () => {
       expect(patchResult.status).toBe(0)
       expect(pathExists(editSkillPath)).toBe(true)
       expect(formatProjectTerminalSnapshot(patchResult, project)).toMatchSnapshot()
-      expect(
-        formatProjectTerminalSnapshot(
-          { status: 0, signal: null, stdout: `${project}\\patch-edit\n`, stderr: '' },
-          project,
-        ),
-      ).toContain('<project>/patch-edit')
 
       appendFileSync(editSkillPath, '\nPatched instructions.\n')
 

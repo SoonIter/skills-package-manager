@@ -7,5 +7,5 @@ export default defineConfig({
   testTimeout: 60000,
   include: ['e2e/cases/**/*.test.ts'],
   exclude: ['**/node_modules/**'],
-  setupFiles: ['./scripts/rstest.e2e.setup.ts'],
+  setupFiles: ['./scripts/rstest.setup.ts'],
 })

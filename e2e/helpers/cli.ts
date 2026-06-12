@@ -58,33 +58,6 @@ function replacementVariants(value: string): string[] {
   ].sort((left, right) => right.length - left.length)
 }
 
-function replacementEntries(replacement: Replacement): Replacement[] {
-  const variants = replacementVariants(replacement.value)
-  const isPathLike = variants.some((variant) => /[/\\]/.test(variant))
-  const entries = variants.flatMap((variant) => {
-    const pathEntries = isPathLike
-      ? [
-          { value: `${variant}/`, placeholder: `${replacement.placeholder}/` },
-          { value: `${variant}\\`, placeholder: `${replacement.placeholder}/` },
-        ]
-      : []
-
-    return [...pathEntries, { value: variant, placeholder: replacement.placeholder }]
-  })
-  const seen = new Set<string>()
-
-  return entries
-    .filter((entry) => {
-      const key = `${entry.value}\0${entry.placeholder}`
-      if (seen.has(key)) {
-        return false
-      }
-      seen.add(key)
-      return true
-    })
-    .sort((left, right) => right.value.length - left.value.length)
-}
-
 const ansiPattern = new RegExp(`${String.fromCharCode(27)}\\[[0-?]*[ -/]*[@-~]`, 'g')
 
 function stripAnsi(value: string): string {
@@ -100,10 +73,10 @@ function normalizeTerminalText(value: string, replacements: Replacement[] = []):
     { value: packageJson.version, placeholder: '<package-version>' },
     ...replacements,
   ]) {
-    for (const variant of replacementEntries(replacement)) {
+    for (const variant of replacementVariants(replacement.value)) {
       normalized = normalized.replace(
-        new RegExp(escapeRegExp(variant.value), 'g'),
-        variant.placeholder,
+        new RegExp(escapeRegExp(variant), 'g'),
+        replacement.placeholder,
       )
     }
   }
