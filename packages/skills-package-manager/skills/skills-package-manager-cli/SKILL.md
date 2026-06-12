@@ -21,8 +21,6 @@ Use this skill for repositories that already use `skills-package-manager`, or wh
 
 ## Command Guide
 
-Use `npx skills-package-manager install` as the first command for both new projects and migrated projects.
-
 1. `npx skills-package-manager init`
    - Creates `skills.json`.
    - `npx skills-package-manager init --yes` writes the default manifest immediately.
@@ -38,9 +36,6 @@ Use `npx skills-package-manager install` as the first command for both new proje
    - Resolves and installs everything declared in `skills.json`.
    - Reads top-level `dependencies` from installed `SKILL.md` frontmatter, installs the recursive dependency closure, and writes resolved pins to `skills.json.dependencies`.
    - Existing `skills.json.dependencies` entries override frontmatter specifiers for the same dependency name.
-   - If `skills.json` is missing, can bootstrap one from existing `.agents/skills` or `.agent/skills` directories using `local:*` entries.
-   - Uses `skills-lock.json` names when migrating an existing Vercel `npx skills` project.
-   - For new projects with no local skills yet, writes an empty default `skills.json`.
    - Does not write a separate lock file.
 
 4. `npx skills-package-manager update [skill...]`

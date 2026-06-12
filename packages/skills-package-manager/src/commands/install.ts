@@ -1,4 +1,3 @@
-import { bootstrapSkillsManifest } from '../config/bootstrapSkillsManifest'
 import { resolveSkillsPlan } from '../config/resolveSkillsPlan'
 import {
   areManifestDependenciesEqual,
@@ -11,14 +10,10 @@ import { runPipeline } from '../pipeline'
 import { loadConfig } from '../pipeline/context'
 
 export async function installCommand(options: InstallCommandOptions) {
-  let ctx = await loadConfig(options.cwd)
+  const ctx = await loadConfig(options.cwd)
 
   if (!ctx.manifestExists) {
-    ctx = {
-      ...ctx,
-      manifest: await bootstrapSkillsManifest(options.cwd),
-      manifestExists: true,
-    }
+    return { status: 'skipped' as const, reason: 'manifest-missing' }
   }
 
   const reporter = createInstallProgressReporter()
