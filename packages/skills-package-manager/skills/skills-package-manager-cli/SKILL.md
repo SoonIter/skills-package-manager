@@ -10,7 +10,7 @@ Use this skill for repositories that already use `skills-package-manager`, or wh
 ## Core Model
 
 - `skills.json` is the source of truth.
-  It declares which skills a repo wants, the pinned git commits or npm versions to use, where to materialize skills, where to link them, and whether to include the bundled helper skill.
+  It declares which root skills a repo wants, the pinned git commits or npm versions to use, where to materialize skills, where to link them, generated dependency locks, and whether to include the bundled helper skill.
 - Installed directories such as `.agents/skills` and linked directories such as `.claude/skills` are outputs.
   They are produced from `skills.json`; they are not canonical config.
 
@@ -34,10 +34,13 @@ Use this skill for repositories that already use `skills-package-manager`, or wh
 
 3. `npx skills-package-manager install`
    - Resolves and installs everything declared in `skills.json`.
+   - Reads top-level `dependencies` from installed `SKILL.md` frontmatter, installs the recursive dependency closure, and writes resolved pins to `skills.json.dependencies`.
+   - Existing `skills.json.dependencies` entries override frontmatter specifiers for the same dependency name.
    - Does not write a separate lock file.
 
 4. `npx skills-package-manager update [skill...]`
    - Updates git skills to the latest `main` commit and npm skills to the registry `latest` version.
+   - With no skill names, updates both root skills and dependency locks; named updates only accept root skills.
    - Writes updated pins back to `skills.json` only after install succeeds.
    - Skips `link:`, `local:`, and `file:` skills.
 

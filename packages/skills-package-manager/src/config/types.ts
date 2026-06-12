@@ -8,6 +8,7 @@ export type SkillsManifest = {
   linkTargets?: string[]
   selfSkill?: boolean
   skills?: Record<string, string>
+  dependencies?: Record<string, string>
   patchedSkills?: Record<string, string>
 }
 
@@ -21,7 +22,20 @@ export type NormalizedSkillsManifest = {
   linkTargets: string[]
   selfSkill?: boolean
   skills: Record<string, string>
+  dependencies: Record<string, string>
   patchedSkills?: Record<string, string>
+}
+
+export type SkillDependencyWarning = {
+  code:
+    | 'invalid-frontmatter'
+    | 'invalid-dependencies'
+    | 'invalid-dependency-specifier'
+    | 'dependency-conflict'
+  message: string
+  skillName?: string
+  dependencyName?: string
+  specifier?: string
 }
 
 export type NormalizedSpecifier = {
@@ -82,6 +96,7 @@ export type AddCommandOptions = {
 export type UpdateCommandOptions = {
   cwd: string
   skills?: string[]
+  onWarning?: (warning: SkillDependencyWarning) => void
 }
 
 export type PatchCommandOptions = {
@@ -116,11 +131,13 @@ export type UpdateCommandResult = {
   unchanged: string[]
   skipped: Array<{ name: string; reason: 'link-specifier' | 'local-specifier' | 'file-specifier' }>
   failed: Array<{ name: string; reason: string }>
+  warnings: SkillDependencyWarning[]
 }
 
 export type InstallCommandOptions = {
   cwd: string
   onProgress?: InstallProgressListener
+  onWarning?: (warning: SkillDependencyWarning) => void
 }
 
 export type InstallProgressEvent =

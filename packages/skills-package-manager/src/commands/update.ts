@@ -1,4 +1,8 @@
 import { resolveSkillsPlan } from '../config/resolveSkillsPlan'
+import {
+  areManifestDependenciesEqual,
+  resolveManifestDependencies,
+} from '../config/skillDependencies'
 import type {
   NormalizedSkillsManifest,
   UpdateCommandOptions,
@@ -6,10 +10,9 @@ import type {
 } from '../config/types'
 import { writeSkillsManifest } from '../config/writeSkillsManifest'
 import { ErrorCode, ManifestError, SkillError } from '../errors'
-import { resolveNpmPackage } from '../npm/packPackage'
 import { runPipeline } from '../pipeline'
 import { loadConfig } from '../pipeline/context'
-import { resolveGitCommit } from '../resolvers/git'
+import { resolveLatestManifestSpecifier } from '../specifiers/formatResolvedSpecifier'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
 
 function createEmptyResult(): UpdateCommandResult {
@@ -19,44 +22,16 @@ function createEmptyResult(): UpdateCommandResult {
     unchanged: [],
     skipped: [],
     failed: [],
+    warnings: [],
   }
-}
-
-function formatPathSuffix(skillPath: string): string {
-  return skillPath === '/' ? '' : `&path:${skillPath}`
-}
-
-function toGitHubSpecifierSource(repoUrl: string): string {
-  const match = repoUrl.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?\/?$/)
-  if (!match) {
-    return repoUrl
-  }
-
-  const [, owner, repo] = match
-  return `github:${owner}/${repo.replace(/\.git$/, '')}`
-}
-
-function parseNpmPackageName(source: string): string {
-  const packageSpecifier = source.slice('npm:'.length)
-  const scopedMatch = packageSpecifier.match(/^(@[^/]+\/[^@]+)(?:@.+)?$/)
-  if (scopedMatch) {
-    return scopedMatch[1]
-  }
-
-  const unscopedMatch = packageSpecifier.match(/^([^@]+)(?:@.+)?$/)
-  if (unscopedMatch) {
-    return unscopedMatch[1]
-  }
-
-  throw new Error(`Unsupported npm specifier: ${packageSpecifier}`)
 }
 
 async function resolveUpdatedSpecifier(
   cwd: string,
   manifest: NormalizedSkillsManifest,
   skillName: string,
+  currentSpecifier: string,
 ): Promise<{ specifier: string; skipped?: UpdateCommandResult['skipped'][number]['reason'] }> {
-  const currentSpecifier = manifest.skills[skillName]
   const normalized = normalizeSpecifier(currentSpecifier, {
     installDir: manifest.installDir,
     skillName,
@@ -71,18 +46,15 @@ async function resolveUpdatedSpecifier(
   if (normalized.type === 'file') {
     return { specifier: currentSpecifier, skipped: 'file-specifier' }
   }
-  if (normalized.type === 'git') {
-    const commit = await resolveGitCommit(normalized.source, 'main')
-    return {
-      specifier: `${toGitHubSpecifierSource(normalized.source)}#${commit}${formatPathSuffix(normalized.path)}`,
-    }
-  }
 
-  const packageName = parseNpmPackageName(normalized.source)
-  const resolved = await resolveNpmPackage(cwd, packageName)
-  return {
-    specifier: `npm:${resolved.name}@${resolved.version}${formatPathSuffix(normalized.path)}`,
-  }
+  return { specifier: await resolveLatestManifestSpecifier(cwd, normalized) }
+}
+
+function createManifestSnapshot(manifest: NormalizedSkillsManifest): string {
+  return JSON.stringify({
+    skills: manifest.skills,
+    dependencies: manifest.dependencies,
+  })
 }
 
 export async function updateCommand(options: UpdateCommandOptions): Promise<UpdateCommandResult> {
@@ -96,8 +68,15 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
     })
   }
 
-  const targetSkills = options.skills ?? Object.keys(ctx.manifest.skills)
-  for (const skillName of targetSkills) {
+  const targetSkills = options.skills
+    ? options.skills
+    : [
+        ...Object.keys(ctx.manifest.skills),
+        ...Object.keys(ctx.manifest.dependencies).filter(
+          (skillName) => !(skillName in ctx.manifest.skills),
+        ),
+      ]
+  for (const skillName of options.skills ?? []) {
     if (!(skillName in ctx.manifest.skills)) {
       throw new SkillError({
         code: ErrorCode.SKILL_NOT_FOUND,
@@ -111,22 +90,32 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
   const nextManifest: NormalizedSkillsManifest = {
     ...ctx.manifest,
     skills: { ...ctx.manifest.skills },
+    dependencies: { ...ctx.manifest.dependencies },
   }
+  const initialSnapshot = createManifestSnapshot(nextManifest)
 
   for (const skillName of targetSkills) {
+    const section = skillName in nextManifest.skills ? 'skills' : 'dependencies'
+    const currentSpecifier = nextManifest[section][skillName]
+
     try {
-      const update = await resolveUpdatedSpecifier(options.cwd, ctx.manifest, skillName)
+      const update = await resolveUpdatedSpecifier(
+        options.cwd,
+        ctx.manifest,
+        skillName,
+        currentSpecifier,
+      )
       if (update.skipped) {
         result.skipped.push({ name: skillName, reason: update.skipped })
         continue
       }
 
-      if (ctx.manifest.skills[skillName] === update.specifier) {
+      if (currentSpecifier === update.specifier) {
         result.unchanged.push(skillName)
         continue
       }
 
-      nextManifest.skills[skillName] = update.specifier
+      nextManifest[section][skillName] = update.specifier
       result.updated.push(skillName)
     } catch (error) {
       result.failed.push({ name: skillName, reason: (error as Error).message })
@@ -138,20 +127,27 @@ export async function updateCommand(options: UpdateCommandOptions): Promise<Upda
     return result
   }
 
-  const plan = await resolveSkillsPlan(options.cwd, nextManifest)
+  const dependencyResult = await resolveManifestDependencies(options.cwd, nextManifest, {
+    onWarning: options.onWarning,
+  })
+  result.warnings = dependencyResult.warnings
+  const finalManifest = dependencyResult.manifest
+  const plan = await resolveSkillsPlan(options.cwd, finalManifest)
   await runPipeline({
     ctx: {
       ...ctx,
-      manifest: nextManifest,
+      manifest: finalManifest,
     },
     plan,
     skipResolve: true,
   })
 
-  if (result.updated.length > 0) {
-    await writeSkillsManifest(options.cwd, nextManifest)
+  const dependenciesChanged = !areManifestDependenciesEqual(ctx.manifest, finalManifest)
+  const manifestChanged = initialSnapshot !== createManifestSnapshot(finalManifest)
+  if (result.updated.length > 0 || dependenciesChanged || manifestChanged) {
+    await writeSkillsManifest(options.cwd, finalManifest)
   }
 
-  result.status = result.updated.length > 0 ? 'updated' : 'skipped'
+  result.status = result.updated.length > 0 || manifestChanged ? 'updated' : 'skipped'
   return result
 }

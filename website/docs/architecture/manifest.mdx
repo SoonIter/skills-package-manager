@@ -20,6 +20,9 @@ skills-package-manager uses `skills.json` as the single user-maintained configur
     "my-existing-skill": "local:*",
     "my-packed-skill": "file:./skills-package.tgz&path:/skills/my-packed-skill",
     "my-npm-skill": "npm:@scope/skills-package@1.0.0&path:/skills/my-npm-skill"
+  },
+  "dependencies": {
+    "shared-helper": "github:owner/repo#def5678&path:/skills/shared-helper"
   }
 }
 ```
@@ -31,14 +34,28 @@ Field descriptions:
 - `selfSkill`: Whether to auto-install the bundled `skills-package-manager-cli` skill during install. Defaults to `false`.
 - `patchedSkills`: Optional mapping from skill name to a committed patch file path.
 - `skills`: A mapping from skill name to specifier.
+- `dependencies`: A generated lock mapping for dependencies discovered from installed skills' `SKILL.md` frontmatter.
+
+Skills can declare dependencies in top-level frontmatter:
+
+```yaml
+---
+name: workflow-skill
+dependencies:
+  shared-helper: "github:owner/repo#main&path:/skills/shared-helper"
+---
+```
+
+Dependency specifiers use the same syntax as `skills.json`. If `skills.json.dependencies` already contains the dependency name, that manifest entry is used as the source and re-pinned after a successful install.
 
 ## Pinning Model
 
 Remote versions are pinned in `skills.json`:
 
 - `add` resolves git refs to commits and npm packages to versions before writing the manifest.
-- `update` moves git skills to the latest `main` commit and npm skills to the registry `latest` version.
-- `install` resolves the manifest into an in-memory install plan and does not write a separate lock file.
+- `install` discovers recursive frontmatter dependencies, writes their resolved pins into `dependencies`, and prunes stale dependency locks after a successful install.
+- `update` without arguments moves root skills and dependency locks to the latest resolvable git or npm version; named updates only target root `skills`.
+- No separate lock file is written.
 
 ## Recommended Practices
 

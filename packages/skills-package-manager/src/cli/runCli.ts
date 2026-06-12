@@ -6,6 +6,7 @@ import { installCommand } from '../commands/install'
 import { patchCommand } from '../commands/patch'
 import { patchCommitCommand } from '../commands/patchCommit'
 import { updateCommand } from '../commands/update'
+import type { SkillDependencyWarning } from '../config/types'
 import { formatErrorForDisplay, SpmError } from '../errors'
 
 type CliHandlers = {
@@ -84,6 +85,10 @@ function toSingleOrArray(values: string[] | undefined, fallback?: string[] | str
 
 const packageVersion = packageJson.version
 
+function printSkillDependencyWarning(warning: SkillDependencyWarning) {
+  console.warn(`spm warning: ${warning.message}`)
+}
+
 export function runCli(argv: string[], context?: { cwd?: string }): Promise<unknown>
 export async function runCli(argv: string[], context: InternalRunCliContext = {}) {
   const cwd = context.cwd ?? process.cwd()
@@ -146,7 +151,7 @@ export async function runCli(argv: string[], context: InternalRunCliContext = {}
     )
 
   cli.command('install [...args]').action(async () => {
-    return handlers.installCommand({ cwd })
+    return handlers.installCommand({ cwd, onWarning: printSkillDependencyWarning })
   })
 
   cli
@@ -170,7 +175,11 @@ export async function runCli(argv: string[], context: InternalRunCliContext = {}
     })
 
   cli.command('update [...skills]').action(async (skills: string[] = []) => {
-    return handlers.updateCommand({ cwd, skills: skills.length > 0 ? skills : undefined })
+    return handlers.updateCommand({
+      cwd,
+      skills: skills.length > 0 ? skills : undefined,
+      onWarning: printSkillDependencyWarning,
+    })
   })
 
   cli

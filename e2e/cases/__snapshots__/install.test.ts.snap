@@ -12,6 +12,18 @@ stderr:
   <empty>"
 `;
 
+exports[`spm install e2e > locks frontmatter dependencies and prints dependency warnings 1`] = `
+"status: 0
+signal: <none>
+stdout:
+  spm install: starting (2 skills)
+  spm install: resolving...
+  spm install: fetching...
+  spm install: Progress: resolved 2, reused 0, downloaded 0, added 2, done
+stderr:
+  spm warning: root-skill: invalid dependency "bad-specifier" specifier "link:./local-skills/missing#main": Invalid link specifier: link: must point directly to a skill directory. Skipping it."
+`;
+
 exports[`spm install e2e > skips cleanly when skills.json is missing 1`] = `
 "status: 0
 signal: <none>

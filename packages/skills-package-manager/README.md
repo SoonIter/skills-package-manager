@@ -120,6 +120,18 @@ This resolves each skill from its specifier, installs managed skills into `insta
 When `selfSkill` is `true`, `npx skills-package-manager install` also installs the bundled `skills-package-manager-cli` skill so users get guidance for `skills.json` and `npx skills-package-manager` commands. This helper skill is injected at install time and is not written to `skills.json`.
 If `patchedSkills` contains an entry for a managed skill, the corresponding patch file is applied after the skill is materialized. `local:` skills cannot be patched because their source directories are user-owned.
 
+Skills can declare top-level frontmatter dependencies:
+
+```yaml
+---
+name: workflow-skill
+dependencies:
+  shared-helper: "github:owner/repo#main&path:/skills/shared-helper"
+---
+```
+
+`install` recursively installs those dependencies and writes the resolved pins to `skills.json.dependencies` after the install succeeds. Existing `skills.json.dependencies` entries override frontmatter specifiers for the same name, and stale dependency locks are pruned.
+
 ### `npx skills-package-manager patch`
 
 Prepare a skill for patching without changing the manifest yet:
@@ -166,7 +178,8 @@ Behavior:
 - Uses `skills.json` as the source of truth
 - Updates git skills to the latest `main` commit and npm skills to the registry `latest` version
 - Skips local `link:`, `local:`, and `file:` skills
-- Fails immediately for unknown skill names
+- Without named targets, updates both root `skills` and dependency locks before recomputing the dependency closure
+- Named update targets must be root `skills`; dependency-only names fail immediately
 - Writes `skills.json` only after the updated install succeeds
 
 ## Programmatic API

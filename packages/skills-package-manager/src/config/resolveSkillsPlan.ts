@@ -2,7 +2,7 @@ import path from 'node:path'
 import { ErrorCode, ParseError } from '../errors'
 import { resolveEntry } from '../resolvers'
 import { normalizeSpecifier } from '../specifiers/normalizeSpecifier'
-import { sha256File } from '../utils/hash'
+import { sha256, sha256File } from '../utils/hash'
 import { toPortableRelativePath } from '../utils/path'
 import { expandSkillsManifest } from './skillsManifest'
 import type {
@@ -56,11 +56,13 @@ export async function attachManifestPatchToEntry(
   }
 
   const absolutePatchPath = path.resolve(cwd, patchPath)
+  const patchDigest = await sha256File(absolutePatchPath)
   return {
     ...entry,
+    digest: sha256(`${entry.digest}:${patchDigest}`),
     patch: {
       path: toPortableRelativePath(cwd, absolutePatchPath),
-      digest: await sha256File(absolutePatchPath),
+      digest: patchDigest,
     },
   }
 }
@@ -73,8 +75,14 @@ export async function resolveSkillsPlan(
   },
 ): Promise<ResolvedSkillsPlan> {
   const expandedManifest = await expandSkillsManifest(cwd, manifest)
+  const manifestEntries = [
+    ...Object.entries(expandedManifest.skills),
+    ...Object.entries(expandedManifest.dependencies).filter(
+      ([skillName]) => !(skillName in expandedManifest.skills),
+    ),
+  ]
   const entries = await Promise.all(
-    Object.entries(expandedManifest.skills).map(async ([skillName, specifier]) => {
+    manifestEntries.map(async ([skillName, specifier]) => {
       const { skillName: resolvedName, entry } = await resolveSkillEntry(
         cwd,
         specifier,

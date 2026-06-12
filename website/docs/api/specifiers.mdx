@@ -2,6 +2,8 @@
 
 skills-package-manager uses specifiers to describe where skills come from.
 
+The same specifier syntax is used in `skills.json.skills`, generated `skills.json.dependencies`, and top-level `SKILL.md` frontmatter `dependencies`.
+
 ## General format
 
 ```text
@@ -33,6 +35,7 @@ local: local:<path-to-existing-skill-dir>
 - `ref`: An optional git ref, such as `main`, a tag, a full commit SHA, or a short commit SHA
 - `path`: The directory of the skill inside the source repository or package
 - `local:*`: Resolves to `${installDir}/${skillName}` for skills already managed inside the configured install directory
+- Relative `link:`, `local:`, and `file:` paths in frontmatter dependencies resolve from the consuming workspace root, matching `skills.json`
 
 ## Resolution types
 

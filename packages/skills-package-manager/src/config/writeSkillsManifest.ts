@@ -18,6 +18,10 @@ export async function writeSkillsManifest(
     skills: manifest.skills,
   }
 
+  if (manifest.dependencies && Object.keys(manifest.dependencies).length > 0) {
+    nextManifest.dependencies = manifest.dependencies
+  }
+
   // Only include selfSkill if it's explicitly set
   if (manifest.selfSkill !== undefined) {
     nextManifest.selfSkill = manifest.selfSkill

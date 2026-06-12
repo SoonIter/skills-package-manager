@@ -20,6 +20,10 @@ export const skillsManifestSchema = z
       .record(z.string(), z.string())
       .default({})
       .describe('Map of skill names to their specifiers'),
+    dependencies: z
+      .record(z.string(), z.string())
+      .default({})
+      .describe('Resolved skill dependencies discovered from SKILL.md frontmatter'),
     patchedSkills: z
       .record(z.string(), z.string())
       .optional()
